@@ -8,16 +8,39 @@ from supabase import Client, create_client
 
 
 def get_supabase() -> Client:
-    """Create a Supabase client."""
+    """
+    Create a Supabase client and restore the authenticated
+    user's session when one exists.
+    """
 
-    return create_client(
+    client = create_client(
         st.secrets["SUPABASE_URL"],
         st.secrets["SUPABASE_KEY"],
     )
 
+    access_token = st.session_state.get(
+        "supabase_access_token"
+    )
+
+    refresh_token = st.session_state.get(
+        "supabase_refresh_token"
+    )
+
+    if access_token and refresh_token:
+        try:
+            client.auth.set_session(
+                access_token,
+                refresh_token,
+            )
+        except Exception:
+            # The stored session may have expired or become invalid.
+            clear_auth_state()
+
+    return client
+
 
 def store_session(session: Any) -> None:
-    """Store authentication information for this Streamlit session."""
+    """Store the authenticated user's session temporarily."""
 
     st.session_state["supabase_access_token"] = (
         session.access_token
@@ -37,20 +60,23 @@ def store_session(session: Any) -> None:
 
 
 def clear_auth_state() -> None:
-    """Clear temporary authentication information."""
+    """Remove all temporary authentication state."""
 
-    for key in [
+    for key in (
         "supabase_access_token",
         "supabase_refresh_token",
         "supabase_user_id",
         "supabase_user_email",
         "learner_state_loaded",
-    ]:
+    ):
         st.session_state.pop(key, None)
 
 
-def sign_up(email: str, password: str):
-    """Create a new user."""
+def sign_up(
+    email: str,
+    password: str,
+):
+    """Create a new Supabase Auth account."""
 
     client = get_supabase()
 
@@ -62,7 +88,9 @@ def sign_up(email: str, password: str):
     )
 
     if response.user is None:
-        raise RuntimeError("Account creation failed.")
+        raise RuntimeError(
+            "Account creation failed."
+        )
 
     if response.session is not None:
         store_session(response.session)
@@ -70,8 +98,11 @@ def sign_up(email: str, password: str):
     return response
 
 
-def sign_in(email: str, password: str):
-    """Sign in an existing user."""
+def sign_in(
+    email: str,
+    password: str,
+):
+    """Sign in using email and password."""
 
     client = get_supabase()
 
@@ -82,8 +113,13 @@ def sign_in(email: str, password: str):
         }
     )
 
-    if response.user is None or response.session is None:
-        raise RuntimeError("Login failed.")
+    if (
+        response.user is None
+        or response.session is None
+    ):
+        raise RuntimeError(
+            "Login failed."
+        )
 
     store_session(response.session)
 
@@ -91,13 +127,22 @@ def sign_in(email: str, password: str):
 
 
 def get_current_user():
-    """Return the authenticated user."""
+    """
+    Validate the current authenticated user.
+
+    Returns:
+        Supabase user object, or None.
+    """
 
     access_token = st.session_state.get(
         "supabase_access_token"
     )
 
-    if not access_token:
+    refresh_token = st.session_state.get(
+        "supabase_refresh_token"
+    )
+
+    if not access_token or not refresh_token:
         return None
 
     try:
@@ -110,6 +155,7 @@ def get_current_user():
         return response.user
 
     except Exception:
+        clear_auth_state()
         return None
 
 
@@ -130,7 +176,12 @@ def sign_out() -> None:
 def load_progress(
     user_id: str,
 ) -> dict[str, Any]:
-    """Load the learner's saved progress."""
+    """
+    Load persistent learner progress.
+
+    RLS ensures that the authenticated user can
+    only access their own row.
+    """
 
     client = get_supabase()
 
@@ -161,7 +212,9 @@ def save_progress(
     user_id: str,
     progress: dict[str, Any],
 ) -> None:
-    """Persist learner progress."""
+    """
+    Persist durable learner progress.
+    """
 
     client = get_supabase()
 
@@ -178,4 +231,4 @@ def save_progress(
         .table("learner_progress")
         .upsert(payload)
         .execute()
-)
+    )
