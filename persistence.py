@@ -15,17 +15,17 @@ Persistence:
        ↓
     Supabase PostgreSQL
 
-This module:
-- identifies the authenticated learner
-- creates the server-side Supabase client
-- loads learner data
-- saves learner data
+Responsibilities:
+- identify the authenticated learner
+- connect to Supabase
+- load durable learner state
+- save durable learner state
 
 This module does NOT:
 - manage passwords
 - perform login/signup
 - use Supabase Auth sessions
-- store OAuth tokens
+- store OAuth access/refresh tokens
 """
 
 from __future__ import annotations
@@ -34,45 +34,21 @@ from datetime import datetime, timezone
 from typing import Any
 
 import streamlit as st
+from postgrest.exceptions import APIError
 from supabase import Client, create_client
+
+
+TABLE_NAME = "learner_progress"
 
 
 # ---------------------------------------------------------------------------
 # AUTHENTICATION
 # ---------------------------------------------------------------------------
 
-def _is_logged_in() -> bool:
+def _get_user_claims() -> dict[str, Any]:
     """
-    Safely determine whether the current Streamlit user is authenticated.
+    Safely convert Streamlit's authenticated OIDC user into a dictionary.
     """
-
-    user = st.user
-
-    try:
-        return bool(user.is_logged_in)
-    except AttributeError:
-        try:
-            claims = dict(user)
-        except (TypeError, ValueError):
-            return False
-
-        return bool(claims.get("sub"))
-
-
-def get_user_id() -> str:
-    """
-    Return the authenticated learner's stable OIDC subject ID.
-
-    Example:
-        google-oauth2|123456789...
-
-    Do NOT use the email address as the database identity.
-    """
-
-    if not _is_logged_in():
-        raise RuntimeError(
-            "No authenticated Vocogni user is available."
-        )
 
     user = st.user
 
@@ -83,19 +59,51 @@ def get_user_id() -> str:
             claims = dict(user)
         except (TypeError, ValueError) as exc:
             raise RuntimeError(
-                "Could not read the authenticated OIDC user."
+                "VOCogni could not read the authenticated OIDC user."
             ) from exc
 
     if not isinstance(claims, dict):
         raise RuntimeError(
-            "The authenticated OIDC user has an invalid format."
+            "VOCogni received an invalid authenticated user object."
         )
+
+    return claims
+
+
+def _is_logged_in() -> bool:
+    """
+    Return True when Streamlit has an authenticated user.
+    """
+
+    try:
+        return bool(st.user.is_logged_in)
+    except AttributeError:
+        claims = _get_user_claims()
+        return bool(claims.get("sub"))
+
+
+def get_user_id() -> str:
+    """
+    Return the stable OIDC subject ID for the current learner.
+
+    Example:
+        google-oauth2|123456789...
+
+    The email address is deliberately NOT used as the database identity.
+    """
+
+    if not _is_logged_in():
+        raise RuntimeError(
+            "No authenticated Vocogni user is available."
+        )
+
+    claims = _get_user_claims()
 
     user_id = claims.get("sub")
 
     if not user_id:
         raise RuntimeError(
-            "The authenticated user has no OIDC subject (sub) claim."
+            "The authenticated user has no OIDC 'sub' claim."
         )
 
     return str(user_id)
@@ -112,75 +120,40 @@ def get_supabase() -> Client:
     Preferred secret:
         SUPABASE_SERVER_KEY
 
-    Temporary compatibility fallback:
+    Legacy fallback:
         SUPABASE_KEY
 
-    The fallback exists because older Vocogni configuration used
-    SUPABASE_KEY. The recommended production configuration is still
-    SUPABASE_SERVER_KEY containing an sb_secret_... key.
+    The server key must never be exposed in GitHub or browser-side code.
     """
 
-    # ---------------------------------------------------------------
-    # Supabase URL
-    # ---------------------------------------------------------------
-
-    try:
-        supabase_url = st.secrets["SUPABASE_URL"]
-    except KeyError as exc:
+    if "SUPABASE_URL" not in st.secrets:
         raise RuntimeError(
-            "Missing SUPABASE_URL in Streamlit Secrets. "
-            "Add your Supabase project URL."
-        ) from exc
+            "Missing SUPABASE_URL in Streamlit Secrets."
+        )
 
-    # ---------------------------------------------------------------
-    # Preferred server key
-    # ---------------------------------------------------------------
+    supabase_url = st.secrets["SUPABASE_URL"]
 
     if "SUPABASE_SERVER_KEY" in st.secrets:
         supabase_key = st.secrets["SUPABASE_SERVER_KEY"]
 
-    # ---------------------------------------------------------------
-    # Backward compatibility with the old configuration
-    # ---------------------------------------------------------------
-
     elif "SUPABASE_KEY" in st.secrets:
         supabase_key = st.secrets["SUPABASE_KEY"]
 
-        st.warning(
-            "VOCogni is using the legacy SUPABASE_KEY setting. "
-            "For the final configuration, replace it with a "
-            "server-only SUPABASE_SERVER_KEY (sb_secret_...)."
-        )
-
     else:
         raise RuntimeError(
-            "Missing Supabase API key in Streamlit Secrets. "
-            "Add SUPABASE_SERVER_KEY = \"sb_secret_...\"."
+            "Missing Supabase API key. "
+            "Add SUPABASE_SERVER_KEY to Streamlit Secrets."
         )
 
-    # ---------------------------------------------------------------
-    # Validate values
-    # ---------------------------------------------------------------
-
-    if not isinstance(
-        supabase_url,
-        str,
-    ) or not supabase_url.strip():
+    if not isinstance(supabase_url, str) or not supabase_url.strip():
         raise RuntimeError(
             "SUPABASE_URL is empty or invalid."
         )
 
-    if not isinstance(
-        supabase_key,
-        str,
-    ) or not supabase_key.strip():
+    if not isinstance(supabase_key, str) or not supabase_key.strip():
         raise RuntimeError(
             "The Supabase API key is empty or invalid."
         )
-
-    # ---------------------------------------------------------------
-    # Create client
-    # ---------------------------------------------------------------
 
     return create_client(
         supabase_url.strip(),
@@ -189,7 +162,7 @@ def get_supabase() -> Client:
 
 
 # ---------------------------------------------------------------------------
-# RESPONSE NORMALIZATION
+# RESPONSE HELPERS
 # ---------------------------------------------------------------------------
 
 def _response_rows(
@@ -199,34 +172,80 @@ def _response_rows(
     Normalize Supabase response data.
     """
 
-    data = getattr(
+    rows = getattr(
         response,
         "data",
         None,
     )
 
-    if data is None and isinstance(
-        response,
-        dict,
-    ):
-        data = response.get("data")
+    if rows is None and isinstance(response, dict):
+        rows = response.get("data")
 
-    if data is None:
+    if rows is None:
         return []
 
-    if not isinstance(
-        data,
-        list,
-    ):
+    if not isinstance(rows, list):
         raise RuntimeError(
             "Supabase returned an unexpected response format."
         )
 
     return [
         row
-        for row in data
+        for row in rows
         if isinstance(row, dict)
     ]
+
+
+def _format_database_error(
+    error: Exception,
+) -> str:
+    """
+    Convert a Supabase/PostgREST error into a useful, non-secret message.
+    """
+
+    message = str(error).strip()
+
+    lowered = message.lower()
+
+    if "uuid" in lowered:
+        return (
+            "Supabase rejected the learner ID because the "
+            "learner_progress.user_id column is probably still UUID. "
+            "Change that column to TEXT using the VOCogni SQL migration."
+        )
+
+    if (
+        "permission denied" in lowered
+        or "42501" in lowered
+    ):
+        return (
+            "Supabase denied access to learner_progress. "
+            "Grant SELECT/INSERT/UPDATE/DELETE to service_role "
+            "and expose the table through the Data API."
+        )
+
+    if (
+        "relation" in lowered
+        and "does not exist" in lowered
+    ):
+        return (
+            "The Supabase table public.learner_progress does not exist."
+        )
+
+    if "column" in lowered and "does not exist" in lowered:
+        return (
+            "The learner_progress table is missing a required column."
+        )
+
+    if "schema cache" in lowered:
+        return (
+            "PostgREST has stale schema information. "
+            "Reload the schema with: NOTIFY pgrst, 'reload schema';"
+        )
+
+    # Keep the actual PostgREST message because this is already running
+    # server-side and does not contain our secret keys.
+    return f"Supabase database error: {message}"
 
 
 # ---------------------------------------------------------------------------
@@ -235,26 +254,37 @@ def _response_rows(
 
 def load_progress() -> dict[str, Any]:
     """
-    Load durable learner state from Supabase.
+    Load durable learner state.
 
     Returns:
-        {} if this learner does not yet have a database record.
+        {} when this learner has no record yet.
     """
 
     user_id = get_user_id()
     client = get_supabase()
 
-    response = (
-        client
-        .table("learner_progress")
-        .select("progress")
-        .eq(
-            "user_id",
-            user_id,
+    try:
+        response = (
+            client
+            .table(TABLE_NAME)
+            .select("progress")
+            .eq(
+                "user_id",
+                user_id,
+            )
+            .limit(1)
+            .execute()
         )
-        .limit(1)
-        .execute()
-    )
+
+    except APIError as exc:
+        raise RuntimeError(
+            _format_database_error(exc)
+        ) from exc
+
+    except Exception as exc:
+        raise RuntimeError(
+            f"VOCogni could not contact Supabase: {exc}"
+        ) from exc
 
     rows = _response_rows(response)
 
@@ -269,10 +299,7 @@ def load_progress() -> dict[str, Any]:
     if progress is None:
         return {}
 
-    if not isinstance(
-        progress,
-        dict,
-    ):
+    if not isinstance(progress, dict):
         raise RuntimeError(
             "Stored learner progress must be a JSON object."
         )
@@ -288,13 +315,10 @@ def save_progress(
     progress: dict[str, Any],
 ) -> None:
     """
-    Save durable learner state to Supabase.
+    Save durable learner state for the authenticated learner.
     """
 
-    if not isinstance(
-        progress,
-        dict,
-    ):
+    if not isinstance(progress, dict):
         raise TypeError(
             "Learner progress must be a dictionary."
         )
@@ -310,12 +334,23 @@ def save_progress(
         ).isoformat(),
     }
 
-    (
-        client
-        .table("learner_progress")
-        .upsert(
-            payload,
-            on_conflict="user_id",
+    try:
+        (
+            client
+            .table(TABLE_NAME)
+            .upsert(
+                payload,
+                on_conflict="user_id",
+            )
+            .execute()
         )
-        .execute()
-    )
+
+    except APIError as exc:
+        raise RuntimeError(
+            _format_database_error(exc)
+        ) from exc
+
+    except Exception as exc:
+        raise RuntimeError(
+            f"VOCogni could not save learner data: {exc}"
+        ) from exc
