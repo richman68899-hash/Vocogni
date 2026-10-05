@@ -6,8 +6,9 @@ Run with:
 
 This file handles:
 - page setup
-- authentication gate
+- Auth0 authentication
 - persistent sidebar
+- navigation
 - routing to the active section
 
 Application logic remains in:
@@ -15,6 +16,11 @@ Application logic remains in:
 - logic.py
 - data.py
 - sections/*.py
+
+Authentication:
+- Auth0 handles user identity.
+- Streamlit handles the authenticated session.
+- Supabase stores persistent learner data.
 """
 
 import html
@@ -60,10 +66,10 @@ SECTION_RENDERERS = {
 
 def _render_login() -> None:
     """
-    Render the login screen for unauthenticated users.
+    Render the authentication entry screen.
 
-    Authentication is handled by Streamlit's native OIDC
-    integration with Auth0.
+    Auth0 handles the actual login/signup interface.
+    Streamlit handles the OIDC callback and session.
     """
 
     st.title("Welcome to Vocogni")
@@ -79,6 +85,7 @@ def _render_login() -> None:
         use_container_width=True,
     )
 
+    # Do not render the application while unauthenticated.
     st.stop()
 
 
@@ -110,6 +117,7 @@ def _render_logo() -> None:
 
     else:
 
+        # Keep the original fallback behavior.
         st.sidebar.markdown(
             "<div class='vc-logo-text'>VOCogni</div>"
             "<div class='vc-logo-tag'>"
@@ -150,8 +158,10 @@ def _render_nav() -> None:
             st.session_state.nav = item
             st.rerun()
 
-    # Prefer the authenticated identity from Auth0.
-    # Fall back to the existing profile name if available.
+    # --------------------------------------------------------
+    # Authenticated user identity
+    # --------------------------------------------------------
+
     user_name = ""
 
     try:
@@ -160,9 +170,11 @@ def _render_nav() -> None:
             or st.user.get("email", "")
             or ""
         )
+
     except Exception:
         user_name = ""
 
+    # Fall back to the existing Vocogni profile.
     if not user_name:
 
         user_name = (
@@ -194,35 +206,40 @@ def _render_nav() -> None:
 # ============================================================
 
 def _render_logout() -> None:
+    """
+    Save learner state and then end the authenticated session.
+    """
 
-    if st.sidebar.button(
+    if not st.sidebar.button(
         "Log out",
         key="vocogni_logout",
         use_container_width=True,
     ):
+        return
 
-        # Save learner state before ending the
-        # current authenticated session.
-        persist_function = getattr(
-            state,
-            "persist_learner_state",
-            None,
+    # --------------------------------------------------------
+    # Save before logout
+    # --------------------------------------------------------
+
+    try:
+        state.persist_learner_state()
+
+    except Exception as exc:
+
+        # Do NOT silently discard unsaved learner progress.
+        st.error(
+            "Vocogni could not save your latest progress. "
+            "You have not been logged out. "
+            f"Error: {exc}"
         )
 
-        if persist_function is not None:
+        return
 
-            try:
-                persist_function()
+    # --------------------------------------------------------
+    # End Streamlit/Auth0 session
+    # --------------------------------------------------------
 
-            except Exception as exc:
-                st.warning(
-                    "Your session was logged out, "
-                    f"but progress could not be saved: {exc}"
-                )
-
-        # Streamlit handles the authentication
-        # cookie and OIDC logout.
-        st.logout()
+    st.logout()
 
 
 # ============================================================
@@ -231,19 +248,13 @@ def _render_logout() -> None:
 
 def _load_persistent_state() -> None:
     """
-    Load durable learner state once after authentication.
+    Load the authenticated learner's durable state.
 
-    The actual implementation lives in state.py.
+    state.py owns the actual mapping between:
+        Supabase → learner state
     """
 
-    load_function = getattr(
-        state,
-        "load_saved_learner_state",
-        None,
-    )
-
-    if load_function is not None:
-        load_function()
+    state.load_saved_learner_state()
 
 
 # ============================================================
@@ -252,6 +263,7 @@ def _load_persistent_state() -> None:
 
 def main():
 
+    # Must happen before other Streamlit page output.
     st.set_page_config(
         page_title="VOCogni",
         page_icon="🎓",
@@ -269,16 +281,18 @@ def main():
     # EXISTING VOCogni APPLICATION
     # ========================================================
 
+    # Initialize temporary/session-level application state.
     state.init_session_state()
 
+    # Restore durable learner state from Supabase.
     _load_persistent_state()
 
+    # Persistent UI.
     _render_logo()
-
     _render_nav()
-
     _render_logout()
 
+    # Route to the selected section.
     renderer = SECTION_RENDERERS.get(
         st.session_state.nav,
         browse_section.render,
@@ -286,6 +300,7 @@ def main():
 
     renderer()
 
+    # Apply current settings after the active section has rendered.
     st.markdown(
         styles.build_css(
             st.session_state.settings
