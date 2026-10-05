@@ -1,3 +1,25 @@
+"""
+persistence.py — VOCogni Version 1.1.0 persistence layer.
+
+Responsibilities:
+- identify the currently authenticated learner
+- connect to Supabase PostgreSQL
+- load durable learner progress
+- save durable learner progress
+
+Authentication is handled by:
+    Auth0 → Streamlit OIDC → st.user
+
+This module does NOT:
+- manage passwords
+- perform login/signup
+- store Supabase Auth sessions
+- manage access/refresh tokens
+- handle UI state
+
+The database stores durable learner state only.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -5,185 +27,73 @@ from typing import Any
 
 import streamlit as st
 from supabase import Client, create_client
+from supabase.lib.client_options import ClientOptions
 
+
+# ============================================================
+# SUPABASE CLIENT
+# ============================================================
 
 def get_supabase() -> Client:
     """
-    Create a Supabase client and restore the authenticated
-    user's session when one exists.
+    Create the server-side Supabase client.
+
+    The Supabase server key must exist only in Streamlit Secrets.
+    It must never be placed in GitHub or exposed to the browser.
     """
 
-    client = create_client(
+    return create_client(
         st.secrets["SUPABASE_URL"],
-        st.secrets["SUPABASE_KEY"],
-    )
-
-    access_token = st.session_state.get(
-        "supabase_access_token"
-    )
-
-    refresh_token = st.session_state.get(
-        "supabase_refresh_token"
-    )
-
-    if access_token and refresh_token:
-        try:
-            client.auth.set_session(
-                access_token,
-                refresh_token,
-            )
-        except Exception:
-            # The stored session may have expired or become invalid.
-            clear_auth_state()
-
-    return client
-
-
-def store_session(session: Any) -> None:
-    """Store the authenticated user's session temporarily."""
-
-    st.session_state["supabase_access_token"] = (
-        session.access_token
-    )
-
-    st.session_state["supabase_refresh_token"] = (
-        session.refresh_token
-    )
-
-    st.session_state["supabase_user_id"] = (
-        session.user.id
-    )
-
-    st.session_state["supabase_user_email"] = (
-        session.user.email
+        st.secrets["SUPABASE_SERVER_KEY"],
+        options=ClientOptions(
+            auto_refresh_token=False,
+            persist_session=False,
+        ),
     )
 
 
-def clear_auth_state() -> None:
-    """Remove all temporary authentication state."""
+# ============================================================
+# AUTHENTICATED USER IDENTITY
+# ============================================================
 
-    for key in (
-        "supabase_access_token",
-        "supabase_refresh_token",
-        "supabase_user_id",
-        "supabase_user_email",
-        "learner_state_loaded",
-    ):
-        st.session_state.pop(key, None)
-
-
-def sign_up(
-    email: str,
-    password: str,
-):
-    """Create a new Supabase Auth account."""
-
-    client = get_supabase()
-
-    response = client.auth.sign_up(
-        {
-            "email": email.strip(),
-            "password": password,
-        }
-    )
-
-    if response.user is None:
-        raise RuntimeError(
-            "Account creation failed."
-        )
-
-    if response.session is not None:
-        store_session(response.session)
-
-    return response
-
-
-def sign_in(
-    email: str,
-    password: str,
-):
-    """Sign in using email and password."""
-
-    client = get_supabase()
-
-    response = client.auth.sign_in_with_password(
-        {
-            "email": email.strip(),
-            "password": password,
-        }
-    )
-
-    if (
-        response.user is None
-        or response.session is None
-    ):
-        raise RuntimeError(
-            "Login failed."
-        )
-
-    store_session(response.session)
-
-    return response
-
-
-def get_current_user():
+def get_user_id() -> str:
     """
-    Validate the current authenticated user.
+    Return the current learner's stable Auth0/OIDC subject ID.
+
+    Auth0 authenticates the learner.
+    Streamlit exposes the resulting identity through st.user.
+    """
+
+    if not st.user.is_logged_in:
+        raise RuntimeError(
+            "No authenticated Vocogni user is available."
+        )
+
+    user_id = st.user.get("sub")
+
+    if not user_id:
+        raise RuntimeError(
+            "The authenticated user has no OIDC subject ID."
+        )
+
+    return str(user_id)
+
+
+# ============================================================
+# LOAD PROGRESS
+# ============================================================
+
+def load_progress() -> dict[str, Any]:
+    """
+    Load durable progress for the currently authenticated learner.
 
     Returns:
-        Supabase user object, or None.
-    """
-
-    access_token = st.session_state.get(
-        "supabase_access_token"
-    )
-
-    refresh_token = st.session_state.get(
-        "supabase_refresh_token"
-    )
-
-    if not access_token or not refresh_token:
-        return None
-
-    try:
-        client = get_supabase()
-
-        response = client.auth.get_user(
-            access_token
-        )
-
-        return response.user
-
-    except Exception:
-        clear_auth_state()
-        return None
-
-
-def sign_out() -> None:
-    """Sign out the current local session."""
-
-    try:
-        client = get_supabase()
-
-        client.auth.sign_out(
-            {"scope": "local"}
-        )
-
-    finally:
-        clear_auth_state()
-
-
-def load_progress(
-    user_id: str,
-) -> dict[str, Any]:
-    """
-    Load persistent learner progress.
-
-    RLS ensures that the authenticated user can
-    only access their own row.
+        The learner's stored progress dictionary.
+        Returns an empty dictionary when no record exists yet.
     """
 
     client = get_supabase()
+    user_id = get_user_id()
 
     response = (
         client
@@ -203,20 +113,34 @@ def load_progress(
     )
 
     if not isinstance(progress, dict):
-        return {}
+        raise RuntimeError(
+            "Stored learner progress has an invalid format."
+        )
 
     return progress
 
 
+# ============================================================
+# SAVE PROGRESS
+# ============================================================
+
 def save_progress(
-    user_id: str,
     progress: dict[str, Any],
 ) -> None:
     """
-    Persist durable learner progress.
+    Persist durable progress for the currently authenticated learner.
+
+    The learner ID is derived internally from st.user.
+    Callers cannot choose another user's ID.
     """
 
+    if not isinstance(progress, dict):
+        raise TypeError(
+            "Learner progress must be a dictionary."
+        )
+
     client = get_supabase()
+    user_id = get_user_id()
 
     payload = {
         "user_id": user_id,
@@ -226,9 +150,48 @@ def save_progress(
         ).isoformat(),
     }
 
-    (
+    client.table(
+        "learner_progress"
+    ).upsert(
+        payload
+    ).execute()
+
+
+# ============================================================
+# OPTIONAL: ENSURE A LEARNER RECORD EXISTS
+# ============================================================
+
+def ensure_progress_record() -> None:
+    """
+    Ensure that the authenticated learner has a progress row.
+
+    This is safe to call after login.
+    If the learner already has a row, it is left unchanged.
+    """
+
+    client = get_supabase()
+    user_id = get_user_id()
+
+    response = (
         client
         .table("learner_progress")
-        .upsert(payload)
+        .select("user_id")
+        .eq("user_id", user_id)
+        .limit(1)
         .execute()
     )
+
+    if response.data:
+        return
+
+    client.table(
+        "learner_progress"
+    ).insert(
+        {
+            "user_id": user_id,
+            "progress": {},
+            "updated_at": datetime.now(
+                timezone.utc
+            ).isoformat(),
+        }
+    ).execute()
