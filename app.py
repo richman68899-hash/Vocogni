@@ -1,7 +1,8 @@
 """
 app.py — VOCogni Version 1.1.0 entry point.
 
-Run with: streamlit run app.py
+Run with:
+    streamlit run app.py
 
 This file handles:
 - page setup
@@ -24,19 +25,16 @@ import streamlit as st
 import state
 import styles
 
-from persistence import (
-    get_current_user,
-    sign_in,
-    sign_up,
-    sign_out,
-)
-
 from sections import browse as browse_section
 from sections import notes as notes_section
 from sections import profile as profile_section
 from sections import progress as progress_section
 from sections import settings as settings_section
 
+
+# ============================================================
+# NAVIGATION
+# ============================================================
 
 NAV_ITEMS = [
     "Profile",
@@ -56,20 +54,17 @@ SECTION_RENDERERS = {
 }
 
 
-def _render_authentication() -> bool:
+# ============================================================
+# AUTHENTICATION
+# ============================================================
+
+def _render_login() -> None:
     """
-    Render the login/signup screen.
+    Render the login screen for unauthenticated users.
 
-    Returns True when the user is authenticated.
-    Returns False when the authentication screen
-    is being displayed.
+    Authentication is handled by Streamlit's native OIDC
+    integration with Auth0.
     """
-
-    user = get_current_user()
-
-    # User is already authenticated.
-    if user is not None:
-        return True
 
     st.title("Welcome to Vocogni")
 
@@ -77,157 +72,21 @@ def _render_authentication() -> bool:
         "Log in to save and restore your learning progress."
     )
 
-    login_tab, signup_tab = st.tabs(
-        [
-            "Log in",
-            "Create account",
-        ]
+    st.button(
+        "Log in with Auth0",
+        on_click=st.login,
+        args=["auth0"],
+        use_container_width=True,
     )
 
-    # -----------------------------
-    # LOGIN
-    # -----------------------------
-
-    with login_tab:
-
-        with st.form("vocogni_login_form"):
-
-            email = st.text_input(
-                "Email",
-                key="login_email",
-            )
-
-            password = st.text_input(
-                "Password",
-                type="password",
-                key="login_password",
-            )
-
-            submitted = st.form_submit_button(
-                "Log in"
-            )
-
-        if submitted:
-
-            if not email.strip():
-
-                st.error(
-                    "Enter your email address."
-                )
-
-            elif not password:
-
-                st.error(
-                    "Enter your password."
-                )
-
-            else:
-
-                try:
-
-                    sign_in(
-                        email,
-                        password,
-                    )
-
-                    st.rerun()
-
-                except Exception as exc:
-
-                    st.error(
-                        f"Login failed: {exc}"
-                    )
-
-    # -----------------------------
-    # SIGN UP
-    # -----------------------------
-
-    with signup_tab:
-
-        with st.form("vocogni_signup_form"):
-
-            email = st.text_input(
-                "Email",
-                key="signup_email",
-            )
-
-            password = st.text_input(
-                "Password",
-                type="password",
-                key="signup_password",
-            )
-
-            confirmation = st.text_input(
-                "Confirm password",
-                type="password",
-                key="signup_confirmation",
-            )
-
-            submitted = st.form_submit_button(
-                "Create account"
-            )
-
-        if submitted:
-
-            if not email.strip():
-
-                st.error(
-                    "Enter your email address."
-                )
-
-            elif not password:
-
-                st.error(
-                    "Enter a password."
-                )
-
-            elif password != confirmation:
-
-                st.error(
-                    "Passwords do not match."
-                )
-
-            elif len(password) < 8:
-
-                st.error(
-                    "Password must be at least 8 characters."
-                )
-
-            else:
-
-                try:
-
-                    response = sign_up(
-                        email,
-                        password,
-                    )
-
-                    # Email confirmation enabled.
-                    if response.session is None:
-
-                        st.success(
-                            "Account created. "
-                            "Check your email to confirm your account."
-                        )
-
-                    else:
-
-                        st.success(
-                            "Account created."
-                        )
-
-                        st.rerun()
-
-                except Exception as exc:
-
-                    st.error(
-                        f"Sign-up failed: {exc}"
-                    )
-
-    return False
+    st.stop()
 
 
-def _render_logo():
+# ============================================================
+# LOGO
+# ============================================================
+
+def _render_logo() -> None:
 
     logo_path = os.path.join(
         os.path.dirname(
@@ -265,7 +124,11 @@ def _render_logo():
     )
 
 
-def _render_nav():
+# ============================================================
+# NAVIGATION
+# ============================================================
+
+def _render_nav() -> None:
 
     for item in NAV_ITEMS:
 
@@ -285,16 +148,30 @@ def _render_nav():
         ):
 
             st.session_state.nav = item
-
             st.rerun()
 
-    profile_name = (
-        st.session_state.profile
-        .get("name", "")
-        .strip()
-    )
+    # Prefer the authenticated identity from Auth0.
+    # Fall back to the existing profile name if available.
+    user_name = ""
 
-    if profile_name:
+    try:
+        user_name = (
+            st.user.get("name", "")
+            or st.user.get("email", "")
+            or ""
+        )
+    except Exception:
+        user_name = ""
+
+    if not user_name:
+
+        user_name = (
+            st.session_state.profile
+            .get("name", "")
+            .strip()
+        )
+
+    if user_name:
 
         st.sidebar.markdown(
             "<hr>",
@@ -304,15 +181,19 @@ def _render_nav():
         st.sidebar.markdown(
             (
                 "<span class='vc-muted'>"
-                f"Signed in as "
-                f"{html.escape(profile_name)}"
+                "Signed in as "
+                f"{html.escape(str(user_name))}"
                 "</span>"
             ),
             unsafe_allow_html=True,
         )
 
 
-def _render_logout():
+# ============================================================
+# LOGOUT
+# ============================================================
+
+def _render_logout() -> None:
 
     if st.sidebar.button(
         "Log out",
@@ -320,32 +201,39 @@ def _render_logout():
         use_container_width=True,
     ):
 
-        try:
+        # Save learner state before ending the
+        # current authenticated session.
+        persist_function = getattr(
+            state,
+            "persist_learner_state",
+            None,
+        )
 
-            # Save learner state if the persistence
-            # integration has added this function.
-            persist_function = getattr(
-                state,
-                "persist_learner_state",
-                None,
-            )
+        if persist_function is not None:
 
-            if persist_function is not None:
+            try:
                 persist_function()
 
-        finally:
+            except Exception as exc:
+                st.warning(
+                    "Your session was logged out, "
+                    f"but progress could not be saved: {exc}"
+                )
 
-            sign_out()
+        # Streamlit handles the authentication
+        # cookie and OIDC logout.
+        st.logout()
 
-        st.rerun()
 
+# ============================================================
+# PERSISTENT LEARNER STATE
+# ============================================================
 
-def _load_persistent_state():
-
+def _load_persistent_state() -> None:
     """
-    Load durable learner state after authentication.
+    Load durable learner state once after authentication.
 
-    This uses the integration function if it exists.
+    The actual implementation lives in state.py.
     """
 
     load_function = getattr(
@@ -358,6 +246,10 @@ def _load_persistent_state():
         load_function()
 
 
+# ============================================================
+# MAIN APPLICATION
+# ============================================================
+
 def main():
 
     st.set_page_config(
@@ -366,16 +258,16 @@ def main():
         layout="wide",
     )
 
-    # =================================================
+    # ========================================================
     # AUTHENTICATION GATE
-    # =================================================
+    # ========================================================
 
-    if not _render_authentication():
-        st.stop()
+    if not st.user.is_logged_in:
+        _render_login()
 
-    # =================================================
-    # VOCogNI APPLICATION
-    # =================================================
+    # ========================================================
+    # EXISTING VOCogni APPLICATION
+    # ========================================================
 
     state.init_session_state()
 
@@ -401,6 +293,10 @@ def main():
         unsafe_allow_html=True,
     )
 
+
+# ============================================================
+# ENTRY POINT
+# ============================================================
 
 if __name__ == "__main__":
     main()
