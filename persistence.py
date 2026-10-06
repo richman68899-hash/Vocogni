@@ -45,6 +45,30 @@ TABLE_NAME = "learner_progress"
 # AUTHENTICATION
 # ---------------------------------------------------------------------------
 
+def mark_persistent_dirty() -> None:
+    """
+    Mark durable learner state as changed.
+
+    This does not immediately contact Supabase.
+    The save is flushed later during the same Streamlit run.
+    """
+
+    st.session_state["_persistent_dirty"] = True
+    st.session_state["_persistent_save_status"] = "pending"
+    st.session_state["_persistent_save_error"] = None
+
+def has_pending_persistence() -> bool:
+    """
+    Return True when durable learner state has unsaved changes.
+    """
+
+    return bool(
+        st.session_state.get(
+            "_persistent_dirty",
+            False,
+        )
+    )
+
 def _get_user_claims() -> dict[str, Any]:
     """
     Safely convert Streamlit's authenticated OIDC user into a dictionary.
@@ -354,3 +378,37 @@ def save_progress(
         raise RuntimeError(
             f"VOCogni could not save learner data: {exc}"
         ) from exc
+
+def flush_persistent_save() -> bool:
+    """
+    Save durable learner state when a meaningful change has been made.
+
+    Returns:
+        True if there was no pending save or the save succeeded.
+        False if the save failed.
+    """
+
+    if not has_pending_persistence():
+        return True
+
+    st.session_state["_persistent_save_status"] = "saving"
+    st.session_state["_persistent_save_error"] = None
+
+    try:
+        persist_learner_state()
+
+    except Exception as exc:
+        st.session_state["_persistent_save_status"] = "error"
+        st.session_state["_persistent_save_error"] = str(exc)
+
+        return False
+
+    st.session_state["_persistent_dirty"] = False
+    st.session_state["_persistent_save_status"] = "saved"
+    st.session_state["_persistent_save_error"] = None
+    st.session_state["_persistent_last_saved_at"] = (
+        datetime.now(timezone.utc).isoformat()
+    )
+    st.session_state["_persistent_save_count"] += 1
+
+    return True
