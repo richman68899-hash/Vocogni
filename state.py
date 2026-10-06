@@ -151,6 +151,11 @@ def init_session_state() -> None:
         # Persistence bookkeeping
         "_persistent_state_loaded": False,
         "_persistent_user_id": None,
+        "_persistent_dirty": False,
+        "_persistent_save_status": "saved",
+        "_persistent_save_error": None,
+        "_persistent_last_saved_at": None,
+        "_persistent_save_count": 0,
     }
 
     for key, value in defaults.items():
