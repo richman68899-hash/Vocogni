@@ -1,5 +1,5 @@
 """
-app.py — VOCogni Version 1.1.0 entry point.
+app.py — VOCogni Version 1.2.0 entry point.
 
 Run with:
     streamlit run app.py
@@ -10,6 +10,7 @@ This file handles:
 - persistent sidebar
 - navigation
 - routing to the active section
+- end-of-run durable-state autosave
 
 Application logic remains in:
 - state.py
@@ -19,9 +20,17 @@ Application logic remains in:
 
 Authentication:
 - Auth0 handles user identity.
-- Streamlit handles the authenticated session.
+- Streamlit handles the authenticated OIDC session.
 - Supabase stores persistent learner data.
+
+Persistence:
+- state.py owns session state and autosave coordination.
+- persistence.py owns the Supabase database operation.
+- Durable state is saved after meaningful learner-state mutations.
+- Logout performs a final safety save.
 """
+
+from __future__ import annotations
 
 import html
 import os
@@ -94,6 +103,9 @@ def _render_login() -> None:
 # ============================================================
 
 def _render_logo() -> None:
+    """
+    Render the VOCogni logo in the sidebar.
+    """
 
     logo_path = os.path.join(
         os.path.dirname(
@@ -117,7 +129,7 @@ def _render_logo() -> None:
 
     else:
 
-        # Keep the original fallback behavior.
+        # Preserve the original fallback behavior.
         st.sidebar.markdown(
             "<div class='vc-logo-text'>VOCogni</div>"
             "<div class='vc-logo-tag'>"
@@ -137,6 +149,16 @@ def _render_logo() -> None:
 # ============================================================
 
 def _render_nav() -> None:
+    """
+    Render the persistent sidebar navigation.
+
+    IMPORTANT:
+    Do not call st.rerun() manually here.
+
+    Streamlit automatically reruns after button interaction. Allowing
+    the current run to continue means the end-of-run autosave can flush
+    any pending learner-state changes before the next run begins.
+    """
 
     for item in NAV_ITEMS:
 
@@ -156,7 +178,11 @@ def _render_nav() -> None:
         ):
 
             st.session_state.nav = item
-            st.rerun()
+
+            # Do NOT call st.rerun().
+            #
+            # The button interaction already causes Streamlit to rerun.
+            # Continuing this run allows autosave to execute at the end.
 
     # --------------------------------------------------------
     # Authenticated user identity
@@ -174,14 +200,24 @@ def _render_nav() -> None:
     except Exception:
         user_name = ""
 
-    # Fall back to the existing Vocogni profile.
+    # Fall back to the existing VOCogni profile.
     if not user_name:
 
-        user_name = (
-            st.session_state.profile
-            .get("name", "")
-            .strip()
+        profile = st.session_state.get(
+            "profile",
+            {},
         )
+
+        if isinstance(profile, dict):
+
+            user_name = (
+                str(
+                    profile.get(
+                        "name",
+                        "",
+                    )
+                ).strip()
+            )
 
     if user_name:
 
@@ -202,12 +238,37 @@ def _render_nav() -> None:
 
 
 # ============================================================
+# PERSISTENCE STATUS
+# ============================================================
+
+def _render_persistence_status() -> None:
+    """
+    Render the learner's current save status.
+
+    This is intentionally placed below the navigation and identity so
+    the learner can see whether their latest meaningful change has been
+    saved.
+    """
+
+    st.sidebar.markdown(
+        "<hr>",
+        unsafe_allow_html=True,
+    )
+
+    state.render_save_status()
+
+
+# ============================================================
 # LOGOUT
 # ============================================================
 
 def _render_logout() -> None:
     """
-    Save learner state and then end the authenticated session.
+    Perform a final safety save and then end the authenticated session.
+
+    Normal learner-state persistence happens automatically through
+    state.flush_persistent_save(). This final save exists as a safety
+    checkpoint before logout.
     """
 
     if not st.sidebar.button(
@@ -218,15 +279,16 @@ def _render_logout() -> None:
         return
 
     # --------------------------------------------------------
-    # Save before logout
+    # Final safety save
     # --------------------------------------------------------
 
     try:
+
         state.persist_learner_state()
 
     except Exception as exc:
 
-        # Do NOT silently discard unsaved learner progress.
+        # Never silently discard the learner's latest changes.
         st.error(
             "Vocogni could not save your latest progress. "
             "You have not been logged out. "
@@ -250,7 +312,7 @@ def _load_persistent_state() -> None:
     """
     Load the authenticated learner's durable state.
 
-    state.py owns the actual mapping between:
+    state.py owns the mapping between:
         Supabase → learner state
     """
 
@@ -261,7 +323,10 @@ def _load_persistent_state() -> None:
 # MAIN APPLICATION
 # ============================================================
 
-def main():
+def main() -> None:
+    """
+    Main VOCogni application entry point.
+    """
 
     # Must happen before other Streamlit page output.
     st.set_page_config(
@@ -278,21 +343,29 @@ def main():
         _render_login()
 
     # ========================================================
-    # EXISTING VOCogni APPLICATION
+    # SESSION INITIALIZATION
     # ========================================================
 
-    # Initialize temporary/session-level application state.
     state.init_session_state()
 
-    # Restore durable learner state from Supabase.
+    # ========================================================
+    # RESTORE DURABLE LEARNER STATE
+    # ========================================================
+
     _load_persistent_state()
 
-    # Persistent UI.
+    # ========================================================
+    # PERSISTENT SIDEBAR
+    # ========================================================
+
     _render_logo()
     _render_nav()
     _render_logout()
 
-    # Route to the selected section.
+    # ========================================================
+    # ROUTE TO ACTIVE SECTION
+    # ========================================================
+
     renderer = SECTION_RENDERERS.get(
         st.session_state.nav,
         browse_section.render,
@@ -300,7 +373,38 @@ def main():
 
     renderer()
 
-    # Apply current settings after the active section has rendered.
+    # ========================================================
+    # V1.2.0 AUTOSAVE
+    # ========================================================
+    #
+    # Section code is responsible for marking meaningful durable
+    # mutations with:
+    #
+    #     state.mark_persistent_dirty()
+    #
+    # This single flush then performs at most one persistence
+    # operation for the current Streamlit run.
+    #
+    # Navigation/search-only interactions that do not mark the state
+    # dirty cause no database write.
+    # ========================================================
+
+    state.flush_persistent_save()
+
+    # ========================================================
+    # SAVE STATUS
+    # ========================================================
+    #
+    # Render AFTER flush so the learner sees the result of the
+    # current save attempt rather than the state from before it.
+    # ========================================================
+
+    _render_persistence_status()
+
+    # ========================================================
+    # APPLY CURRENT SETTINGS
+    # ========================================================
+
     st.markdown(
         styles.build_css(
             st.session_state.settings
