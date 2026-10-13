@@ -28,6 +28,8 @@ Durable learner state:
 - profile
 - progress
 - notes
+- note_folders
+- next_note_folder_id
 - settings
 - next_note_id
 
@@ -173,6 +175,8 @@ def init_session_state() -> None:
         "profile": _default_profile(),
         "progress": _default_progress(),
         "notes": [],
+        "note_folders": [],
+        "next_note_folder_id": 1,
         "settings": _default_settings(),
 
         # ------------------------------------------------------------------
@@ -405,6 +409,12 @@ def _build_persistent_state() -> dict[str, Any]:
         ),
         "notes": deepcopy(
             st.session_state.notes
+        ),
+        "note_folders": deepcopy(
+            st.session_state.note_folders
+        ),
+        "next_note_folder_id": int(
+            st.session_state.next_note_folder_id
         ),
         "settings": deepcopy(
             st.session_state.settings
@@ -691,6 +701,39 @@ def load_saved_learner_state() -> None:
         )
 
         st.session_state.notes = restored_notes
+
+        # Folder data was introduced after the original notes schema.
+        # Missing or malformed fields safely default to an empty list.
+        restored_folders = saved.get("note_folders", [])
+        st.session_state.note_folders = [
+            folder for folder in restored_folders
+            if isinstance(folder, dict)
+            and isinstance(folder.get("id"), int)
+            and isinstance(folder.get("name"), str)
+        ] if isinstance(restored_folders, list) else []
+
+        saved_next_folder_id = saved.get("next_note_folder_id", 1)
+        max_folder_id = max(
+            [folder["id"] for folder in st.session_state.note_folders],
+            default=0,
+        )
+        st.session_state.next_note_folder_id = max(
+            saved_next_folder_id
+            if isinstance(saved_next_folder_id, int)
+            and not isinstance(saved_next_folder_id, bool)
+            and saved_next_folder_id >= 1
+            else 1,
+            max_folder_id + 1,
+        )
+
+        # Notes referencing a deleted/unknown folder are returned to Unfiled.
+        valid_folder_ids = {
+            folder["id"] for folder in st.session_state.note_folders
+        }
+        for note in st.session_state.notes:
+            folder_id = note.get("folder_id")
+            if folder_id not in valid_folder_ids:
+                note["folder_id"] = None
 
         # -----------------------------------------------------------
         # Settings
