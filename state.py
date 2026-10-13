@@ -193,6 +193,7 @@ def init_session_state() -> None:
         "browse_search": "",
         "browse_status_filter": "All",
         "selected_note_id": None,
+        "selected_note_folder_id": None,
         "note_editor_open": False,
         "note_draft_title": "",
         "play_sound_once": False,
@@ -929,6 +930,7 @@ def reset_transient_learning_state() -> None:
     st.session_state.lesson_flow = None
 
     st.session_state.selected_note_id = None
+    st.session_state.selected_note_folder_id = None
     st.session_state.note_editor_open = False
     st.session_state.note_draft_title = ""
 
