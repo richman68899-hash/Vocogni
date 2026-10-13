@@ -1,24 +1,11 @@
 """
-sections/notes.py — Simple personal notes.
+VOCogni Notes — personal notes with flat, color-coded folders.
 
-VOCogni Version 1.2.0
-
-Deliberately minimal:
-- title
-- free-text content
-- create/edit/delete
-- no AI summarization
-- no collaboration
-
-Persistence behavior:
-- Creating, editing, or deleting a note changes durable learner state.
-- After each durable mutation, state.mark_persistent_dirty() is called.
-- app.py flushes the pending change to Supabase after the section renders.
-- No manual rerun is performed after durable mutations.
-- Navigation-only actions may still rerun safely because they do not change
-  durable learner data.
+Folder records are deliberately flat: folders cannot contain folders.
+Existing notes remain compatible; notes without a valid folder_id are
+shown under Unfiled. All durable changes use state.mark_persistent_dirty()
+and the central autosave mechanism.
 """
-
 from __future__ import annotations
 
 import datetime
@@ -26,405 +13,211 @@ import html
 from typing import Any
 
 import streamlit as st
-
 import state
 
+COLORS = {
+    "Amber": "#E0A43A",
+    "Blue": "#4C8DDA",
+    "Green": "#43A77A",
+    "Purple": "#9875D4",
+    "Pink": "#D96F9B",
+    "Teal": "#36A6A6",
+    "Grey": "#8A8F98",
+}
 
-# ===========================================================================
-# HELPERS
-# ===========================================================================
 
-def _now_str() -> str:
-    """
-    Return a human-readable timestamp for note metadata.
-    """
+def _now() -> str:
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    return datetime.datetime.now().strftime(
-        "%Y-%m-%d %H:%M"
+
+def _find_note(note_id: Any) -> dict[str, Any] | None:
+    return next(
+        (n for n in st.session_state.notes
+         if isinstance(n, dict) and n.get("id") == note_id),
+        None,
     )
 
 
-def _find_note(
-    note_id: Any,
-) -> dict[str, Any] | None:
-    """
-    Find a note by its numeric ID.
-
-    Returns:
-        The note dictionary, or None if not found.
-    """
-
-    if note_id is None:
-        return None
-
-    for note in st.session_state.notes:
-
-        if not isinstance(note, dict):
-            continue
-
-        if note.get("id") == note_id:
-            return note
-
-    return None
+def _find_folder(folder_id: Any) -> dict[str, Any] | None:
+    return next(
+        (f for f in st.session_state.note_folders
+         if isinstance(f, dict) and f.get("id") == folder_id),
+        None,
+    )
 
 
-# ===========================================================================
-# MAIN
-# ===========================================================================
+def _mark_changed() -> None:
+    state.mark_persistent_dirty()
+
 
 def render() -> None:
-    """
-    Render the Notes page.
-    """
-
-    st.markdown(
-        "<h2>Notes</h2>",
-        unsafe_allow_html=True,
-    )
-
-    if st.session_state.note_editor_open:
+    st.markdown("## Notes")
+    st.caption("Keep notes organized in simple, color-coded folders.")
+    if st.session_state.get("note_editor_open", False):
         _render_editor()
-    else:
-        _render_list()
-
-
-# ===========================================================================
-# NOTE LIST
-# ===========================================================================
-
-def _render_list() -> None:
-    """
-    Render the existing note list.
-    """
-
-    if st.button(
-        "+ New Note",
-        type="primary",
-        key="new_note",
-    ):
-
-        # These are session/UI changes only.
-        st.session_state.selected_note_id = None
-        st.session_state.note_editor_open = True
-        st.session_state.note_draft_title = ""
-
-        st.rerun()
-
-    # ---------------------------------------------------------------
-    # Sort notes by latest update.
-    # ---------------------------------------------------------------
-
-    notes = sorted(
-        [
-            note
-            for note in st.session_state.notes
-            if isinstance(note, dict)
-        ],
-        key=lambda note: note.get(
-            "updated_at",
-            "",
-        ),
-        reverse=True,
-    )
-
-    if not notes:
-
-        st.markdown(
-            "<div class='vc-card' style='margin-top:0.8rem;'>"
-            "You don't have any notes yet. Use "
-            "&ldquo;+ New Note&rdquo; to jot down rules, "
-            "mistakes to remember, or strategies while you learn."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
         return
+    _render_folders_and_notes()
 
-    st.markdown(
-        "<div style='margin-top:0.6rem;'></div>",
-        unsafe_allow_html=True,
-    )
 
-    for note in notes:
+def _render_folders_and_notes() -> None:
+    folders = st.session_state.note_folders
+    notes = [n for n in st.session_state.notes if isinstance(n, dict)]
 
-        note_id = note.get("id")
+    st.markdown("### Your folders")
+    with st.expander("＋ Create a folder", expanded=not folders):
+        with st.form("create_note_folder", clear_on_submit=True):
+            name = st.text_input("Folder title", placeholder="e.g. Algebra")
+            color_name = st.selectbox("Folder color", list(COLORS))
+            create = st.form_submit_button("Create folder", type="primary")
+        if create:
+            clean = name.strip()
+            if not clean:
+                st.warning("Enter a folder title.")
+            elif any(f.get("name", "").casefold() == clean.casefold() for f in folders):
+                st.warning("A folder with that title already exists.")
+            else:
+                folder_id = st.session_state.next_note_folder_id
+                st.session_state.next_note_folder_id += 1
+                folders.append({"id": folder_id, "name": clean, "color": COLORS[color_name], "created_at": _now()})
+                _mark_changed()
+                st.rerun()
 
-        title = html.escape(
-            str(
-                note.get(
-                    "title",
-                    "",
+    if folders:
+        cols = st.columns(2)
+        for i, folder in enumerate(folders):
+            with cols[i % 2]:
+                color = folder.get("color", COLORS["Amber"])
+                safe_name = html.escape(str(folder.get("name", "Untitled folder")))
+                count = sum(n.get("folder_id") == folder.get("id") for n in notes)
+                st.markdown(
+                    f"<div style='border:1px solid {color};border-top:8px solid {color};"
+                    f"border-radius:12px;padding:14px 12px;margin:4px 0 8px 0;"
+                    f"background:linear-gradient(180deg,{color}20,transparent);min-height:90px'>"
+                    f"<div style='font-size:1.05rem;font-weight:650'>▱ {safe_name}</div>"
+                    f"<div style='opacity:.75;font-size:.85rem'>{count} note(s)</div></div>",
+                    unsafe_allow_html=True,
                 )
-            ).strip()
-            or "Untitled note"
-        )
+                with st.expander(f"Manage: {folder.get('name', 'Folder')}"):
+                    with st.form(f"edit_folder_{folder['id']}"):
+                        new_name = st.text_input("Folder title", value=folder.get("name", ""))
+                        color_options = list(COLORS)
+                        current_color = next((k for k, v in COLORS.items() if v == color), "Amber")
+                        new_color_name = st.selectbox("Color", color_options, index=color_options.index(current_color))
+                        save_folder = st.form_submit_button("Save folder")
+                    if save_folder:
+                        clean = new_name.strip()
+                        duplicate = any(
+                            f["id"] != folder["id"] and f.get("name", "").casefold() == clean.casefold()
+                            for f in folders
+                        )
+                        if not clean:
+                            st.warning("Folder title cannot be empty.")
+                        elif duplicate:
+                            st.warning("A folder with that title already exists.")
+                        else:
+                            folder["name"] = clean
+                            folder["color"] = COLORS[new_color_name]
+                            _mark_changed()
+                            st.rerun()
+                    if st.button("Delete folder", key=f"delete_folder_{folder['id']}"):
+                        # Keep notes: move them to Unfiled rather than deleting them.
+                        for note in notes:
+                            if note.get("folder_id") == folder["id"]:
+                                note["folder_id"] = None
+                        st.session_state.note_folders = [f for f in folders if f["id"] != folder["id"]]
+                        _mark_changed()
+                        st.rerun()
 
-        raw_content = str(
-            note.get(
-                "content",
-                "",
-            )
-        ).strip()
-
-        raw_snippet = raw_content.replace(
-            "\n",
-            " ",
-        )
-
-        snippet_text = raw_snippet[:140]
-
-        snippet = html.escape(
-            snippet_text
-        )
-
-        if len(raw_snippet) > 140:
-            snippet += "\u2026"
-
-        updated_at = html.escape(
-            str(
-                note.get(
-                    "updated_at",
-                    "Unknown",
-                )
-            )
-        )
-
-        st.markdown(
-            "<div class='vc-card'>",
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            f"<strong>{title}</strong><br>"
-            f"<span class='vc-muted'>"
-            f"{snippet or 'No content yet.'}"
-            f"</span><br>"
-            f"<span class='vc-muted'>"
-            f"Last updated {updated_at}"
-            f"</span>",
-            unsafe_allow_html=True,
-        )
-
-        if st.button(
-            "Open",
-            key=f"open_note_{note_id}",
-        ):
-
-            # Session/UI-only changes.
-            st.session_state.selected_note_id = note_id
+    st.divider()
+    col_filter, col_new = st.columns([3, 1])
+    with col_filter:
+        options = {"All notes": "all", "Unfiled": None}
+        options.update({f.get("name", "Folder"): f["id"] for f in folders})
+        selected_label = st.selectbox("Show", list(options), key="notes_folder_filter")
+        selected_folder = options[selected_label]
+    with col_new:
+        st.write("")
+        if st.button("＋ New note", type="primary", use_container_width=True):
+            st.session_state.selected_note_id = None
             st.session_state.note_editor_open = True
-
+            st.session_state.note_draft_folder_id = selected_folder if selected_folder != "all" else None
             st.rerun()
 
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True,
-        )
+    visible = notes if selected_folder == "all" else [
+        n for n in notes if n.get("folder_id") == selected_folder
+    ]
+    visible.sort(key=lambda n: n.get("updated_at", ""), reverse=True)
+    if not visible:
+        st.info("No notes here yet. Create a note or choose another folder.")
+        return
+    for note in visible:
+        with st.container(border=True):
+            st.markdown(f"**{html.escape(str(note.get('title') or 'Untitled note'))}**")
+            body = str(note.get("content", "")).strip().replace("\n", " ")
+            st.caption((body[:180] + ("…" if len(body) > 180 else "")) or "No content yet.")
+            folder = _find_folder(note.get("folder_id"))
+            st.caption(f"{folder.get('name')} · Updated {note.get('updated_at', 'unknown')}" if folder else f"Unfiled · Updated {note.get('updated_at', 'unknown')}")
+            c1, c2 = st.columns([1, 2])
+            with c1:
+                if st.button("Open", key=f"open_note_{note.get('id')}"):
+                    st.session_state.selected_note_id = note.get("id")
+                    st.session_state.note_editor_open = True
+                    st.rerun()
+            with c2:
+                destinations = {"Unfiled": None}
+                destinations.update({f.get("name", "Folder"): f["id"] for f in folders})
+                current_folder = note.get("folder_id")
+                current_label = next((label for label, value in destinations.items() if value == current_folder), "Unfiled")
+                dest = st.selectbox("Move to", list(destinations), index=list(destinations).index(current_label), key=f"move_note_{note.get('id')}")
+                if destinations[dest] != current_folder:
+                    note["folder_id"] = destinations[dest]
+                    note["updated_at"] = _now()
+                    _mark_changed()
+                    st.rerun()
 
-
-# ===========================================================================
-# NOTE EDITOR
-# ===========================================================================
 
 def _render_editor() -> None:
-    """
-    Render the create/edit note form.
-    """
-
-    note_id = st.session_state.selected_note_id
-
-    existing = _find_note(
-        note_id
-    )
-
-    # ---------------------------------------------------------------
-    # Back button
-    # ---------------------------------------------------------------
-
-    if st.button(
-        "← Back to Notes",
-        key="back_to_notes",
-    ):
-
-        # UI-only state.
+    note_id = st.session_state.get("selected_note_id")
+    existing = _find_note(note_id)
+    if st.button("← Back to Notes", key="back_to_notes"):
         st.session_state.note_editor_open = False
         st.session_state.selected_note_id = None
-
         st.rerun()
 
-    # ---------------------------------------------------------------
-    # Existing/new-note draft
-    # ---------------------------------------------------------------
+    folders = st.session_state.note_folders
+    folder_labels = ["Unfiled"] + [f.get("name", "Folder") for f in folders]
+    folder_ids = [None] + [f["id"] for f in folders]
+    current_id = existing.get("folder_id") if existing else st.session_state.get("note_draft_folder_id")
+    current_index = folder_ids.index(current_id) if current_id in folder_ids else 0
 
-    draft_title = ""
-
-    if (
-        not existing
-        and st.session_state.get(
-            "note_draft_title",
-            "",
-        )
-    ):
-
-        draft_title = st.session_state.note_draft_title
-
-        # Consume the temporary draft title.
-        st.session_state.note_draft_title = ""
-
-    # ---------------------------------------------------------------
-    # Form
-    # ---------------------------------------------------------------
-
-    with st.form(
-        "note_form",
-        clear_on_submit=False,
-    ):
-
-        title = st.text_input(
-            "Note title",
-            value=(
-                existing.get("title", "")
-                if existing
-                else draft_title
-            ),
-            placeholder=(
-                "e.g. Fractions — Important Rules"
-            ),
-        )
-
-        content = st.text_area(
-            "Note content",
-            value=(
-                existing.get("content", "")
-                if existing
-                else ""
-            ),
-            height=220,
-            placeholder="Write your note here...",
-        )
-
-        col_save, col_delete = st.columns(2)
-
-        with col_save:
-
-            save_clicked = st.form_submit_button(
-                "Save Note",
-                type="primary",
-                use_container_width=True,
-            )
-
-        with col_delete:
-
-            delete_clicked = st.form_submit_button(
-                "Delete Note",
-                use_container_width=True,
-                disabled=existing is None,
-            )
-
-    # =========================================================================
-    # SAVE / CREATE NOTE
-    # =========================================================================
+    with st.form("note_form", clear_on_submit=False):
+        title = st.text_input("Note title", value=existing.get("title", "") if existing else "", placeholder="e.g. Fractions — Important Rules")
+        content = st.text_area("Note content", value=existing.get("content", "") if existing else "", height=220, placeholder="Write your note here…")
+        folder_label = st.selectbox("Folder", folder_labels, index=current_index)
+        save_clicked = st.form_submit_button("Save note", type="primary")
+        delete_clicked = st.form_submit_button("Delete note", disabled=existing is None)
 
     if save_clicked:
-
-        now = _now_str()
-
+        now = _now()
+        chosen_folder_id = folder_ids[folder_labels.index(folder_label)]
         if existing:
-
-            # -----------------------------------------------------------
-            # EDIT EXISTING NOTE
-            # -----------------------------------------------------------
-
-            existing["title"] = title.strip()
-            existing["content"] = content
-            existing["updated_at"] = now
-
+            existing.update({"title": title.strip(), "content": content, "folder_id": chosen_folder_id, "updated_at": now})
         else:
-
-            # -----------------------------------------------------------
-            # CREATE NEW NOTE
-            # -----------------------------------------------------------
-
             new_id = st.session_state.next_note_id
-
             st.session_state.next_note_id += 1
-
-            st.session_state.notes.append(
-                {
-                    "id": new_id,
-                    "title": title.strip(),
-                    "content": content,
-                    "created_at": now,
-                    "updated_at": now,
-                }
-            )
-
-        # ---------------------------------------------------------------
-        # IMPORTANT V1.2 AUTOSAVE HOOK
-        # ---------------------------------------------------------------
-        #
-        # The note has now changed durable learner state.
-        #
-        # We do NOT save directly here.
-        # We simply mark the state dirty.
-        #
-        # app.py will later call:
-        #
-        #     state.flush_persistent_save()
-        #
-        # ---------------------------------------------------------------
-
-        state.mark_persistent_dirty()
-
-        # Close the editor. This is session/UI state.
+            st.session_state.notes.append({
+                "id": new_id, "title": title.strip(), "content": content,
+                "folder_id": chosen_folder_id, "created_at": now, "updated_at": now,
+            })
+        _mark_changed()
         st.session_state.note_editor_open = False
         st.session_state.selected_note_id = None
-
-        st.info(
-            "Note updated. Saving your changes..."
-        )
-
-        # ---------------------------------------------------------------
-        # DELIBERATELY NO st.rerun()
-        # ---------------------------------------------------------------
-        #
-        # app.py must reach its end-of-run autosave.
-        #
-        # A manual rerun here could terminate execution before the
-        # central save mechanism runs.
-        # ---------------------------------------------------------------
-
-    # =========================================================================
-    # DELETE NOTE
-    # =========================================================================
+        st.session_state.note_draft_folder_id = None
+        st.success("Note saved. Saving changes…")
 
     if delete_clicked and existing:
-
-        deleted_id = existing.get("id")
-
-        st.session_state.notes = [
-            note
-            for note in st.session_state.notes
-            if note.get("id") != deleted_id
-        ]
-
-        # ---------------------------------------------------------------
-        # IMPORTANT V1.2 AUTOSAVE HOOK
-        # ---------------------------------------------------------------
-
-        state.mark_persistent_dirty()
-
-        # Close editor.
+        st.session_state.notes = [n for n in st.session_state.notes if n.get("id") != existing.get("id")]
+        _mark_changed()
         st.session_state.note_editor_open = False
         st.session_state.selected_note_id = None
-
-        st.info(
-            "Note deleted. Saving your changes..."
-        )
-
-        # ---------------------------------------------------------------
-        # DELIBERATELY NO st.rerun()
-        # ---------------------------------------------------------------
-        #
-        # app.py will flush the deletion to Supabase.
-        # ---------------------------------------------------------------
+        st.info("Note deleted. Saving changes…")
