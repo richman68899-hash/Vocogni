@@ -234,10 +234,7 @@ def _render_notes_list(
                 folder = next((f for f in st.session_state.note_folders if f.get("name") == selected), None)
                 selected_id = folder.get("id") if folder else None
         else:
-            st.selectbox("Folders", ["This folder", "Unfiled"] + [
-                str(f.get("name", "Folder")) for f in st.session_state.note_folders
-            ], index=0, key=f"folder_selector_{selected_folder_id}",
-            help="Choose a destination in the note card below to move a note.")
+            st.caption("Showing notes in this folder.")
             selected_id = selected_folder_id
     with col_new:
         if st.button("＋ New note", type="primary", use_container_width=True, key=f"new_note_{selected_folder_id}_{show_all}"):
@@ -258,19 +255,12 @@ def _render_notes_list(
 
     for note in visible:
         with st.container(border=True):
-            title = html.escape(str(note.get("title") or "Untitled note"))
-            st.markdown(f"**{title}**")
-            body = str(note.get("content", "")).strip().replace("\n", " ")
-            st.caption((body[:180] + ("…" if len(body) > 180 else "")) or "No content yet.")
-            folder = _find_folder(note.get("folder_id"))
-            st.caption(f"{folder.get('name')} · Updated {note.get('updated_at', 'unknown')}" if folder else f"Unfiled · Updated {note.get('updated_at', 'unknown')}")
-            c1, c2 = st.columns([1, 2], vertical_alignment="center")
-            with c1:
-                if st.button("Open", key=f"open_note_{note.get('id')}"):
-                    st.session_state.selected_note_id = note.get("id")
-                    st.session_state.note_editor_open = True
-                    st.rerun()
-            with c2:
+            # Keep the note title and folder destination control on one row.
+            title_col, folder_col = st.columns([3, 2], vertical_alignment="center", gap="medium")
+            with title_col:
+                title = html.escape(str(note.get("title") or "Untitled note"))
+                st.markdown(f"**{title}**")
+            with folder_col:
                 destinations = {"Unfiled": None}
                 destinations.update({
                     str(f.get("name", "Folder")): f.get("id")
@@ -285,12 +275,24 @@ def _render_notes_list(
                     "Folders", list(destinations),
                     index=list(destinations).index(current_label),
                     key=f"move_note_{note.get('id')}",
+                    label_visibility="visible",
                 )
                 if destinations[dest] != current_folder:
                     note["folder_id"] = destinations[dest]
                     note["updated_at"] = _now()
                     _mark_changed()
                     st.rerun()
+            body = str(note.get("content", "")).strip().replace("\\n", " ")
+            st.caption((body[:180] + ("…" if len(body) > 180 else "")) or "No content yet.")
+            folder = _find_folder(note.get("folder_id"))
+            st.caption(
+                f"{folder.get('name')} · Updated {note.get('updated_at', 'unknown')}"
+                if folder else f"Unfiled · Updated {note.get('updated_at', 'unknown')}"
+            )
+            if st.button("Open", key=f"open_note_{note.get('id')}"):
+                st.session_state.selected_note_id = note.get("id")
+                st.session_state.note_editor_open = True
+                st.rerun()
 
 
 def _render_editor() -> None:
