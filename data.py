@@ -250,7 +250,7 @@ COURSES = {
                                     "prompt": "One batch uses 2/3 cup of oats. How many cups are needed for 3 batches?",
                                     "answer": 2,
                                     "tolerance": 0.01,
-                                    "whole_number": true,
+                                    "whole_number": True,
                                     "input_hint": "Enter the number of cups.",
                                     "explanation": "2/3 × 3 = 2 cups.",
                                     "mistake_tag": "Scaling a recipe"
@@ -577,7 +577,7 @@ COURSES = {
                                     "prompt": "An event costs Rp25,000 as a fixed fee plus Rp6,000 per participant. With a Rp100,000 budget, what is the maximum number of participants?",
                                     "answer": 12,
                                     "tolerance": 0.01,
-                                    "whole_number": true,
+                                    "whole_number": True,
                                     "input_hint": "Enter a whole number of participants.",
                                     "explanation": "Rp100,000 − Rp25,000 = Rp75,000 available for participants. Rp75,000 ÷ Rp6,000 allows 12 whole participants.",
                                     "mistake_tag": "Budget and break-even reasoning"
@@ -904,7 +904,7 @@ COURSES = {
                                     "prompt": "A school fair has a fixed setup cost of Rp40,000 and costs Rp7,000 per booth. With Rp130,000 available, what is the maximum number of whole booths that can be funded?",
                                     "answer": 12,
                                     "tolerance": 0.01,
-                                    "whole_number": true,
+                                    "whole_number": True,
                                     "input_hint": "Enter a whole number of booths.",
                                     "explanation": "Rp130,000 − Rp40,000 = Rp90,000. Twelve booths cost Rp84,000; thirteen would cost Rp91,000, exceeding the budget.",
                                     "mistake_tag": "Budget-constrained planning"
