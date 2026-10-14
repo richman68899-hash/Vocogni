@@ -1103,6 +1103,26 @@ def _render_complete(
         or 1
     )
 
+    # Store a single descriptive post-lesson checkpoint for comparison with
+    # the one-time baseline. This is not claimed to be a validated learning-gain
+    # measure because the diagnostic and practice items are not equivalent forms.
+    baseline = prog.setdefault("diagnostics", {}).get(lesson["id"])
+    assessments = prog.setdefault("lesson_assessments", {})
+    if baseline and flow["results"] and lesson["id"] not in assessments:
+        post_percent = round(correct_count / len(flow["results"]) * 100)
+        assessments[lesson["id"]] = {
+            "baseline_score": baseline.get("score", 0),
+            "baseline_total": baseline.get("total", 5),
+            "baseline_percent": baseline.get("percent", 0),
+            "post_correct": correct_count,
+            "post_total": len(flow["results"]),
+            "post_practice_percent": post_percent,
+            "percentage_point_difference": post_percent - baseline.get("percent", 0),
+            "pathway": baseline.get("outcome_key", "unknown"),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        state.mark_persistent_dirty()
+
     question_word = (
         "question"
         if total_count == 1
@@ -1117,6 +1137,22 @@ def _render_complete(
         f"</div>",
         unsafe_allow_html=True,
     )
+
+    assessment = prog.get("lesson_assessments", {}).get(lesson["id"])
+    if assessment:
+        st.markdown("#### Starting point and practice checkpoint")
+        before, after, difference = st.columns(3)
+        with before:
+            st.metric("Diagnostic baseline", f"{assessment['baseline_score']}/{assessment['baseline_total']}", f"{assessment['baseline_percent']}%")
+        with after:
+            st.metric("Post-lesson practice", f"{assessment['post_correct']}/{assessment['post_total']}", f"{assessment['post_practice_percent']}%")
+        with difference:
+            delta = assessment["percentage_point_difference"]
+            st.metric("Descriptive difference", f"{delta:+d} pp")
+        st.caption(
+            "These are descriptive checkpoints, not a validated measure of learning gain: "
+            "the diagnostic and lesson-practice questions are different."
+        )
 
     # -----------------------------------------------------------------------
     # Next lesson
