@@ -324,6 +324,13 @@ def _merge_progress(
         course_progress = _default_course_progress()
         course_progress.update(saved_course)
 
+        # Preserve compatibility with older or malformed progress records.
+        # The new v1.4 structures must always remain dictionaries.
+        if not isinstance(course_progress.get("diagnostics"), dict):
+            course_progress["diagnostics"] = {}
+        if not isinstance(course_progress.get("lesson_assessments"), dict):
+            course_progress["lesson_assessments"] = {}
+
         progress[course_id] = course_progress
 
     return progress
