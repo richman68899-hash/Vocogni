@@ -1,7 +1,10 @@
 """
 sections/course.py — Course detail + interactive lesson flow.
 
-VOCogni Version 1.2.0
+VOCogni Version 1.4.0
+- Adds one-time lesson diagnostics and explicit placement results.
+- Routes the initial learning path according to diagnostic outcomes.
+- Records a separate baseline and post-lesson practice checkpoint.
 
 Covers:
 - Course View
@@ -33,13 +36,14 @@ Important:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import streamlit as st
 
 import data
 import diagnostics
 import logic
 import state
-from datetime import datetime, timezone
 
 
 # ===========================================================================
@@ -675,6 +679,8 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
             label = "Correct" if item["correct"] else "Needs review"
             st.markdown(f"**{index}. {label} — {item['skill_tag']}**")
             st.caption(item["prompt"])
+            st.write(f"Your answer: {item.get('user_answer')}")
+            st.write(f"Expected answer: {item.get('expected_answer')}")
             st.write(item["explanation"])
 
     if result.get("outcome_key") == "prerequisite":
