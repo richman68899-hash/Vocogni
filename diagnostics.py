@@ -130,6 +130,7 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
             "skill_tag": question["skill_tag"],
             "prompt": question["prompt"],
             "user_answer": answer,
+            "expected_answer": question["answer"],
             "correct": correct,
             "explanation": question["explanation"],
         })
