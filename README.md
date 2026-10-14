@@ -1,14 +1,17 @@
-# VOCogni — Prototype (Version 1)
+# VOCogni — Learning Prototype (v1.4 development)
 
-A functional prototype of VOCogni, an applied/vocational learning platform
-built around one loop:
+VOCogni is an applied-learning prototype built around the loop:
 
-**Discover → Learn → Practice → Apply → Record → Reflect → Next Step**
+**Understand → Solve → Apply → Advance**
 
-This is a concept-testing prototype, not a production platform. It runs
-entirely locally, in one browser session, with no external services and no
-AI API calls — everything, including the "AI progress summary," is real
-working code driven by data you generate as you use the app.
+The current architecture uses Streamlit, Auth0 OIDC for authentication, and
+Supabase PostgreSQL for durable learner-state persistence. It is still a
+prototype and is not yet production-validated.
+
+The Progress summary and v1.4 lesson diagnostic are transparent rule-based
+logic. No external generative AI or trained diagnostic model is called. The
+v1.4 diagnostic work is on a feature branch and remains unreleased until its
+acceptance tests pass.
 
 ---
 
@@ -40,8 +43,9 @@ vocogni/
 │   └── config.toml          # Base (light) Streamlit theme colors/fonts
 ├── assets/
 │   └── README.txt           # Where to put vocogni_logo.png (see below)
-├── data.py                  # All course/lesson/question content (static)
-├── state.py                 # st.session_state shape + defaults
+├── data.py                  # Courses, lessons, question and diagnostic content
+├── diagnostics.py           # Reusable rule-based diagnostic scoring/placement
+├── state.py                 # Session state, durable progress, autosave coordination
 ├── logic.py                 # Progress engine — pure functions, no UI code
 ├── styles.py                # CSS design tokens + injection
 └── sections/
@@ -56,23 +60,23 @@ vocogni/
 
 ### Why more files than the minimum `app.py` / `requirements.txt` / `README.md`
 
-The spec allows this when genuinely useful, and at this feature count (five
-sections, a locking/progress engine, mistake tracking, a simulated AI
-summary, and rule-based recommendations) a single file would run into the
-thousands of lines and be hard to navigate or hand off. Splitting along
-`data` / `state` / `logic` / `styles` / `sections` mirrors exactly the axes
-called out in the spec for future expansion (swap the data source, swap the
-logic, swap the UI) without touching the other layers.
+Separate modules keep authored course content, diagnostic rules, durable
+state, progress logic, styling, and UI rendering independently understandable.
+The diagnostic engine is intentionally framework-free so scoring rules and
+assessment-schema checks can be unit-tested without launching Streamlit.
 
 ---
 
 ## Architecture
 
-- **`data.py`** — The three Version 1 courses, their lessons, and every
-  question, as plain dictionaries. Nothing here imports Streamlit. Swap
-  this for a database/CMS call later and nothing else changes.
-- **`state.py`** — Defines the shape of `st.session_state` (profile,
-  progress, notes, settings, navigation) and sets it up once per session.
+- **`data.py`** — Course, lesson, question, diagnostic, and pathway content
+  as plain Python dictionaries. Nothing here imports Streamlit.
+- **`diagnostics.py`** — Validates the reusable five-item diagnostic schema,
+  scores answers, identifies author-tagged weaknesses, explains placement,
+  and selects the corresponding practice question set. It is rule-based
+  prototype decision support, not a trained AI model.
+- **`state.py`** — Defines session state, durable learner progress, diagnostic
+  records, notes, settings, and autosave coordination.
 - **`logic.py`** — The "brain": answer checking, mistake recording,
   strengths/weaknesses, common mistakes, recommendations, and the
   simulated AI summary. Every function takes plain data in and returns
@@ -90,13 +94,12 @@ logic, swap the UI) without touching the other layers.
 
 ### The core interactive loop
 
-Browse → select a course → lessons unlock in order as you complete the one
-before → each lesson is explanation → practice questions with immediate
-right/wrong feedback → the final lesson in every course is a **Real-World
-Challenge** that asks you to apply the concept to a realistic scenario
-(pricing, recipe scaling, trip budgeting) instead of repeating a formula →
-progress, accuracy, and mistakes update automatically → Progress page shows
-strengths/weaknesses, common mistakes, and rule-based recommendations.
+Browse → select a course → lesson unlocks in sequence → configured foundation
+lessons begin with a one-time baseline diagnostic → the transparent rule engine
+flags missed skill tags and recommends prerequisite review, Easy, Medium, Hard,
+or a real-life project → lesson explanation and routed practice → feedback and
+application → separate diagnostic and practice measures appear on Progress.
+The diagnostic currently covers only the three initial foundation lessons.
 
 ---
 
@@ -119,34 +122,32 @@ strengths/weaknesses, common mistakes, and rule-based recommendations.
 
 ## Known prototype limitations
 
-- **Local, single-session data only.** Everything lives in
-  `st.session_state`. Closing the tab, restarting the server, or opening a
-  second browser resets all data. There is no database, login, or
-  cross-device sync (see spec section 21 — deliberately out of scope for
-  Version 1).
-- **No real AI.** The "AI progress summary" is template text built from
-  your own stored statistics. See "Connecting a real LLM" below.
-- **No real recommendation model.** Recommendations are the fixed rules in
-  `logic.generate_recommendations()`.
-- **Dark mode is a CSS approximation.** Streamlit does not currently expose
-  a public API to switch its native theme at runtime, so Settings > Dark
-  applies an app-wide CSS override on top of the fixed light base theme in
-  `.streamlit/config.toml`, rather than a true native theme swap. It covers
-  backgrounds, text, and all custom components; a few native widget
-  chrome details may not fully invert.
-- **Sound is generated on the fly** (a short tone synthesized with Python's
-  standard `wave` module — no bundled audio file) and depends on the
-  browser's autoplay policy; if a browser blocks it, the app continues
-  normally without erroring.
-- **Difficulty (Adaptive/Easy/Medium/Hard)** is stored as a real preference
-  and currently shows a hint on numeric questions in Easy mode. It does not
-  yet change which or how many questions are served — the spec explicitly
-  excludes adaptive ML for Version 1.
-- **Completed lessons aren't replayed.** Reopening a finished lesson shows
-  the explanation again plus a short recap, rather than re-asking questions
-  and double-counting attempts/mistakes.
-- **Exactly three courses, by design** (Simple Fractions, Algebra Basics,
-  Word Problems), per spec section 6.
+- **Prototype, not production validated.** Auth0 OIDC handles identity and
+  Supabase stores the learner state. Live persistence, account isolation,
+  failure recovery, and all UI flows still require release-specific tests.
+- **No real generative AI.** The Progress summary and recommendations use
+  templates/rules. The v1.4 diagnostic engine is an explainable rule-based
+  system; it does not call an LLM or claim to infer cognition.
+- **Diagnostics are early heuristics.** Diagnostic content is currently
+  attached to three initial lessons. Five questions and initial placement
+  thresholds are not validated assessment instruments. Learner-facing
+  results should be interpreted as a starting-point signal, not a definitive
+  mastery label.
+- **Baseline and post-lesson values are not equivalent tests.** The Progress
+  page records a diagnostic score and later practice accuracy. Their
+  percentage-point difference is descriptive, not evidence of causal or
+  validated learning gain.
+- **Adaptive scope is limited.** Only lessons with a `diagnostic` config use
+  the placement engine. Future lessons need their own five tagged items,
+  prerequisite review text, and pathway question sets. Existing Settings
+  difficulty preferences still do not constitute machine-learning adaptation.
+- **Three courses by design in the current content model:** Simple Fractions,
+  Algebra Basics, and Word Problems. Current diagnostics are on the first
+  foundation lesson in each course, not all twelve lessons.
+- **Dark mode is a CSS approximation.** Streamlit's native widget chrome may
+  not fully invert under the app-wide CSS override.
+- **Audio depends on browser policy.** A blocked sound cue should not interrupt
+  the learning flow.
 
 ---
 
@@ -179,23 +180,24 @@ returned list.
 
 ---
 
-## Testing performed
+## Testing and release verification
 
-This sandbox has no network access, so a live Streamlit server couldn't be
-installed or clicked through here. Before delivery I: (1) syntax-checked
-every file, (2) validated the full course/lesson/question data schema
-programmatically, (3) confirmed all 21 questions across all 3 courses
-check as correct against their own stored answer, and (4) ran a
-mock-Streamlit harness (24 checks) that drives `logic.py` directly
-(mistake recording, lesson locking, strength thresholds, recommendations,
-the AI summary) and renders every section — including all 12 lessons and
-the full intro → question → feedback → complete state machine in both
-feedback-timing modes, dark mode, and edge cases like an empty profile or
-special characters in free-text fields — to catch runtime errors that
-syntax-checking alone wouldn't. That harness isn't part of the delivered
-project; it's a stand-in for a real browser, so please still click through
-the app yourself after installing. If anything looks off, the most likely
-spots are noted above.
+The diagnostic unit tests are included under `tests/test_diagnostics.py`.
+Run from the repository root:
+
+```bash
+python -m unittest discover -s tests -v
+python -m py_compile data.py diagnostics.py logic.py state.py sections/course.py sections/progress.py
+```
+
+These checks cover the reusable scoring and placement engine; they do not
+replace live UI tests. Before releasing v1.4, also complete
+`docs/testing/lesson-diagnostics-acceptance.md`, including persistence after
+refresh/re-login, existing-record compatibility, multi-account isolation,
+mobile layout, and save-failure behavior.
+
+Do not treat a passing syntax/unit-test run as proof that the deployed
+Auth0/Streamlit/Supabase application has been validated.
 
 ## Logo
 
