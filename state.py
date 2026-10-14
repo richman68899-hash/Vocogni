@@ -26,7 +26,7 @@ Version 1.2.0 upgrade:
 
 Durable learner state:
 - profile
-- progress
+- progress (including lesson diagnostics and pre/post practice records)
 - notes
 - note_folders
 - next_note_folder_id
@@ -117,6 +117,10 @@ def _default_course_progress() -> dict[str, Any]:
         "questions_attempted": 0,
         "correct_answers": 0,
         "mistakes": {},
+        # Diagnostic attempts and lesson outcome comparisons are stored
+        # separately so pre-assessment scores do not inflate practice accuracy.
+        "diagnostics": {},
+        "lesson_assessments": {},
     }
 
 
