@@ -53,6 +53,8 @@ def blank_course_progress():
         "questions_attempted": 0,
         "correct_answers": 0,
         "mistakes": {},
+        "diagnostics": {},
+        "lesson_assessments": {},
     }
 
 
