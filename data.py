@@ -81,7 +81,185 @@ COURSES = {
                     "For example, in the fraction 3/4, the whole is split into 4 "
                     "equal parts, and you have 3 of them."
                 ),
-                "questions": [
+                                "diagnostic": {
+                    "version": 1,
+                    "questions": [
+                        {
+                            "id": "fractions_l1_d1",
+                            "type": "mc",
+                            "stage": "prerequisite",
+                            "skill_tag": "Meaning of the denominator",
+                            "prompt": "In 1/2, what does the bottom number 2 tell you?",
+                            "options": [
+                                "The whole is divided into 2 equal parts",
+                                "You have 2 whole objects",
+                                "The top number is 2",
+                                "There are 2 different wholes"
+                            ],
+                            "answer": "The whole is divided into 2 equal parts",
+                            "explanation": "The denominator tells how many equal parts make up one whole.",
+                            "mistake_tag": "Meaning of the denominator"
+                        },
+                        {
+                            "id": "fractions_l1_d2",
+                            "type": "mc",
+                            "stage": "level_1",
+                            "skill_tag": "Representing fractions",
+                            "prompt": "Which fraction represents 3 parts out of 5 equal parts?",
+                            "options": [
+                                "3/5",
+                                "5/3",
+                                "3/3",
+                                "2/5"
+                            ],
+                            "answer": "3/5",
+                            "explanation": "The numerator counts the parts considered; the denominator counts all equal parts.",
+                            "mistake_tag": "Representing fractions"
+                        },
+                        {
+                            "id": "fractions_l1_d3",
+                            "type": "mc",
+                            "stage": "level_2",
+                            "skill_tag": "Equivalent fractions",
+                            "prompt": "Which fraction is equivalent to 2/3?",
+                            "options": [
+                                "4/6",
+                                "2/6",
+                                "3/4",
+                                "4/5"
+                            ],
+                            "answer": "4/6",
+                            "explanation": "Multiplying numerator and denominator by 2 gives 4/6.",
+                            "mistake_tag": "Equivalent fractions"
+                        },
+                        {
+                            "id": "fractions_l1_d4",
+                            "type": "mc",
+                            "stage": "level_3",
+                            "skill_tag": "Comparing fractions",
+                            "prompt": "Which fraction is greatest?",
+                            "options": [
+                                "3/5",
+                                "5/8",
+                                "2/3",
+                                "1/2"
+                            ],
+                            "answer": "2/3",
+                            "explanation": "2/3 is about 0.667, greater than 5/8 (0.625), 3/5 (0.6), and 1/2 (0.5).",
+                            "mistake_tag": "Comparing fractions"
+                        },
+                        {
+                            "id": "fractions_l1_d5",
+                            "type": "mc",
+                            "stage": "project",
+                            "skill_tag": "Applying fractions in context",
+                            "prompt": "A recipe uses 3/4 cup of milk for 2 portions. How much milk is needed for 4 portions?",
+                            "options": [
+                                "1 1/2 cups",
+                                "3/8 cup",
+                                "3/4 cup",
+                                "2 1/4 cups"
+                            ],
+                            "answer": "1 1/2 cups",
+                            "explanation": "The portions double, so double 3/4: 3/4 × 2 = 1 1/2 cups.",
+                            "mistake_tag": "Applying fractions in context"
+                        }
+                    ],
+                    "prerequisite_review": "A fraction names equal parts of one whole. The numerator is the top number and counts the parts being considered. The denominator is the bottom number and tells how many equal parts make up the whole. Make sure the parts are equal before naming a fraction.",
+                    "pathways": {
+                        "level_2": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l1_l2_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Adding fractions",
+                                    "prompt": "What is 1/4 + 2/4?",
+                                    "options": [
+                                        "3/4",
+                                        "3/8",
+                                        "2/4",
+                                        "1/2"
+                                    ],
+                                    "answer": "3/4",
+                                    "explanation": "The denominators match, so add the numerators and keep the denominator: 3/4.",
+                                    "mistake_tag": "Adding fractions"
+                                },
+                                {
+                                    "id": "fractions_l1_l2_q2",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Comparing fractions",
+                                    "prompt": "Which fraction is larger?",
+                                    "options": [
+                                        "5/6",
+                                        "7/9",
+                                        "They are equal",
+                                        "Not enough information"
+                                    ],
+                                    "answer": "5/6",
+                                    "explanation": "5/6 is about 0.833 and 7/9 is about 0.778, so 5/6 is larger.",
+                                    "mistake_tag": "Comparing fractions"
+                                }
+                            ]
+                        },
+                        "level_3": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l1_l3_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Ordering fractions",
+                                    "prompt": "Which list orders the fractions from smallest to largest?",
+                                    "options": [
+                                        "3/5, 5/8, 2/3",
+                                        "2/3, 5/8, 3/5",
+                                        "5/8, 3/5, 2/3",
+                                        "3/5, 2/3, 5/8"
+                                    ],
+                                    "answer": "3/5, 5/8, 2/3",
+                                    "explanation": "Their decimal values are 0.6, 0.625, and about 0.667.",
+                                    "mistake_tag": "Ordering fractions"
+                                },
+                                {
+                                    "id": "fractions_l1_l3_q2",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Subtracting unlike fractions",
+                                    "prompt": "A ribbon is 3/4 m long. You use 2/5 m. How much remains?",
+                                    "options": [
+                                        "7/20 m",
+                                        "1/20 m",
+                                        "1/2 m",
+                                        "1/3 m"
+                                    ],
+                                    "answer": "7/20 m",
+                                    "explanation": "3/4 − 2/5 = 15/20 − 8/20 = 7/20.",
+                                    "mistake_tag": "Subtracting unlike fractions"
+                                }
+                            ]
+                        },
+                        "project": {
+                            "intro": "Project task: calculate ingredients for multiple batches. Show that you can transfer fraction reasoning to a practical planning problem.",
+                            "questions": [
+                                {
+                                    "id": "fractions_l1_project_q1",
+                                    "type": "numeric",
+                                    "stage": "project",
+                                    "skill_tag": "Scaling a recipe",
+                                    "prompt": "One batch uses 2/3 cup of oats. How many cups are needed for 3 batches?",
+                                    "answer": 2,
+                                    "tolerance": 0.01,
+                                    "whole_number": true,
+                                    "input_hint": "Enter the number of cups.",
+                                    "explanation": "2/3 × 3 = 2 cups.",
+                                    "mistake_tag": "Scaling a recipe"
+                                }
+                            ]
+                        }
+                    }
+                },
+"questions": [
                     {
                         "id": "fractions_l1_q1",
                         "type": "mc",
@@ -230,7 +408,185 @@ COURSES = {
                     "about finding what number a variable represents.\n\n"
                     "For example, in x + 5 = 12, x is the unknown value we solve for."
                 ),
-                "questions": [
+                                "diagnostic": {
+                    "version": 1,
+                    "questions": [
+                        {
+                            "id": "algebra_l1_d1",
+                            "type": "mc",
+                            "stage": "prerequisite",
+                            "skill_tag": "Basic arithmetic",
+                            "prompt": "What is 8 + 7?",
+                            "options": [
+                                "15",
+                                "14",
+                                "16",
+                                "13"
+                            ],
+                            "answer": "15",
+                            "explanation": "Basic arithmetic supports later work with unknown values.",
+                            "mistake_tag": "Basic arithmetic"
+                        },
+                        {
+                            "id": "algebra_l1_d2",
+                            "type": "mc",
+                            "stage": "level_1",
+                            "skill_tag": "Meaning of a variable",
+                            "prompt": "In x + 5 = 11, what does x represent?",
+                            "options": [
+                                "An unknown number we need to find",
+                                "The plus sign",
+                                "Always the number 5",
+                                "The number 11"
+                            ],
+                            "answer": "An unknown number we need to find",
+                            "explanation": "A variable is a symbol that represents a value that may be unknown.",
+                            "mistake_tag": "Meaning of a variable"
+                        },
+                        {
+                            "id": "algebra_l1_d3",
+                            "type": "mc",
+                            "stage": "level_2",
+                            "skill_tag": "Solving a one-step equation",
+                            "prompt": "Solve x + 7 = 15.",
+                            "options": [
+                                "8",
+                                "7",
+                                "22",
+                                "−8"
+                            ],
+                            "answer": "8",
+                            "explanation": "Subtract 7 from both sides: x = 15 − 7 = 8.",
+                            "mistake_tag": "Solving a one-step equation"
+                        },
+                        {
+                            "id": "algebra_l1_d4",
+                            "type": "mc",
+                            "stage": "level_3",
+                            "skill_tag": "Solving equations with brackets",
+                            "prompt": "Solve 2(x + 3) = 18.",
+                            "options": [
+                                "6",
+                                "9",
+                                "12",
+                                "3"
+                            ],
+                            "answer": "6",
+                            "explanation": "Divide both sides by 2 to get x + 3 = 9, then subtract 3.",
+                            "mistake_tag": "Solving equations with brackets"
+                        },
+                        {
+                            "id": "algebra_l1_d5",
+                            "type": "mc",
+                            "stage": "project",
+                            "skill_tag": "Applying algebra to pricing",
+                            "prompt": "A product costs Rp40,000 to make. The seller adds a profit equal to 30% of the cost. What is the selling price?",
+                            "options": [
+                                "Rp52,000",
+                                "Rp43,000",
+                                "Rp70,000",
+                                "Rp28,000"
+                            ],
+                            "answer": "Rp52,000",
+                            "explanation": "30% of Rp40,000 is Rp12,000; Rp40,000 + Rp12,000 = Rp52,000.",
+                            "mistake_tag": "Applying algebra to pricing"
+                        }
+                    ],
+                    "prerequisite_review": "Before using variables, be comfortable with addition, subtraction, multiplication, and division. An equation states that two expressions have equal value. To keep an equation balanced, apply the same operation to both sides.",
+                    "pathways": {
+                        "level_2": {
+                            "questions": [
+                                {
+                                    "id": "algebra_l1_l2_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Two-step equations",
+                                    "prompt": "Solve 3x + 2 = 17.",
+                                    "options": [
+                                        "5",
+                                        "7",
+                                        "19",
+                                        "3"
+                                    ],
+                                    "answer": "5",
+                                    "explanation": "Subtract 2 to get 3x = 15, then divide by 3.",
+                                    "mistake_tag": "Two-step equations"
+                                },
+                                {
+                                    "id": "algebra_l1_l2_q2",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Inverse operations",
+                                    "prompt": "Solve 2x − 4 = 10.",
+                                    "options": [
+                                        "7",
+                                        "3",
+                                        "12",
+                                        "14"
+                                    ],
+                                    "answer": "7",
+                                    "explanation": "Add 4 to get 2x = 14, then divide by 2.",
+                                    "mistake_tag": "Inverse operations"
+                                }
+                            ]
+                        },
+                        "level_3": {
+                            "questions": [
+                                {
+                                    "id": "algebra_l1_l3_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Equations with brackets",
+                                    "prompt": "Solve 5(x − 2) = 30.",
+                                    "options": [
+                                        "8",
+                                        "4",
+                                        "6",
+                                        "10"
+                                    ],
+                                    "answer": "8",
+                                    "explanation": "Divide by 5 to get x − 2 = 6, then add 2.",
+                                    "mistake_tag": "Equations with brackets"
+                                },
+                                {
+                                    "id": "algebra_l1_l3_q2",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Equations on both sides",
+                                    "prompt": "Solve 3x + 5 = 2x + 12.",
+                                    "options": [
+                                        "7",
+                                        "17",
+                                        "−7",
+                                        "6"
+                                    ],
+                                    "answer": "7",
+                                    "explanation": "Subtract 2x from both sides, then subtract 5: x = 7.",
+                                    "mistake_tag": "Equations on both sides"
+                                }
+                            ]
+                        },
+                        "project": {
+                            "intro": "Project task: use a simple cost model to make a constrained business decision.",
+                            "questions": [
+                                {
+                                    "id": "algebra_l1_project_q1",
+                                    "type": "numeric",
+                                    "stage": "project",
+                                    "skill_tag": "Budget and break-even reasoning",
+                                    "prompt": "An event costs Rp25,000 as a fixed fee plus Rp6,000 per participant. With a Rp100,000 budget, what is the maximum number of participants?",
+                                    "answer": 12,
+                                    "tolerance": 0.01,
+                                    "whole_number": true,
+                                    "input_hint": "Enter a whole number of participants.",
+                                    "explanation": "Rp100,000 − Rp25,000 = Rp75,000 available for participants. Rp75,000 ÷ Rp6,000 allows 12 whole participants.",
+                                    "mistake_tag": "Budget and break-even reasoning"
+                                }
+                            ]
+                        }
+                    }
+                },
+"questions": [
                     {
                         "id": "algebra_l1_q1",
                         "type": "mc",
@@ -379,7 +735,185 @@ COURSES = {
                     "Spotting these clues is the first step to setting up the "
                     "right equation."
                 ),
-                "questions": [
+                                "diagnostic": {
+                    "version": 1,
+                    "questions": [
+                        {
+                            "id": "wp_l1_d1",
+                            "type": "mc",
+                            "stage": "prerequisite",
+                            "skill_tag": "Choosing a basic operation",
+                            "prompt": "A box contains 6 red pencils and 4 blue pencils. Which operation finds the total number of pencils?",
+                            "options": [
+                                "Addition",
+                                "Subtraction",
+                                "Division",
+                                "Multiplication"
+                            ],
+                            "answer": "Addition",
+                            "explanation": "Finding a total means combining the amounts.",
+                            "mistake_tag": "Choosing a basic operation"
+                        },
+                        {
+                            "id": "wp_l1_d2",
+                            "type": "mc",
+                            "stage": "level_1",
+                            "skill_tag": "Translating key words",
+                            "prompt": "Which operation does the word “total” usually suggest?",
+                            "options": [
+                                "Addition",
+                                "Subtraction",
+                                "Multiplication",
+                                "Division"
+                            ],
+                            "answer": "Addition",
+                            "explanation": "“Total” generally means combining amounts, which is addition.",
+                            "mistake_tag": "Translating key words"
+                        },
+                        {
+                            "id": "wp_l1_d3",
+                            "type": "mc",
+                            "stage": "level_2",
+                            "skill_tag": "Translating relationships",
+                            "prompt": "Tom has x stickers. Sara has 3 times as many stickers, plus 2 more. Which expression represents Sara’s stickers?",
+                            "options": [
+                                "3x + 2",
+                                "x + 3",
+                                "3(x + 2)",
+                                "x/3 + 2"
+                            ],
+                            "answer": "3x + 2",
+                            "explanation": "“Three times as many” is 3x; “plus 2 more” gives 3x + 2.",
+                            "mistake_tag": "Translating relationships"
+                        },
+                        {
+                            "id": "wp_l1_d4",
+                            "type": "mc",
+                            "stage": "level_3",
+                            "skill_tag": "Selecting relevant information",
+                            "prompt": "Three notebooks cost Rp12,000 each. The shop gives a Rp5,000 discount on the total. How much is paid?",
+                            "options": [
+                                "Rp31,000",
+                                "Rp36,000",
+                                "Rp19,000",
+                                "Rp41,000"
+                            ],
+                            "answer": "Rp31,000",
+                            "explanation": "3 × Rp12,000 = Rp36,000; subtract the Rp5,000 discount.",
+                            "mistake_tag": "Selecting relevant information"
+                        },
+                        {
+                            "id": "wp_l1_d5",
+                            "type": "mc",
+                            "stage": "project",
+                            "skill_tag": "Building a cost model",
+                            "prompt": "A school activity has a fixed room cost of Rp30,000 plus Rp5,000 per student. If 18 students attend, what is the total cost?",
+                            "options": [
+                                "Rp120,000",
+                                "Rp90,000",
+                                "Rp33,000",
+                                "Rp150,000"
+                            ],
+                            "answer": "Rp120,000",
+                            "explanation": "Rp30,000 + (18 × Rp5,000) = Rp120,000.",
+                            "mistake_tag": "Building a cost model"
+                        }
+                    ],
+                    "prerequisite_review": "Start by identifying what the question asks for. Then identify quantities, units, and relationships. Words can be clues, but they are not rules: check the full meaning of the sentence before choosing an operation.",
+                    "pathways": {
+                        "level_2": {
+                            "questions": [
+                                {
+                                    "id": "wp_l1_l2_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Forming an equation",
+                                    "prompt": "There are 3 boxes with x notebooks in each box and 5 extra notebooks. There are 23 notebooks altogether. Which equation models this?",
+                                    "options": [
+                                        "3x + 5 = 23",
+                                        "3 + x + 5 = 23",
+                                        "3(x + 5) = 23",
+                                        "x + 5 = 23"
+                                    ],
+                                    "answer": "3x + 5 = 23",
+                                    "explanation": "Three equal groups give 3x, then add the 5 extra notebooks.",
+                                    "mistake_tag": "Forming an equation"
+                                },
+                                {
+                                    "id": "wp_l1_l2_q2",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Multi-step calculation",
+                                    "prompt": "Four tickets cost Rp25,000 each. A Rp10,000 discount applies to the total. How much is paid?",
+                                    "options": [
+                                        "Rp90,000",
+                                        "Rp100,000",
+                                        "Rp75,000",
+                                        "Rp110,000"
+                                    ],
+                                    "answer": "Rp90,000",
+                                    "explanation": "4 × Rp25,000 = Rp100,000; subtract Rp10,000.",
+                                    "mistake_tag": "Multi-step calculation"
+                                }
+                            ]
+                        },
+                        "level_3": {
+                            "questions": [
+                                {
+                                    "id": "wp_l1_l3_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Sharing a multi-step cost",
+                                    "prompt": "A ride costs Rp10,000 plus Rp2,000 per kilometre. Two people share the cost of an 8 km ride equally. How much does each pay?",
+                                    "options": [
+                                        "Rp13,000",
+                                        "Rp26,000",
+                                        "Rp16,000",
+                                        "Rp12,000"
+                                    ],
+                                    "answer": "Rp13,000",
+                                    "explanation": "The total is Rp10,000 + (8 × Rp2,000) = Rp26,000. Half is Rp13,000.",
+                                    "mistake_tag": "Sharing a multi-step cost"
+                                },
+                                {
+                                    "id": "wp_l1_l3_q2",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Working backward from a budget",
+                                    "prompt": "A class has Rp150,000. Equipment costs Rp30,000 and refreshments cost Rp5,000 per student. What is the maximum number of students who can be covered?",
+                                    "options": [
+                                        "24",
+                                        "30",
+                                        "25",
+                                        "20"
+                                    ],
+                                    "answer": "24",
+                                    "explanation": "Rp120,000 remains after equipment. Rp120,000 ÷ Rp5,000 = 24.",
+                                    "mistake_tag": "Working backward from a budget"
+                                }
+                            ]
+                        },
+                        "project": {
+                            "intro": "Project task: use a cost model and a fixed budget to make a practical planning decision.",
+                            "questions": [
+                                {
+                                    "id": "wp_l1_project_q1",
+                                    "type": "numeric",
+                                    "stage": "project",
+                                    "skill_tag": "Budget-constrained planning",
+                                    "prompt": "A school fair has a fixed setup cost of Rp40,000 and costs Rp7,000 per booth. With Rp130,000 available, what is the maximum number of whole booths that can be funded?",
+                                    "answer": 12,
+                                    "tolerance": 0.01,
+                                    "whole_number": true,
+                                    "input_hint": "Enter a whole number of booths.",
+                                    "explanation": "Rp130,000 − Rp40,000 = Rp90,000. Twelve booths cost Rp84,000; thirteen would cost Rp91,000, exceeding the budget.",
+                                    "mistake_tag": "Budget-constrained planning"
+                                }
+                            ]
+                        }
+                    }
+                },
+"questions": [
                     {
                         "id": "wp_l1_q1",
                         "type": "mc",
