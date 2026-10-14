@@ -1,7 +1,10 @@
 """
 sections/course.py — Course detail + interactive lesson flow.
 
-VOCogni Version 1.2.0
+VOCogni Version 1.4.0
+- Adds one-time lesson diagnostics and explicit placement results.
+- Routes the initial learning path according to diagnostic outcomes.
+- Records a separate baseline and post-lesson practice checkpoint.
 
 Covers:
 - Course View
@@ -33,9 +36,12 @@ Important:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import streamlit as st
 
 import data
+import diagnostics
 import logic
 import state
 
@@ -398,6 +404,29 @@ def render_lesson_flow() -> None:
     )
 
     # -----------------------------------------------------------------------
+    # ONE-TIME DIAGNOSTIC + ADAPTIVE PATHWAY
+    # -----------------------------------------------------------------------
+    #
+    # Diagnostic records are durable and keyed by lesson ID. The diagnostic
+    # never contributes to ordinary practice accuracy/question counts.
+    diagnostic_config = lesson.get("diagnostic")
+    diagnostic_records = prog.setdefault("diagnostics", {})
+    diagnostic_result = diagnostic_records.get(lesson_id)
+
+    if diagnostic_config and not already_done:
+        if diagnostic_result is None:
+            _render_diagnostic(lesson, course_id)
+            return
+        if not diagnostic_result.get("pathway_started_at"):
+            _render_diagnostic_result(lesson, course_id, diagnostic_result)
+            return
+        if not flow.get("active_questions"):
+            flow["selected_pathway"] = diagnostic_result.get("outcome_key", "level_1")
+            flow["active_questions"] = diagnostics.get_pathway_questions(
+                lesson, flow["selected_pathway"]
+            )
+
+    # -----------------------------------------------------------------------
     # Stage
     # -----------------------------------------------------------------------
     #
@@ -509,9 +538,21 @@ def _render_intro(
     lesson,
     flow,
 ) -> None:
-    """
-    Render the lesson introduction.
-    """
+    """Render the lesson introduction and selected diagnostic pathway."""
+    selected_pathway = flow.get("selected_pathway")
+    diagnostic_config = lesson.get("diagnostic", {})
+    if selected_pathway == "prerequisite":
+        st.info("Recommended route: prerequisite review")
+        st.markdown("#### Review the prerequisite")
+        st.write(diagnostic_config.get("prerequisite_review", "Review the required foundation."))
+    elif selected_pathway == "project":
+        project_intro = diagnostic_config.get("pathways", {}).get("project", {}).get("intro")
+        if project_intro:
+            st.info("Recommended route: real-life application")
+            st.write(project_intro)
+    elif selected_pathway in ("level_1", "level_2", "level_3"):
+        route_labels = {"level_1": "Level 1 — Easy", "level_2": "Level 2 — Medium", "level_3": "Level 3 — Hard"}
+        st.info(f"Recommended route: {route_labels[selected_pathway]}")
 
     st.markdown(
         f"<div class='{_box_class(lesson)}'>"
@@ -522,21 +563,148 @@ def _render_intro(
 
     button_label = (
         "Begin Challenge"
-        if lesson["kind"] == "application"
+        if selected_pathway == "project" or lesson["kind"] == "application"
         else "Begin Practice"
     )
-
-    if st.button(
-        button_label,
-        type="primary",
-        key="begin_lesson",
-    ):
-
-        # This changes only transient lesson-flow state.
+    if st.button(button_label, type="primary", key="begin_lesson"):
         flow["stage"] = "question"
         flow["q_index"] = 0
-
+        flow["results"] = []
         st.rerun()
+
+
+# ===========================================================================
+# REUSABLE LESSON DIAGNOSTIC
+# ===========================================================================
+
+def _render_diagnostic(lesson, course_id) -> None:
+    """Collect and save the one-time baseline diagnostic for a configured lesson."""
+    config = lesson.get("diagnostic", {})
+    errors = diagnostics.validate_diagnostic_config(config)
+    if errors:
+        st.error("This lesson's diagnostic is not configured correctly.")
+        for error in errors:
+            st.write(f"- {error}")
+        return
+
+    st.markdown("### Starting-point diagnostic")
+    st.write(
+        "This one-time five-question check estimates your starting point. "
+        "It is separate from ordinary practice scores and will identify skills "
+        "worth reviewing before recommending a learning route."
+    )
+    answers = {}
+    with st.form(f"lesson_diagnostic_{lesson['id']}", clear_on_submit=False):
+        for index, question in enumerate(config["questions"], start=1):
+            st.markdown(f"**Question {index} of {len(config['questions'])}**")
+            st.markdown(f"#### {question['prompt']}")
+            st.caption(f"Skill checked: {question['skill_tag']}")
+            key = f"diagnostic_answer_{lesson['id']}_{question['id']}"
+            if question["type"] == "mc":
+                answers[question["id"]] = st.radio(
+                    "Choose one answer", question.get("options", []),
+                    index=None, key=key,
+                )
+            else:
+                raw = st.text_input("Your answer", key=key)
+                if raw.strip():
+                    try:
+                        number = float(raw.strip())
+                        answers[question["id"]] = (
+                            int(number) if question.get("whole_number") and number.is_integer() else number
+                        )
+                    except ValueError:
+                        answers[question["id"]] = raw
+                else:
+                    answers[question["id"]] = None
+        submitted = st.form_submit_button(
+            "Submit diagnostic", type="primary", use_container_width=True
+        )
+
+    if not submitted:
+        return
+
+    missing = [
+        question["id"] for question in config["questions"]
+        if answers.get(question["id"]) is None
+        or (isinstance(answers.get(question["id"]), str) and not answers[question["id"]].strip())
+    ]
+    if missing:
+        st.warning("Answer all five questions before submitting. Your diagnostic has not been recorded.")
+        return
+
+    prog = state.get_course_progress(course_id)
+    records = prog.setdefault("diagnostics", {})
+    if lesson["id"] in records:
+        st.info("A diagnostic is already recorded for this lesson. It cannot be retaken.")
+        return
+
+    try:
+        result = diagnostics.evaluate_diagnostic(config, answers)
+    except (TypeError, ValueError) as exc:
+        st.error(f"Diagnostic could not be scored: {exc}")
+        return
+
+    records[lesson["id"]] = result
+    prog["started"] = True
+    state.mark_persistent_dirty()
+    if state.flush_persistent_save():
+        st.rerun()
+    else:
+        st.error(
+            "Your result exists in this session, but saving failed. Use Retry save "
+            "before refreshing or leaving this lesson; otherwise the one-time result "
+            "may not be preserved across sessions."
+        )
+
+
+def _render_diagnostic_result(lesson, course_id, result) -> None:
+    """Show score, flagged weaknesses, placement rationale, and the route entry."""
+    st.markdown("### Diagnostic results")
+    st.metric("Baseline score", f"{result['score']} / {result['total']}", f"{result['percent']}%")
+    st.subheader(result["outcome_label"])
+    st.write(result["outcome_summary"])
+    st.caption(result["placement_reason"])
+
+    weaknesses = result.get("weaknesses", [])
+    if weaknesses:
+        st.markdown("#### Skills to review")
+        for weakness in weaknesses:
+            st.markdown(f"- **{weakness['skill_tag']}** — {weakness['recommended_action']}")
+    else:
+        st.success("No weaknesses were flagged by these five diagnostic items.")
+
+    with st.expander("Review your diagnostic answers"):
+        for index, item in enumerate(result.get("answer_review", []), start=1):
+            label = "Correct" if item["correct"] else "Needs review"
+            st.markdown(f"**{index}. {label} — {item['skill_tag']}**")
+            st.caption(item["prompt"])
+            st.write(f"Your answer: {item.get('user_answer')}")
+            st.write(f"Expected answer: {item.get('expected_answer')}")
+            st.write(item["explanation"])
+
+    if result.get("outcome_key") == "prerequisite":
+        st.markdown("#### Prerequisite review")
+        st.write(lesson.get("diagnostic", {}).get("prerequisite_review", ""))
+
+    if st.button("Start recommended pathway", type="primary", key=f"start_pathway_{lesson['id']}"):
+        prog = state.get_course_progress(course_id)
+        saved_result = prog.setdefault("diagnostics", {}).get(lesson["id"])
+        if not saved_result:
+            st.error("The diagnostic result is missing. Please return to the course and reopen the lesson.")
+            return
+        saved_result["pathway_started_at"] = datetime.now(timezone.utc).isoformat()
+        flow = st.session_state.lesson_flow
+        flow["selected_pathway"] = saved_result["outcome_key"]
+        flow["active_questions"] = diagnostics.get_pathway_questions(lesson, saved_result["outcome_key"])
+        flow["stage"] = "intro"
+        flow["q_index"] = 0
+        flow["results"] = []
+        state.mark_persistent_dirty()
+        if state.flush_persistent_save():
+            st.rerun()
+        else:
+            st.error("The route could not be saved yet. Use Retry save before leaving this lesson.")
 
 
 # ===========================================================================
@@ -552,7 +720,7 @@ def _render_question(
     Render and process the current question.
     """
 
-    questions = lesson["questions"]
+    questions = flow.get("active_questions", lesson["questions"])
 
     idx = flow["q_index"]
 
@@ -756,7 +924,7 @@ def _render_feedback(
     Render immediate feedback for the current question.
     """
 
-    questions = lesson["questions"]
+    questions = flow.get("active_questions", lesson["questions"])
 
     idx = flow["q_index"]
 
@@ -941,6 +1109,26 @@ def _render_complete(
         or 1
     )
 
+    # Store a single descriptive post-lesson checkpoint for comparison with
+    # the one-time baseline. This is not claimed to be a validated learning-gain
+    # measure because the diagnostic and practice items are not equivalent forms.
+    baseline = prog.setdefault("diagnostics", {}).get(lesson["id"])
+    assessments = prog.setdefault("lesson_assessments", {})
+    if baseline and flow["results"] and lesson["id"] not in assessments:
+        post_percent = round(correct_count / len(flow["results"]) * 100)
+        assessments[lesson["id"]] = {
+            "baseline_score": baseline.get("score", 0),
+            "baseline_total": baseline.get("total", 5),
+            "baseline_percent": baseline.get("percent", 0),
+            "post_correct": correct_count,
+            "post_total": len(flow["results"]),
+            "post_practice_percent": post_percent,
+            "percentage_point_difference": post_percent - baseline.get("percent", 0),
+            "pathway": baseline.get("outcome_key", "unknown"),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        state.mark_persistent_dirty()
+
     question_word = (
         "question"
         if total_count == 1
@@ -955,6 +1143,22 @@ def _render_complete(
         f"</div>",
         unsafe_allow_html=True,
     )
+
+    assessment = prog.get("lesson_assessments", {}).get(lesson["id"])
+    if assessment:
+        st.markdown("#### Starting point and practice checkpoint")
+        before, after, difference = st.columns(3)
+        with before:
+            st.metric("Diagnostic baseline", f"{assessment['baseline_score']}/{assessment['baseline_total']}", f"{assessment['baseline_percent']}%")
+        with after:
+            st.metric("Post-lesson practice", f"{assessment['post_correct']}/{assessment['post_total']}", f"{assessment['post_practice_percent']}%")
+        with difference:
+            delta = assessment["percentage_point_difference"]
+            st.metric("Descriptive difference", f"{delta:+d} pp")
+        st.caption(
+            "These are descriptive checkpoints, not a validated measure of learning gain: "
+            "the diagnostic and lesson-practice questions are different."
+        )
 
     # -----------------------------------------------------------------------
     # Next lesson

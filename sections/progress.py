@@ -50,6 +50,37 @@ def _render_overview(progress):
     with row2[2]:
         _stat_block("Total mistakes", stats["total_mistakes"])
 
+    diagnostic_records = [
+        record
+        for course_progress in progress.values()
+        if isinstance(course_progress, dict)
+        for record in course_progress.get("diagnostics", {}).values()
+        if isinstance(record, dict)
+    ]
+    lesson_assessments = [
+        record
+        for course_progress in progress.values()
+        if isinstance(course_progress, dict)
+        for record in course_progress.get("lesson_assessments", {}).values()
+        if isinstance(record, dict)
+    ]
+    avg_baseline = (
+        round(sum(item.get("percent", 0) for item in diagnostic_records) / len(diagnostic_records))
+        if diagnostic_records else "—"
+    )
+    avg_post = (
+        round(sum(item.get("post_practice_percent", 0) for item in lesson_assessments) / len(lesson_assessments))
+        if lesson_assessments else "—"
+    )
+    row3 = st.columns(3)
+    with row3[0]:
+        _stat_block("Diagnostics completed", len(diagnostic_records))
+    with row3[1]:
+        _stat_block("Average baseline", f"{avg_baseline}%" if diagnostic_records else "—")
+    with row3[2]:
+        _stat_block("Average post-lesson practice", f"{avg_post}%" if lesson_assessments else "—")
+    st.caption("Diagnostic results are tracked separately from regular practice. Baseline and post-lesson scores are descriptive, not a validated learning-gain measure.")
+
 
 _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge--warn", "Developing": ""}
 
@@ -104,6 +135,38 @@ def _render_topic_detail(progress):
         st.markdown("<h4 style='margin-top:1rem;'>Common mistakes</h4>", unsafe_allow_html=True)
         for tag, count in mistakes:
             st.markdown(f"- {tag} ({count})")
+
+    # Lesson-level diagnostic results and the later practice checkpoint.
+    st.markdown("<h4 style='margin-top:1rem;'>Lesson diagnostics</h4>", unsafe_allow_html=True)
+    diagnostic_records = prog.get("diagnostics", {})
+    lesson_assessments = prog.get("lesson_assessments", {})
+    if not diagnostic_records:
+        st.caption("No lesson diagnostics have been completed for this topic yet.")
+    else:
+        for lesson_id, result in diagnostic_records.items():
+            lesson, _ = data.get_lesson(course_id, lesson_id)
+            lesson_title = lesson.get("title", lesson_id) if lesson else lesson_id
+            st.markdown(f"**{lesson_title}**")
+            st.write(
+                f"Baseline: {result.get('score', 0)}/{result.get('total', 5)} "
+                f"({result.get('percent', 0)}%) — {result.get('outcome_label', 'Placement unavailable')}"
+            )
+            weaknesses = [
+                item.get("skill_tag")
+                for item in result.get("weaknesses", [])
+                if item.get("skill_tag")
+            ]
+            if weaknesses:
+                st.write("Skills flagged: " + ", ".join(dict.fromkeys(weaknesses)))
+            assessment = lesson_assessments.get(lesson_id)
+            if assessment:
+                st.write(
+                    f"Post-lesson practice: {assessment.get('post_correct', 0)}/"
+                    f"{assessment.get('post_total', 0)} "
+                    f"({assessment.get('post_practice_percent', 0)}%); descriptive difference "
+                    f"{assessment.get('percentage_point_difference', 0):+d} percentage points."
+                )
+    st.caption("The current diagnostic is a rule-based prototype. Results identify areas to investigate; they are not a clinical, psychometric, or validated mastery assessment.")
 
 
 def _render_recommendations(progress):
