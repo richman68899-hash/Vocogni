@@ -607,9 +607,9 @@ def _render_diagnostic(lesson, course_id) -> None:
             st.write(f"- {error}")
         return
 
-    st.markdown("### Starting-point diagnostic")
+    st.markdown("### Test 1 — Diagnostic")
     st.write(
-        "This one-time five-question check estimates your starting point. "
+        "Complete this one-time five-question test first. It identifies skills to review and determines which practice tests are unlocked. "
         "It is separate from ordinary practice scores and will identify skills "
         "worth reviewing before recommending a learning route."
     )
