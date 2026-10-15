@@ -706,24 +706,20 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
         st.markdown("#### Prerequisite review")
         st.write(lesson.get("diagnostic", {}).get("prerequisite_review", ""))
 
-    if st.button("Start recommended pathway", type="primary", key=f"start_pathway_{lesson['id']}"):
-        prog = state.get_course_progress(course_id)
-        saved_result = prog.setdefault("diagnostics", {}).get(lesson["id"])
-        if not saved_result:
-            st.error("The diagnostic result is missing. Please return to the course and reopen the lesson.")
-            return
-        saved_result["pathway_started_at"] = datetime.now(timezone.utc).isoformat()
+    unlocked = result.get("unlocked_pathways", ["level_1"])
+    st.markdown("#### Unlocked practice tests")
+    for pathway in unlocked:
+        meta = diagnostics.PATHWAY_META.get(pathway, {})
+        st.markdown(f"- **{meta.get('label', pathway)}** — {meta.get('description', '')}")
+    if st.button("Choose a practice test", type="primary", key=f"start_pathway_{lesson['id']}"):
         flow = st.session_state.lesson_flow
-        flow["selected_pathway"] = saved_result["outcome_key"]
-        flow["active_questions"] = diagnostics.get_pathway_questions(lesson, saved_result["outcome_key"])
+        flow["selected_pathway"] = None
+        flow["active_questions"] = []
+        flow["pathway_picker_open"] = False
         flow["stage"] = "intro"
         flow["q_index"] = 0
         flow["results"] = []
-        state.mark_persistent_dirty()
-        if state.flush_persistent_save():
-            st.rerun()
-        else:
-            st.error("The route could not be saved yet. Use Retry save before leaving this lesson.")
+        st.rerun()
 
 
 # ===========================================================================
@@ -783,7 +779,7 @@ def _render_question(
     )
 
     answer_key = (
-        f"answer_{lesson['id']}_{question['id']}"
+        f"answer_{lesson['id']}_{flow.get('attempt_number', 1)}_{question['id']}"
     )
 
     # -----------------------------------------------------------------------
@@ -844,7 +840,7 @@ def _render_question(
         "Submit Answer",
         type="primary",
         disabled=not can_submit,
-        key=f"submit_answer_{lesson['id']}_{question['id']}",
+        key=f"submit_answer_{lesson['id']}_{flow.get('attempt_number', 1)}_{question['id']}",
     ):
 
         # ---------------------------------------------------------------
@@ -1003,7 +999,7 @@ def _render_feedback(
     if st.button(
         next_label,
         type="primary",
-        key=f"feedback_next_{lesson['id']}_{idx}",
+        key=f"feedback_next_{lesson['id']}_{flow.get('attempt_number', 1)}_{idx}",
     ):
 
         if is_last:
@@ -1240,9 +1236,26 @@ def _render_complete(
     # -----------------------------------------------------------------------
 
     if st.button(
+        "Retake practice test",
+        type="primary",
+        use_container_width=True,
+        key=f"retake_practice_{lesson['id']}_{flow.get('attempt_number', 1)}",
+    ):
+        flow["attempt_number"] = int(flow.get("attempt_number", 1)) + 1
+        flow["selected_pathway"] = None
+        flow["active_questions"] = []
+        flow["pathway_picker_open"] = False
+        flow["stage"] = "intro"
+        flow["q_index"] = 0
+        flow["results"] = []
+        flow["last_correct"] = None
+        flow["last_user_answer"] = None
+        st.rerun()
+
+    if st.button(
         "📝 Add a Note About This Lesson",
         use_container_width=True,
-        key="add_lesson_note",
+        key=f"add_lesson_note_{lesson['id']}",
     ):
 
         # Session-only note-editor navigation.
