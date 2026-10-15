@@ -6,7 +6,7 @@ All notable VOCogni changes are recorded here. Features remain under `Unreleased
 
 ### Added
 - Reusable and structurally validated five-question lesson diagnostic schema.
-- Rule-based placement into prerequisite review, Level 1 (Easy), Level 2 (Medium), Level 3 (Hard), or a real-life project.
+- Rule-based cumulative unlocking of practice levels based on the diagnostic score, with a prerequisite gate.
 - Initial diagnostics for Understanding Fractions, What Is a Variable?, and Translating Words into Math.
 - Skill-tagged weakness reporting, answer explanations, and placement rationale.
 - One-time durable diagnostic records and a separate post-lesson practice checkpoint.
@@ -14,8 +14,9 @@ All notable VOCogni changes are recorded here. Features remain under `Unreleased
 - Automated rule-engine tests and acceptance-test plan.
 
 ### Changed
-- Lesson entry can begin with a diagnostic before ordinary practice.
-- Practice uses the question set for the recommended route when a Level 2, Level 3, or Project placement is selected.
+- The diagnostic is the first test in a configured lesson and is labelled Test 1 — Diagnostic.
+- Diagnostic outcomes unlock sets of levels rather than prescribing one mandatory level.
+- Practice tests can be repeated with fresh answer state; diagnostic results remain one-time.
 - Diagnostic items are recorded separately from normal practice counts.
 
 ### Notes
