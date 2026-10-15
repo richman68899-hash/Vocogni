@@ -515,23 +515,48 @@ def _render_already_completed(
 
     st.markdown(
         "<div class='vc-card'>"
-        "✓ You already completed this lesson. "
-        "Practice questions aren't replayed once a lesson is finished — "
-        "head back to the course to pick another lesson."
+        "✓ You already completed this lesson. Your original completion and "
+        "one-time diagnostic remain saved. You can review the practice again "
+        "without resetting the diagnostic."
         "</div>",
         unsafe_allow_html=True,
     )
 
-    if st.button(
-        "Back to course",
-        type="primary",
-        key="completed_back_to_course",
-    ):
+    col_retake, col_back = st.columns(2)
+    with col_retake:
+        if st.button(
+            "Retake practice test",
+            type="primary",
+            use_container_width=True,
+            key=f"retake_practice_{lesson['id']}",
+        ):
+            flow = st.session_state.lesson_flow
+            prog = st.session_state.progress.get(flow["course_id"], {})
+            saved = prog.get("diagnostics", {}).get(lesson["id"], {})
+            selected = saved.get("selected_pathway", saved.get("outcome_key", "level_1"))
+            questions = diagnostics.get_pathway_questions(lesson, selected)
+            attempt_number = int(flow.get("attempt_number", 1)) + 1
+            flow.update({
+                "stage": "intro",
+                "q_index": 0,
+                "results": [],
+                "active_questions": questions,
+                "selected_pathway": selected,
+                "attempt_number": attempt_number,
+                "last_correct": None,
+                "last_user_answer": None,
+            })
+            st.rerun()
 
-        st.session_state.current_lesson = None
-        st.session_state.lesson_flow = None
-
-        st.rerun()
+    with col_back:
+        if st.button(
+            "Back to course",
+            use_container_width=True,
+            key="completed_back_to_course",
+        ):
+            st.session_state.current_lesson = None
+            st.session_state.lesson_flow = None
+            st.rerun()
 
 
 # ===========================================================================
@@ -854,7 +879,7 @@ def _render_question(
         "Submit Answer",
         type="primary",
         disabled=not can_submit,
-        key=f"submit_answer_{lesson['id']}_{question['id']}",
+        key=f"submit_answer_{lesson['id']}_{flow.get('attempt_number', 1)}_{question['id']}",
     ):
 
         # ---------------------------------------------------------------
