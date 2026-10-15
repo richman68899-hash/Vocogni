@@ -818,7 +818,7 @@ def _render_question(
     )
 
     answer_key = (
-        f"answer_{lesson['id']}_{question['id']}"
+        f"answer_{lesson['id']}_{flow.get('attempt_number', 1)}_{question['id']}"
     )
 
     # -----------------------------------------------------------------------
