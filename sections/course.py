@@ -381,7 +381,7 @@ def render_lesson_flow() -> None:
 
     if st.button(
         "← Back to course",
-        key="back_to_course",
+        key=f"back_to_course_{lesson_id}",
     ):
 
         st.session_state.current_lesson = None
@@ -413,15 +413,14 @@ def render_lesson_flow() -> None:
     diagnostic_records = prog.setdefault("diagnostics", {})
     diagnostic_result = diagnostic_records.get(lesson_id)
 
-    if diagnostic_config and not already_done:
+    if diagnostic_config:
         if diagnostic_result is None:
             _render_diagnostic(lesson, course_id)
             return
-        if not diagnostic_result.get("pathway_started_at"):
+        if not flow.get("pathway_picker_open") and not flow.get("selected_pathway"):
             _render_diagnostic_result(lesson, course_id, diagnostic_result)
             return
-        if not flow.get("active_questions"):
-            flow["selected_pathway"] = diagnostic_result.get("outcome_key", "level_1")
+        if flow.get("selected_pathway") and not flow.get("active_questions"):
             flow["active_questions"] = diagnostics.get_pathway_questions(
                 lesson, flow["selected_pathway"]
             )
@@ -445,13 +444,8 @@ def render_lesson_flow() -> None:
         "intro",
     )
 
-    if already_done and stage != "complete":
-
-        _render_already_completed(
-            lesson
-        )
-
-        return
+    # Completed lessons remain replayable. Diagnostic records are checked
+    # above and never reset; each practice replay gets fresh transient state.
 
     if stage == "intro":
 
@@ -541,6 +535,31 @@ def _render_intro(
     """Render the lesson introduction and selected diagnostic pathway."""
     selected_pathway = flow.get("selected_pathway")
     diagnostic_config = lesson.get("diagnostic", {})
+    diagnostic = diagnostic_config if isinstance(diagnostic_config, dict) else {}
+    result = state.get_course_progress(flow["course_id"]).get("diagnostics", {}).get(lesson["id"], {})
+    unlocked = result.get("unlocked_pathways", ["level_1"]) if diagnostic else []
+    if diagnostic and not flow.get("pathway_picker_open"):
+        st.markdown("### Choose a practice level")
+        st.write("Your diagnostic unlocks the following pathways. You can repeat any unlocked practice test; the diagnostic itself cannot be repeated.")
+        pathway_labels = {key: diagnostics.PATHWAY_META[key]["label"] for key in unlocked if key in diagnostics.PATHWAY_META}
+        if not pathway_labels:
+            pathway_labels = {"level_1": diagnostics.PATHWAY_META["level_1"]["label"]}
+        choice = st.selectbox(
+            "Unlocked pathways",
+            list(pathway_labels),
+            format_func=lambda key: pathway_labels[key],
+            key=f"pathway_choice_{lesson['id']}_{flow.get('attempt_number', 1)}",
+        )
+        if st.button("Start selected test", type="primary", key=f"start_pathway_{lesson['id']}_{flow.get('attempt_number', 1)}"):
+            flow["selected_pathway"] = choice
+            flow["active_questions"] = diagnostics.get_pathway_questions(lesson, choice)
+            flow["pathway_picker_open"] = True
+            flow["attempt_number"] = int(flow.get("attempt_number", 1))
+            flow["stage"] = "intro"
+            flow["q_index"] = 0
+            flow["results"] = []
+            st.rerun()
+        return
     if selected_pathway == "prerequisite":
         st.info("Recommended route: prerequisite review")
         st.markdown("#### Review the prerequisite")
@@ -566,7 +585,7 @@ def _render_intro(
         if selected_pathway == "project" or lesson["kind"] == "application"
         else "Begin Practice"
     )
-    if st.button(button_label, type="primary", key="begin_lesson"):
+    if st.button(button_label, type="primary", key=f"begin_lesson_{lesson['id']}_{flow.get('attempt_number', 1)}"):
         flow["stage"] = "question"
         flow["q_index"] = 0
         flow["results"] = []
