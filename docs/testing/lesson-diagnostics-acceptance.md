@@ -34,3 +34,22 @@ UI, persistence, account-isolation, refresh/re-login, and save-failure tests req
 
 ## Recording each result
 Record tested commit SHA, test date, environment/deployment, result, evidence link, defect ID, and retest result. Never mark a test “passed” solely because code compiles.
+
+
+## Diagnostic unlock and repeatability checks
+
+- [ ] Confirm the diagnostic is the first assessment for each of the three configured lessons.
+- [ ] Confirm a saved diagnostic cannot be submitted a second time, including after refresh and re-login.
+- [ ] Confirm prerequisite failure unlocks Level 1 only.
+- [ ] Confirm score 1–2 with prerequisite correct unlocks Level 1 only.
+- [ ] Confirm score 3 unlocks Levels 1–2.
+- [ ] Confirm score 4 unlocks Levels 1–3.
+- [ ] Confirm score 5 unlocks Levels 1–3 and the project.
+- [ ] Confirm the learner can select any unlocked route before starting it.
+- [ ] Confirm the selected route is persisted and cannot be changed by reopening the result screen.
+- [ ] Confirm practice can be retaken with cleared answer-widget state and a separate attempt record.
+- [ ] Confirm retakes do not modify or replace the original diagnostic result.
+- [ ] Confirm diagnostic answers do not inflate ordinary practice question totals.
+- [ ] Confirm the deployed app preserves diagnostic and route selection across refresh, logout, and login.
+
+Do not mark the release validated until these integrated UI and persistence checks have been run against the deployed app.
