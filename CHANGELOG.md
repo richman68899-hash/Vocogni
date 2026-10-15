@@ -2,7 +2,7 @@
 
 All notable VOCogni changes are recorded here. Features remain under `Unreleased` until their acceptance tests are complete, the pull request is merged, and a release tag is created.
 
-## [Unreleased] — Lesson diagnostics (proposed v1.4.0)
+## [Unreleased] — Diagnostic unlocks and practice retakes
 
 ### Added
 - Reusable and structurally validated five-question lesson diagnostic schema.
@@ -14,8 +14,10 @@ All notable VOCogni changes are recorded here. Features remain under `Unreleased
 - Automated rule-engine tests and acceptance-test plan.
 
 ### Changed
-- Lesson entry can begin with a diagnostic before ordinary practice.
-- Practice uses the question set for the recommended route when a Level 2, Level 3, or Project placement is selected.
+- The one-time diagnostic is the first assessment for each configured lesson.
+- Diagnostic results expose cumulative unlocked practice routes; prerequisite failure gates the learner to Level 1.
+- Learners can select any unlocked practice route; the chosen route is saved and remains fixed after selection.
+- Practice tests are intended to be repeatable without allowing a diagnostic retake.
 - Diagnostic items are recorded separately from normal practice counts.
 
 ### Notes
