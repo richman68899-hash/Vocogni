@@ -67,6 +67,21 @@ class DiagnosticEngineTests(unittest.TestCase):
                     self.assertEqual(result["score"], score)
                     self.assertEqual(result["outcome_key"], expected)
 
+    def test_score_unlocks_cumulative_pathways(self):
+        cases = [
+            (1, False, ["level_1"]),
+            (2, True, ["level_1"]),
+            (3, True, ["level_1", "level_2"]),
+            (4, True, ["level_1", "level_2", "level_3"]),
+            (5, True, ["level_1", "level_2", "level_3", "project"]),
+        ]
+        for score, prerequisite_correct, expected in cases:
+            with self.subTest(score=score, prerequisite_correct=prerequisite_correct):
+                self.assertEqual(
+                    diagnostics.unlocked_pathways_for_score(score, prerequisite_correct),
+                    expected,
+                )
+
     def test_missed_skill_is_listed_once(self):
         course, lesson = configured_lessons()[0]
         config = lesson["diagnostic"]
