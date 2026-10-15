@@ -417,7 +417,7 @@ def render_lesson_flow() -> None:
         if diagnostic_result is None:
             _render_diagnostic(lesson, course_id)
             return
-        if not flow.get("pathway_picker_open") and not flow.get("selected_pathway"):
+        if not flow.get("show_pathway_picker") and not flow.get("selected_pathway"):
             _render_diagnostic_result(lesson, course_id, diagnostic_result)
             return
         if flow.get("selected_pathway") and not flow.get("active_questions"):
@@ -538,7 +538,7 @@ def _render_intro(
     diagnostic = diagnostic_config if isinstance(diagnostic_config, dict) else {}
     result = state.get_course_progress(flow["course_id"]).get("diagnostics", {}).get(lesson["id"], {})
     unlocked = result.get("unlocked_pathways", ["level_1"]) if diagnostic else []
-    if diagnostic and not flow.get("pathway_picker_open"):
+    if diagnostic and flow.get("show_pathway_picker"):
         st.markdown("### Choose a practice level")
         st.write("Your diagnostic unlocks the following pathways. You can repeat any unlocked practice test; the diagnostic itself cannot be repeated.")
         pathway_labels = {key: diagnostics.PATHWAY_META[key]["label"] for key in unlocked if key in diagnostics.PATHWAY_META}
@@ -554,6 +554,7 @@ def _render_intro(
             flow["selected_pathway"] = choice
             flow["active_questions"] = diagnostics.get_pathway_questions(lesson, choice)
             flow["pathway_picker_open"] = True
+            flow["show_pathway_picker"] = False
             flow["attempt_number"] = int(flow.get("attempt_number", 1))
             flow["stage"] = "intro"
             flow["q_index"] = 0
@@ -716,6 +717,7 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
         flow["selected_pathway"] = None
         flow["active_questions"] = []
         flow["pathway_picker_open"] = False
+        flow["show_pathway_picker"] = True
         flow["stage"] = "intro"
         flow["q_index"] = 0
         flow["results"] = []
@@ -1245,6 +1247,7 @@ def _render_complete(
         flow["selected_pathway"] = None
         flow["active_questions"] = []
         flow["pathway_picker_open"] = False
+        flow["show_pathway_picker"] = False
         flow["stage"] = "intro"
         flow["q_index"] = 0
         flow["results"] = []
