@@ -413,13 +413,17 @@ def render_lesson_flow() -> None:
     diagnostic_records = prog.setdefault("diagnostics", {})
     diagnostic_result = diagnostic_records.get(lesson_id)
 
-    if diagnostic_config and not already_done:
-        if diagnostic_result is None:
-            _render_diagnostic(lesson, course_id)
-            return
+    if diagnostic_config and diagnostic_result is None:
+        # One-time diagnostic always gates lesson entry, including lessons
+        # whose ordinary practice was completed before diagnostics existed.
+        _render_diagnostic(lesson, course_id)
+        return
+
+    if diagnostic_config and diagnostic_result is not None:
         if not diagnostic_result.get("pathway_started_at"):
             _render_diagnostic_result(lesson, course_id, diagnostic_result)
             return
+        unlocked_pathways = diagnostics.unlocked_pathways_for_score(diagnostic_result)
         if not flow.get("active_questions"):
             flow["selected_pathway"] = diagnostic_result.get("outcome_key", "level_1")
             flow["active_questions"] = diagnostics.get_pathway_questions(
@@ -587,9 +591,9 @@ def _render_diagnostic(lesson, course_id) -> None:
             st.write(f"- {error}")
         return
 
-    st.markdown("### Starting-point diagnostic")
+    st.markdown("### Test 1 — Diagnostic")
     st.write(
-        "This one-time five-question check estimates your starting point. "
+        "Complete this one-time five-question test first. "
         "It is separate from ordinary practice scores and will identify skills "
         "worth reviewing before recommending a learning route."
     )
@@ -687,16 +691,35 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
         st.markdown("#### Prerequisite review")
         st.write(lesson.get("diagnostic", {}).get("prerequisite_review", ""))
 
-    if st.button("Start recommended pathway", type="primary", key=f"start_pathway_{lesson['id']}"):
+    unlocked = diagnostics.unlocked_pathways_for_score(result)
+    route_labels = {
+        "level_1": "Level 1 — Easy",
+        "level_2": "Level 2 — Medium",
+        "level_3": "Level 3 — Hard",
+        "project": "Real-life project",
+    }
+    st.markdown("#### Unlocked practice tests")
+    st.caption("Choose any unlocked route. Higher routes remain locked until the diagnostic score and prerequisite check meet the rule.")
+    selected = st.selectbox(
+        "Practice route",
+        options=unlocked,
+        format_func=lambda route: route_labels[route],
+        key=f"diagnostic_route_choice_{lesson['id']}",
+    )
+    if st.button("Start selected pathway", type="primary", key=f"start_pathway_{lesson['id']}"):
         prog = state.get_course_progress(course_id)
         saved_result = prog.setdefault("diagnostics", {}).get(lesson["id"])
         if not saved_result:
             st.error("The diagnostic result is missing. Please return to the course and reopen the lesson.")
             return
+        if selected not in diagnostics.unlocked_pathways_for_score(saved_result):
+            st.error("That practice route is not unlocked by the saved diagnostic.")
+            return
         saved_result["pathway_started_at"] = datetime.now(timezone.utc).isoformat()
+        saved_result["selected_pathway"] = selected
         flow = st.session_state.lesson_flow
-        flow["selected_pathway"] = saved_result["outcome_key"]
-        flow["active_questions"] = diagnostics.get_pathway_questions(lesson, saved_result["outcome_key"])
+        flow["selected_pathway"] = selected
+        flow["active_questions"] = diagnostics.get_pathway_questions(lesson, selected)
         flow["stage"] = "intro"
         flow["q_index"] = 0
         flow["results"] = []
