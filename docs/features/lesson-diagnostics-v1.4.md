@@ -14,15 +14,17 @@ Lessons did not reliably establish a learner's starting point. Without a baselin
   - Algebra Basics — What Is a Variable?
   - Word Problems — Translating Words into Math.
 - Score, prerequisite check, named skill weaknesses, answer explanations, placement rationale, and next-step recommendation.
-- Five possible routes: prerequisite review, Level 1 (Easy), Level 2 (Medium), Level 3 (Hard), or a real-life project.
+- Five diagnostic outcomes that unlock cumulative sets of practice tests: Level 1 only, Levels 1–2, Levels 1–3, or all three levels plus a real-life project. A prerequisite miss gates access to Level 1 until foundations are reviewed.
 - One saved diagnostic result per learner/course/lesson ID. Existing result is shown on revisit; the diagnostic is not submitted again.
 - Separate persistence for diagnostic scores and post-lesson practice checkpoint records.
 - Progress-page display of diagnostics completed, baseline scores, post-lesson practice scores, and flagged skill areas.
 - Versioned diagnostic configuration and acceptance tests for future lesson authors.
 
 ## Placement rule (explicit prototype heuristic)
-1. If the prerequisite item is incorrect, recommend prerequisite review regardless of total score.
-2. If the prerequisite item is correct: 1–2/5 routes to Level 1 (Easy); 3/5 routes to Level 2 (Medium); 4/5 routes to Level 3 (Hard); 5/5 routes to the real-life project.
+1. The diagnostic is the first test shown in a configured lesson and is labelled **Test 1 — Diagnostic**. It can be submitted once per learner per lesson.
+2. If the prerequisite item is incorrect, only Level 1 is unlocked while the learner reviews the prerequisite.
+3. If the prerequisite item is correct: 1–2/5 unlocks Level 1 (Easy); 3/5 unlocks Levels 1–2; 4/5 unlocks Levels 1–3; 5/5 unlocks Levels 1–3 and the real-life project.
+4. Practice tests can be repeated. Retaking practice creates a fresh attempt and never resets or reopens the diagnostic.
 3. Incorrect answers are mapped to their author-defined `skill_tag`. The engine lists those tags and the explanation/review action.
 4. This is transparent rule-based logic (“AI-style decision support”), **not** a trained AI model or a validated psychometric instrument. Thresholds are initial hypotheses to evaluate.
 
@@ -41,6 +43,7 @@ Diagnostic items are kept separate from ordinary practice question counts/accura
 - The post-lesson checkpoint uses lesson practice questions, not an equivalent standardized post-test. A percentage-point difference is descriptive and must not be reported as proven learning gain.
 - Five selected-response items provide a coarse starting-point signal, not a comprehensive profile of ability.
 - Existing learners who completed one of these lessons before v1.4 are not forced to complete a new diagnostic on review.
+- Practice attempt history is not yet a full longitudinal assessment record; the current checkpoint is descriptive and should not be treated as a validated gain measure.
 - The diagnostic is not a generative AI system and does not call an external model.
 
 ## Acceptance criteria
@@ -48,7 +51,10 @@ Diagnostic items are kept separate from ordinary practice question counts/accura
 - [ ] Each diagnostic requires all five answers and saves exactly one result.
 - [ ] Reopening a lesson never lets a learner retake the submitted diagnostic.
 - [ ] The prerequisite-failure override behaves as documented.
-- [ ] Scores 2/5, 3/5, 4/5, and 5/5 with prerequisite correct route to Levels 1, 2, 3, and Project respectively.
+- [ ] Scores 2/5, 3/5, 4/5, and 5/5 with prerequisite correct unlock Level 1; Levels 1–2; Levels 1–3; and Levels 1–3 plus Project, respectively.
+- [ ] The diagnostic appears first and is labelled Test 1 — Diagnostic.
+- [ ] Practice tests can be repeated with fresh answer-widget state.
+- [ ] A repeated practice test does not expose a diagnostic retake.
 - [ ] Each incorrect item adds the correct skill tag to the weakness report.
 - [ ] Diagnostic scores do not increase ordinary practice-question or mistake totals.
 - [ ] Diagnostic results survive refresh and re-login.
