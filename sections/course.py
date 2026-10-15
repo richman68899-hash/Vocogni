@@ -700,13 +700,19 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
     }
     st.markdown("#### Unlocked practice tests")
     st.caption("Choose any unlocked route. Higher routes remain locked until the diagnostic score and prerequisite check meet the rule.")
-    selected = st.selectbox(
-        "Practice route",
-        options=unlocked,
-        format_func=lambda route: route_labels[route],
-        key=f"diagnostic_route_choice_{lesson['id']}",
-    )
-    if st.button("Start selected pathway", type="primary", key=f"start_pathway_{lesson['id']}"):
+    if not result.get("pathway_started_at"):
+        selected = st.selectbox(
+            "Practice route",
+            options=unlocked,
+            format_func=lambda route: route_labels[route],
+            key=f"diagnostic_route_choice_{lesson['id']}",
+        )
+        start_label = "Start selected pathway"
+    else:
+        selected = result.get("selected_pathway", result.get("outcome_key", "level_1"))
+        st.info(f"Your diagnostic is already recorded. Selected route: {route_labels.get(selected, selected)}. You cannot retake the diagnostic.")
+        start_label = "Continue selected pathway"
+    if st.button(start_label, type="primary", key=f"start_pathway_{lesson['id']}"):
         prog = state.get_course_progress(course_id)
         saved_result = prog.setdefault("diagnostics", {}).get(lesson["id"])
         if not saved_result:
