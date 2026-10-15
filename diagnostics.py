@@ -15,38 +15,58 @@ import logic
 
 REQUIRED_STAGES = ("prerequisite", "level_1", "level_2", "level_3", "project")
 
+PATHWAY_META = {
+    "level_1": {"label": "Level 1 — Easy", "description": "Core concepts and supported examples."},
+    "level_2": {"label": "Level 2 — Medium", "description": "Moderate practice that builds on the core idea."},
+    "level_3": {"label": "Level 3 — Hard", "description": "More demanding, multi-step reasoning."},
+    "project": {"label": "Real-life Project", "description": "Apply the idea in a practical situation."},
+}
+
 PLACEMENT = {
     "prerequisite": {
         "label": "Prerequisite review recommended",
         "level": "Prerequisite",
-        "summary": "A foundational concept needs attention before progressing.",
-        "next_action": "Review the prerequisite explanation, then begin the lesson's supported practice.",
+        "summary": "A foundational concept needs attention. Level 1 is unlocked; higher levels remain locked for now.",
+        "next_action": "Review the prerequisite explanation, then complete Level 1 practice.",
     },
     "level_1": {
-        "label": "Start at Level 1 — Easy",
+        "label": "Level 1 unlocked",
         "level": "Level 1",
-        "summary": "Build confidence with the core idea and straightforward examples.",
-        "next_action": "Begin the lesson's introductory practice.",
+        "summary": "Your starting score unlocks Level 1 — Easy.",
+        "next_action": "Begin Level 1 practice.",
     },
     "level_2": {
-        "label": "Start at Level 2 — Medium",
+        "label": "Levels 1–2 unlocked",
         "level": "Level 2",
-        "summary": "The starting knowledge supports practice with a moderate step up.",
-        "next_action": "Work through the medium-level questions.",
+        "summary": "Your starting score unlocks Level 1 — Easy and Level 2 — Medium.",
+        "next_action": "Choose either unlocked level.",
     },
     "level_3": {
-        "label": "Start at Level 3 — Hard",
+        "label": "Levels 1–3 unlocked",
         "level": "Level 3",
-        "summary": "The result supports trying more demanding multi-step questions.",
-        "next_action": "Work through the harder questions and check the reasoning carefully.",
+        "summary": "Your starting score unlocks Easy, Medium, and Hard practice.",
+        "next_action": "Choose any unlocked level.",
     },
     "project": {
-        "label": "Start with a real-life project",
+        "label": "All levels and the project unlocked",
         "level": "Project",
-        "summary": "All diagnostic items were answered correctly; try applying the concept in context.",
-        "next_action": "Complete the real-life application task.",
+        "summary": "Your score unlocks all three practice levels and the real-life project.",
+        "next_action": "Choose any unlocked level or try the real-life project.",
     },
 }
+
+
+def unlocked_pathways_for_score(score: int, prerequisite_correct: bool) -> list[str]:
+    """Return the cumulative set of practice pathways unlocked by one diagnostic."""
+    if not prerequisite_correct:
+        return ["level_1"]
+    if score >= 5:
+        return ["level_1", "level_2", "level_3", "project"]
+    if score == 4:
+        return ["level_1", "level_2", "level_3"]
+    if score == 3:
+        return ["level_1", "level_2"]
+    return ["level_1"]
 
 
 def validate_diagnostic_config(config: Any) -> list[str]:
@@ -137,23 +157,23 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
 
     total = len(config["questions"])
     percent = round(correct_count / total * 100)
-    # Foundational prerequisite failure takes priority: advanced answers can
-    # otherwise mask a gap that prevents secure learning of the target concept.
+    # The prerequisite check gates higher-level access. Once it passes,
+    # the score unlocks cumulative pathways rather than forcing one start level.
     if not prerequisite_correct:
         outcome_key = "prerequisite"
-        placement_reason = "The prerequisite check was incorrect, so the system recommends reviewing the foundation first."
+        placement_reason = "The prerequisite item was incorrect. Level 1 is available while higher pathways remain locked."
     elif correct_count == 5:
         outcome_key = "project"
-        placement_reason = "All five diagnostic items were correct, including the project-readiness item."
+        placement_reason = "All five diagnostic items were correct; all practice levels and the project are unlocked."
     elif correct_count == 4:
         outcome_key = "level_3"
-        placement_reason = "Four of five items were correct and the prerequisite check passed."
+        placement_reason = "Four of five items were correct and the prerequisite check passed; Levels 1–3 are unlocked."
     elif correct_count == 3:
         outcome_key = "level_2"
-        placement_reason = "Three of five items were correct and the prerequisite check passed."
+        placement_reason = "Three of five items were correct and the prerequisite check passed; Levels 1–2 are unlocked."
     else:
         outcome_key = "level_1"
-        placement_reason = "The prerequisite check passed, but the overall score suggests starting with supported core practice."
+        placement_reason = "The prerequisite check passed, but the score unlocks Level 1 only."
 
     weaknesses = []
     for item in review:
@@ -173,11 +193,13 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
                 weaknesses.append(weakness)
 
     placement = PLACEMENT[outcome_key]
+    unlocked_pathways = unlocked_pathways_for_score(correct_count, prerequisite_correct)
     return {
         "score": correct_count,
         "total": total,
         "percent": percent,
         "outcome_key": outcome_key,
+        "unlocked_pathways": unlocked_pathways,
         "outcome_label": placement["label"],
         "outcome_level": placement["level"],
         "outcome_summary": placement["summary"],
