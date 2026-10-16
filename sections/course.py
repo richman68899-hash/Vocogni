@@ -328,170 +328,194 @@ def _render_lesson_row(
 # ===========================================================================
 
 def render_lesson_flow() -> None:
-    """
-    Render the current lesson flow.
-    """
-
+    """Render a predictable hub -> diagnostic -> pathway -> practice flow."""
     flow = st.session_state.lesson_flow
-
-    if not flow:
-
+    if not isinstance(flow, dict):
         st.session_state.current_lesson = None
+        st.session_state.lesson_flow = None
         st.rerun()
         return
 
-    course_id = flow["course_id"]
-    lesson_id = flow["lesson_id"]
-
-    course = data.get_course(
-        course_id
-    )
-
-    lesson, _ = data.get_lesson(
-        course_id,
-        lesson_id,
-    )
-
+    course_id, lesson_id = flow.get("course_id"), flow.get("lesson_id")
+    course = data.get_course(course_id)
+    lesson, _ = data.get_lesson(course_id, lesson_id)
     if course is None or lesson is None:
-
         st.session_state.current_lesson = None
         st.session_state.lesson_flow = None
-
         st.rerun()
         return
 
-    progress = st.session_state.progress
-
-    prog = progress.get(
-        course_id,
-        {},
-    )
-
-    already_done = (
-        lesson_id
-        in prog.get(
-            "completed_lessons",
-            [],
-        )
-    )
-
-    # -----------------------------------------------------------------------
-    # Back to course
-    # -----------------------------------------------------------------------
-
-    if st.button(
-        "← Back to course",
-        key="back_to_course",
-    ):
-
-        st.session_state.current_lesson = None
-        st.session_state.lesson_flow = None
-
-        st.rerun()
-
-    # -----------------------------------------------------------------------
-    # Lesson heading
-    # -----------------------------------------------------------------------
-
-    st.markdown(
-        f"<span class='vc-muted'>{course['title']}</span>",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        f"<h2>{lesson['title']}</h2>",
-        unsafe_allow_html=True,
-    )
-
-    # -----------------------------------------------------------------------
-    # ONE-TIME DIAGNOSTIC + ADAPTIVE PATHWAY
-    # -----------------------------------------------------------------------
-    #
-    # Diagnostic records are durable and keyed by lesson ID. The diagnostic
-    # never contributes to ordinary practice accuracy/question counts.
+    prog = state.get_course_progress(course_id)
     diagnostic_config = lesson.get("diagnostic")
     diagnostic_records = prog.setdefault("diagnostics", {})
     diagnostic_result = diagnostic_records.get(lesson_id)
+    attempts = prog.setdefault("practice_attempts", {})
+    lesson_attempts = attempts.setdefault(lesson_id, [])
+    already_done = lesson_id in prog.get("completed_lessons", [])
 
+    if st.button("← Back to course", key=f"back_to_course_{lesson_id}"):
+        state.flush_persistent_save()
+        st.session_state.current_lesson = None
+        st.session_state.lesson_flow = None
+        st.rerun()
+
+    st.markdown(f"<span class='vc-muted'>{course['title']}</span>", unsafe_allow_html=True)
+    st.markdown(f"<h2>{lesson['title']}</h2>", unsafe_allow_html=True)
+
+    # State is derived from durable records, not a fragile "started" boolean.
     if diagnostic_config and diagnostic_result is None:
-        # One-time diagnostic always gates lesson entry, including lessons
-        # whose ordinary practice was completed before diagnostics existed.
         _render_diagnostic(lesson, course_id)
         return
 
     if diagnostic_config and diagnostic_result is not None:
-        if not diagnostic_result.get("pathway_started_at"):
-            _render_diagnostic_result(lesson, course_id, diagnostic_result)
+        if flow.get("view") not in ("practice", "attempt_complete"):
+            _render_lesson_hub(course, lesson, flow, diagnostic_result, lesson_attempts)
             return
-        unlocked_pathways = diagnostics.unlocked_pathways_for_score(diagnostic_result)
-        if not flow.get("active_questions"):
-            flow["selected_pathway"] = diagnostic_result.get("outcome_key", "level_1")
-            flow["active_questions"] = diagnostics.get_pathway_questions(
-                lesson, flow["selected_pathway"]
-            )
+    elif flow.get("view") not in ("practice", "attempt_complete"):
+        flow["view"] = "hub"
 
-    # -----------------------------------------------------------------------
-    # Stage
-    # -----------------------------------------------------------------------
-    #
-    # IMPORTANT:
-    #
-    # A lesson can be marked completed while its current flow is still in
-    # the "complete" stage. We therefore allow that stage to render even
-    # when already_done is True.
-    #
-    # Without this distinction, the next rerun after completion could jump
-    # straight to _render_already_completed() and lose the Continue button.
-    # -----------------------------------------------------------------------
-
-    stage = flow.get(
-        "stage",
-        "intro",
-    )
-
-    if already_done and stage != "complete":
-
-        _render_already_completed(
-            lesson
-        )
-
+    if flow.get("view") == "attempt_complete":
+        _render_attempt_complete(course, lesson, flow, diagnostic_result, lesson_attempts)
         return
 
-    if stage == "intro":
+    if flow.get("view") == "practice":
+        if not flow.get("active_questions"):
+            route = flow.get("selected_pathway", "level_1")
+            flow["active_questions"] = (
+                diagnostics.get_pathway_questions(lesson, route)
+                if diagnostic_config else lesson.get("questions", [])
+            )
+        stage = flow.get("stage", "intro")
+        if stage == "intro":
+            _render_intro(lesson, flow)
+        elif stage == "question":
+            _render_question(lesson, flow, course_id)
+        elif stage == "feedback":
+            _render_feedback(lesson, flow)
+        elif stage == "complete":
+            _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
+        else:
+            flow["stage"] = "intro"
+            st.rerun()
+        return
 
-        _render_intro(
-            lesson,
-            flow,
+    _render_lesson_hub(course, lesson, flow, diagnostic_result, lesson_attempts)
+
+
+def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> None:
+    """Stable lesson landing screen; diagnostics are never reset here."""
+    st.markdown(f"<div class='{_box_class(lesson)}'>{lesson['explanation']}</div>", unsafe_allow_html=True)
+    if diagnostic_result:
+        st.markdown("### Your diagnostic")
+        st.metric("Baseline score", f"{diagnostic_result.get('score', 0)} / {diagnostic_result.get('total', 5)}",
+                  f"{diagnostic_result.get('percent', 0)}%")
+        weaknesses = diagnostic_result.get("weaknesses", [])
+        if weaknesses:
+            st.markdown("**Skills to review**")
+            for item in weaknesses:
+                st.markdown(f"- **{item.get('skill_tag', 'Skill')}** — {item.get('recommended_action', 'Review this concept.')}")
+        else:
+            st.write("No weaknesses were flagged by this diagnostic.")
+        unlocked = diagnostics.unlocked_pathways_for_score(diagnostic_result)
+        labels = {key: value["label"] for key, value in diagnostics.PATHWAY_META.items()}
+        st.markdown("### Choose a practice test")
+        st.caption("You can repeat practice tests. Your one-time diagnostic remains unchanged.")
+        selected = st.selectbox(
+            "Unlocked practice tests",
+            options=unlocked,
+            format_func=lambda key: labels.get(key, key),
+            key=f"hub_route_{lesson['id']}",
         )
-
-    elif stage == "question":
-
-        _render_question(
-            lesson,
-            flow,
-            course_id,
-        )
-
-    elif stage == "feedback":
-
-        _render_feedback(
-            lesson,
-            flow,
-        )
-
-    elif stage == "complete":
-
-        _render_complete(
-            course,
-            lesson,
-            flow,
-            course_id,
-        )
-
+        if st.button("Start practice test", type="primary", key=f"hub_start_{lesson['id']}"):
+            _start_practice_attempt(lesson, flow, diagnostic_result, selected)
+            st.rerun()
+        if attempts:
+            st.markdown("### Previous practice attempts")
+            for i, attempt in enumerate(reversed(attempts), start=1):
+                st.write(f"Attempt {len(attempts) - i + 1}: {attempt.get('correct', 0)}/{attempt.get('total', 0)} correct — {attempt.get('pathway_label', attempt.get('pathway', 'Practice'))}")
     else:
+        if st.button("Begin lesson", type="primary", key=f"hub_start_{lesson['id']}"):
+            flow.update({"view": "practice", "stage": "intro", "q_index": 0, "results": [],
+                         "active_questions": lesson.get("questions", []), "attempt_number": 1})
+            st.rerun()
 
-        # Invalid transient state — reset safely.
+
+def _start_practice_attempt(lesson, flow, diagnostic_result, pathway) -> None:
+    """Initialize a clean practice attempt without touching the diagnostic."""
+    previous = int(flow.get("attempt_number", 0))
+    questions = diagnostics.get_pathway_questions(lesson, pathway)
+    flow.update({
+        "view": "practice", "stage": "intro", "q_index": 0, "results": [],
+        "active_questions": questions, "selected_pathway": pathway,
+        "attempt_number": previous + 1, "last_correct": None, "last_user_answer": None,
+    })
+    # Persist the most recently selected route for a consistent return experience.
+    diagnostic_result["selected_pathway"] = pathway
+    diagnostic_result["selected_pathway_at"] = datetime.now(timezone.utc).isoformat()
+    state.mark_persistent_dirty()
+    if not state.flush_persistent_save():
+        flow["save_warning"] = "Route selection could not be saved yet. Retry save before leaving."
+
+
+def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result) -> None:
+    """Persist one immutable practice-attempt summary, then show its result."""
+    prog = state.get_course_progress(course_id)
+    history = prog.setdefault("practice_attempts", {}).setdefault(lesson["id"], [])
+    attempt_number = int(flow.get("attempt_number", len(history) + 1))
+    existing = next((x for x in history if x.get("attempt_number") == attempt_number), None)
+    results = flow.get("results", [])
+    correct = sum(bool(x.get("correct")) for x in results)
+    if existing is None:
+        route = flow.get("selected_pathway", "standard")
+        label = diagnostics.PATHWAY_META.get(route, {}).get("label", "Standard practice")
+        history.append({
+            "attempt_number": attempt_number, "pathway": route, "pathway_label": label,
+            "correct": correct, "total": len(results),
+            "percent": round(correct / len(results) * 100) if results else 0,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "results": list(results),
+        })
+        state.mark_persistent_dirty()
+    # Legacy completion tracking is preserved; it no longer blocks practice retakes.
+    if lesson["id"] not in prog.setdefault("completed_lessons", []):
+        logic.mark_lesson_complete(st.session_state.progress, course_id, lesson["id"])
+        state.mark_persistent_dirty()
+    if diagnostic_result and not prog.setdefault("lesson_assessments", {}).get(lesson["id"]) and results:
+        baseline = diagnostic_result
+        prog["lesson_assessments"][lesson["id"]] = {
+            "baseline_score": baseline.get("score", 0), "baseline_total": baseline.get("total", 5),
+            "baseline_percent": baseline.get("percent", 0), "post_correct": correct,
+            "post_total": len(results), "post_practice_percent": round(correct / len(results) * 100),
+            "percentage_point_difference": round(correct / len(results) * 100) - baseline.get("percent", 0),
+            "pathway": flow.get("selected_pathway", "unknown"),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        state.mark_persistent_dirty()
+    save_ok = state.flush_persistent_save()
+    flow["view"] = "attempt_complete"
+    flow["stage"] = "complete"
+    if not save_ok:
+        st.error("Your attempt is shown, but saving failed. Retry the save before leaving.")
+    _render_attempt_complete(course, lesson, flow, diagnostic_result, history)
+
+
+def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) -> None:
+    results = flow.get("results", [])
+    correct = sum(bool(x.get("correct")) for x in results)
+    st.markdown("### Practice results")
+    st.metric("Score", f"{correct} / {len(results)}",
+              f"{round(correct / len(results) * 100) if results else 0}%")
+    st.caption("This is a practice attempt, not a replacement for your original diagnostic.")
+    if st.button("Return to lesson hub", type="primary", key=f"return_hub_{lesson['id']}"):
+        flow["view"] = "hub"
         flow["stage"] = "intro"
+        flow["results"] = []
+        flow["active_questions"] = []
+        st.rerun()
+    if st.button("Back to course", key=f"attempt_back_{lesson['id']}"):
+        state.flush_persistent_save()
+        st.session_state.current_lesson = None
+        st.session_state.lesson_flow = None
         st.rerun()
 
 

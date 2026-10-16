@@ -121,6 +121,7 @@ def _default_course_progress() -> dict[str, Any]:
         # separately so pre-assessment scores do not inflate practice accuracy.
         "diagnostics": {},
         "lesson_assessments": {},
+        "practice_attempts": {},
     }
 
 
