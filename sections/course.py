@@ -491,11 +491,12 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
         state.mark_persistent_dirty()
-    if not state.flush_persistent_save():
-        st.error("Your attempt is shown, but saving failed. Retry the save before leaving.")
+    save_ok = state.flush_persistent_save()
     flow["view"] = "attempt_complete"
     flow["stage"] = "complete"
-    st.rerun()
+    if not save_ok:
+        st.error("Your attempt is shown, but saving failed. Retry the save before leaving.")
+    _render_attempt_complete(course, lesson, flow, diagnostic_result, history)
 
 
 def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) -> None:
