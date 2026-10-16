@@ -53,3 +53,16 @@ Record tested commit SHA, test date, environment/deployment, result, evidence li
 - [ ] Confirm the deployed app preserves diagnostic and route selection across refresh, logout, and login.
 
 Do not mark the release validated until these integrated UI and persistence checks have been run against the deployed app.
+
+
+## Lesson flow rebuild regression checks
+
+- [ ] Open each configured lesson with no diagnostic record; diagnostic form is shown first.
+- [ ] Submit diagnostic once; reopening the lesson shows the saved hub and does not offer a diagnostic retake.
+- [ ] Select each unlocked route and confirm its own question set starts.
+- [ ] Complete practice; exactly one attempt summary is stored and the completion screen renders without looping.
+- [ ] Return to the hub; the same diagnostic remains and the completed attempt is listed.
+- [ ] Start a second practice attempt; answer inputs are fresh and the second attempt is stored separately.
+- [ ] Reopen a previously completed lesson; completion history does not block practice retakes.
+- [ ] Refresh and sign out/in; diagnostic and attempt summaries restore from Supabase.
+- [ ] Force a persistence failure and verify the UI clearly reports that the attempt may not be durable.
