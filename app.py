@@ -264,11 +264,14 @@ def _render_persistence_status() -> None:
 
 def _render_logout() -> None:
     """
-    Perform a final safety save and then end the authenticated session.
+    Save pending learner-state changes through the normal autosave pathway,
+    then end the Streamlit/OIDC session.
 
-    Normal learner-state persistence happens automatically through
-    state.flush_persistent_save(). This final save exists as a safety
-    checkpoint before logout.
+    Important:
+    - Do not write to Supabase when there is no pending durable change.
+    - Do not log out when a pending save fails.
+    - The Auth0 post-logout redirect URI must also be configured in Auth0;
+      that external allowlist cannot be changed from this Python file.
     """
 
     if not st.sidebar.button(
@@ -278,30 +281,26 @@ def _render_logout() -> None:
     ):
         return
 
-    # --------------------------------------------------------
-    # Final safety save
-    # --------------------------------------------------------
+    # Use the same dirty-state/save-status mechanism as every other feature.
+    # flush_persistent_save() is a no-op when there is nothing pending.
+    if not state.flush_persistent_save():
+        error = st.session_state.get("_persistent_save_error")
 
-    try:
-
-        state.persist_learner_state()
-
-    except Exception as exc:
-
-        # Never silently discard the learner's latest changes.
         st.error(
-            "Vocogni could not save your latest progress. "
-            "You have not been logged out. "
-            f"Error: {exc}"
+            "Vocogni could not save your latest changes, so you are still "
+            "signed in. Retry the save before logging out."
         )
+
+        if error:
+            st.caption(str(error))
 
         return
 
-    # --------------------------------------------------------
-    # End Streamlit/Auth0 session
-    # --------------------------------------------------------
-
+    # Streamlit clears its identity cookie and starts a new session.
+    # On Streamlit versions that use the OIDC end_session_endpoint, Auth0
+    # also validates post_logout_redirect_uri against its allowed URLs.
     st.logout()
+    st.stop()
 
 
 # ============================================================
