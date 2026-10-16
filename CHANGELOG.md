@@ -2,7 +2,7 @@
 
 All notable VOCogni changes are recorded here. Features remain under `Unreleased` until their acceptance tests are complete, the pull request is merged, and a release tag is created.
 
-## [Unreleased] — Diagnostic unlocks and practice retakes
+## [Unreleased] — Lesson flow rebuild and diagnostic-gated practice
 
 ### Added
 - Reusable and structurally validated five-question lesson diagnostic schema.
@@ -17,7 +17,10 @@ All notable VOCogni changes are recorded here. Features remain under `Unreleased
 - The one-time diagnostic is the first assessment for each configured lesson.
 - Diagnostic results expose cumulative unlocked practice routes; prerequisite failure gates the learner to Level 1.
 - Learners can select any unlocked practice route; the chosen route is saved and remains fixed after selection.
-- Practice tests are intended to be repeatable without allowing a diagnostic retake.
+- Rebuilt the lesson landing screen as a stable hub derived from durable diagnostic records.
+- Stored practice-attempt summaries separately from the one-time diagnostic and legacy lesson-completion list.
+- Allowed completed lessons to reopen at the hub and start another practice attempt without resetting diagnostic data.
+- Added explicit attempt-complete and return-to-hub transitions to avoid completion rerun loops.
 - Diagnostic items are recorded separately from normal practice counts.
 
 ### Notes
