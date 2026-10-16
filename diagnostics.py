@@ -49,6 +49,33 @@ PLACEMENT = {
 }
 
 
+PATHWAY_META = {
+    "level_1": {"label": "Level 1 — Easy", "description": "Core concepts and supported examples."},
+    "level_2": {"label": "Level 2 — Medium", "description": "Moderate practice that builds on the core idea."},
+    "level_3": {"label": "Level 3 — Hard", "description": "More demanding, multi-step reasoning."},
+    "project": {"label": "Real-life project", "description": "Apply the concept in a practical situation."},
+}
+
+
+def unlocked_pathways_for_score(result: dict[str, Any]) -> list[str]:
+    """Return cumulative practice pathways unlocked by a saved diagnostic.
+
+    A missed prerequisite gates the learner to Level 1. Otherwise:
+    1-2/5 -> Level 1; 3/5 -> Levels 1-2; 4/5 -> Levels 1-3;
+    5/5 -> Levels 1-3 and Project.
+    """
+    if not result.get("prerequisite_correct", False):
+        return ["level_1"]
+    score = int(result.get("score", 0))
+    if score >= 5:
+        return ["level_1", "level_2", "level_3", "project"]
+    if score >= 4:
+        return ["level_1", "level_2", "level_3"]
+    if score >= 3:
+        return ["level_1", "level_2"]
+    return ["level_1"]
+
+
 def validate_diagnostic_config(config: Any) -> list[str]:
     """Return configuration errors; an empty list means the schema is structurally valid."""
     errors: list[str] = []
@@ -178,6 +205,10 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         "total": total,
         "percent": percent,
         "outcome_key": outcome_key,
+        "unlocked_pathways": unlocked_pathways_for_score({
+            "score": correct_count,
+            "prerequisite_correct": prerequisite_correct,
+        }),
         "outcome_label": placement["label"],
         "outcome_level": placement["level"],
         "outcome_summary": placement["summary"],
