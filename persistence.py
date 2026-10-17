@@ -1,5 +1,5 @@
 """
-persistence.py — VOCogni Version 1.2.0 persistence layer.
+persistence.py — Vocogni Version 1.2.0 persistence layer.
 
 Architecture:
 
@@ -77,12 +77,12 @@ def _get_user_claims() -> dict[str, Any]:
         claims = dict(user)
     except (TypeError, ValueError) as exc:
         raise RuntimeError(
-            "VOCogni could not read the authenticated OIDC user."
+            "Vocogni could not read the authenticated OIDC user."
         ) from exc
 
     if not isinstance(claims, dict):
         raise RuntimeError(
-            "VOCogni received an invalid authenticated user object."
+            "Vocogni received an invalid authenticated user object."
         )
 
     return claims
