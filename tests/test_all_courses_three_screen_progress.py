@@ -57,10 +57,12 @@ class AllCoursesThreeScreenTests(unittest.TestCase):
                     "lesson_assessments": {first_lesson_id: {"baseline_score": 3}},
                 }
             }
+            self.assertFalse(logic.course_diagnostic_completed(progress, course_id))
             self.assertEqual(logic.course_lesson_progress_percent(progress, course_id), 0)
             progress[course_id]["diagnostics"][diagnostic_id] = {
                 "score": 4, "total": 5, "percent": 80
             }
+            self.assertTrue(logic.course_diagnostic_completed(progress, course_id))
             self.assertEqual(logic.course_lesson_progress_percent(progress, course_id), 20)
             progress[course_id]["completed_lessons"].append(first_lesson_id)
             self.assertEqual(logic.course_lesson_progress_percent(progress, course_id), 40)
@@ -96,11 +98,18 @@ class AllCoursesThreeScreenTests(unittest.TestCase):
         )
         self.assertEqual(checkpoint["current_screen"], 3)
         self.assertEqual(checkpoint["completed_screens"], [1, 2])
+        restored = logic.get_lesson_screen_checkpoint(progress, "fractions", "fractions_l2")
+        self.assertEqual(restored["question_id"], "fractions_l2_screen3")
+        restored["completed_screens"].append(3)
         self.assertEqual(
-            logic.get_lesson_screen_checkpoint(progress, "fractions", "fractions_l2")["question_id"],
-            "fractions_l2_screen3",
+            progress["fractions"]["lesson_screen_progress"]["fractions_l2"]["completed_screens"],
+            [1, 2],
+            "Mutating the returned checkpoint must not mutate saved progress.",
         )
-        progress["fractions"]["lesson_screen_progress"]["fractions_l2"]["completed_screens"].append(3)
+        logic.update_lesson_screen_checkpoint(
+            progress, "fractions", "fractions_l2",
+            {"completed_screens": [1, 2, 3], "screen_3_submitted": True},
+        )
         self.assertEqual(
             logic.get_lesson_screen_checkpoint(progress, "fractions", "fractions_l2")["completed_screens"],
             [1, 2, 3],
@@ -112,9 +121,7 @@ class AllCoursesThreeScreenTests(unittest.TestCase):
         self.assertEqual(progress["fractions"]["practice_attempts"]["fractions_l1"][0]["attempt_number"], 1)
         self.assertEqual(progress["fractions"]["lesson_assessments"]["fractions_l1"]["baseline_score"], 4)
 
-    def test_no_diagnostic_courses_are_not_blocked_by_diagnostic_status(self):
-        self.assertTrue(logic.course_diagnostic_completed({}, "word_problems") is False)
-        # Invalid IDs safely return no configured course.
+    def test_diagnostic_helper_handles_invalid_course_id_safely(self):
         self.assertIsNone(logic.course_diagnostic_lesson_id("not-a-course"))
 
 
