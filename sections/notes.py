@@ -1,5 +1,5 @@
 """
-VOCogni Notes — flat folders, durable note organization, and responsive controls.
+Vocogni Notes — flat folders, durable note organization, and responsive controls.
 
 Folders cannot contain folders. Existing notes without a valid folder assignment
 remain available under Unfiled. Durable changes use the central autosave flow.
