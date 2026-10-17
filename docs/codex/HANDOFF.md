@@ -1,4 +1,4 @@
-# VOCogni — Codex Project Handoff
+# Vocogni — Codex Project Handoff
 
 **Prepared:** 2026-10-17  
 **Repository:** https://github.com/richman68899-hash/Vocogni  
@@ -9,7 +9,7 @@ This is a distilled, project-relevant handoff from prior ChatGPT work. It is not
 
 ## 1. Product and objective
 
-VOCogni is an educational AI startup/prototype for Grade 7–9 mathematics. The current learning loop is:
+Vocogni is an educational AI startup/prototype for Grade 7–9 mathematics. The current learning loop is:
 
 **Understand → Solve → Apply → Advance**
 
@@ -108,7 +108,7 @@ Start by auditing the live repository, not by coding. Give Codex this prompt:
 
 > Read `AGENTS.md`, `README.md`, and `docs/codex/HANDOFF.md`. Inspect the current Git branch/status, repository structure, current implementation, tests, current GitHub Actions workflow, and any existing acceptance-test documents. Do not assume this handoff is more current than the code.
 >
-> My objective is the fastest credible path from this prototype to a usable, demonstrable VOCogni MVP. First establish what already works, what is implemented but unverified, what is missing, and what is broken. Separate observed evidence, inference, and unknowns.
+> My objective is the fastest credible path from this prototype to a usable, demonstrable Vocogni MVP. First establish what already works, what is implemented but unverified, what is missing, and what is broken. Separate observed evidence, inference, and unknowns.
 >
 > Produce a prioritized MVP plan with no more than 4–6 phases. For each phase give: user outcome, files/modules likely affected, dependencies, acceptance criteria, tests, live verification steps, risks, and a clear definition of done. Prioritize the smallest complete learner journey and persistence reliability. Include a demo/evidence milestone. Do not invent features or deadlines; mark unresolved product decisions explicitly.
 >
