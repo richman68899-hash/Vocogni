@@ -13,7 +13,7 @@ class ProfileGenderTests(unittest.TestCase):
             ["Male", "Female", "Prefer not to say / others"],
         )
 
-    def test_gender_default_is_the_non-disclosing_option(self):
+    def test_non_disclosing_choice_is_available(self):
         self.assertEqual(data.GENDER_OPTIONS[2], "Prefer not to say / others")
 
     def test_app_version_is_a_development_version(self):
