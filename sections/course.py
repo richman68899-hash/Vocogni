@@ -1,7 +1,7 @@
 """
 sections/course.py — Course detail + interactive lesson flow.
 
-VOCogni Version 1.4.0
+Vocogni Version 1.4.0
 - Adds one-time lesson diagnostics and explicit placement results.
 - Routes the initial learning path according to diagnostic outcomes.
 - Records a separate baseline and post-lesson practice checkpoint.
