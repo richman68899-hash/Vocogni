@@ -962,11 +962,10 @@ COURSES = {
                 "title": "Multi-Step Problems",
                 "kind": "standard",
                 "explanation": (
-                    "Some word problems need more than one calculation. Break "
-                    "the problem into smaller steps, solve each one in order, "
-                    "and use the result of one step in the next.\n\n"
-                    "For example: 3 books at $12 each, minus a $5 discount: "
-                    "(3 x 12) - 5 = 36 - 5 = 31."
+                    "A multi-step word problem requires a sequence of operations. "
+                    "Identify the relationship at each stage, calculate the first result, "
+                    "and use that result in the next step. Keep track of units and apply "
+                    "discounts after finding the subtotal."
                 ),
                 "worked_example": (
                     "Three notebooks cost Rp12,000 each and the shop gives Rp5,000 off the total. "
@@ -995,7 +994,7 @@ COURSES = {
                         "answer": 31000,
                         "tolerance": 0.01,
                         "whole_number": True,
-                        "input_hint": "e.g. 31",
+                        "input_hint": "e.g. 31000",
                         "explanation": "3 × Rp12,000 = Rp36,000; subtract Rp5,000 = Rp31,000.",
                         "mistake_tag": "Multi-step setup error",
                     },
@@ -1009,7 +1008,7 @@ COURSES = {
                         "answer": 90000,
                         "tolerance": 0.01,
                         "whole_number": True,
-                        "input_hint": "e.g. 90",
+                        "input_hint": "e.g. 90000",
                         "explanation": "Rp15,000 × 6 weeks = Rp90,000.",
                         "mistake_tag": "Multi-step setup error",
                     },
@@ -1099,10 +1098,10 @@ COURSES = {
                     "tolerance": 0.01,
                     "whole_number": True,
                     "input_hint": "e.g. 310000",
-                    "explanation": "Calculate the student cost first: Rp8,000 × 20 = Rp160,000. Add the fixed Rp150,000 fee: Rp160,000 + Rp160,000 = Rp310,000.",
+                    "explanation": "Calculate the student cost first: Rp8,000 × 20 = Rp160,000. Add the fixed Rp150,000 fee: Rp150,000 + Rp160,000 = Rp310,000.",
                     "mistake_tag": APPLICATION_MISTAKE_TAG,
                 },
-                                "questions": [
+                "questions": [
                     {
                         "id": "wp_l4_q1",
                         "type": "numeric",
@@ -1110,7 +1109,7 @@ COURSES = {
                         "answer": 310000,
                         "tolerance": 0.01,
                         "whole_number": True,
-                        "input_hint": "e.g. 310",
+                        "input_hint": "e.g. 310000",
                         "explanation": (
                             "Rp150,000 flat fee + (Rp8,000 × 20 students) = Rp150,000 + Rp160,000 = Rp310,000."
                         ),
