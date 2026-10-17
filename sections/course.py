@@ -450,7 +450,7 @@ def render_lesson_flow() -> None:
 
         stage = flow.get("stage", "concept")
         if stage in ("concept", "worked_example"):
-            _render_word_problem_screen(lesson, flow, diagnostic_result, course_id)
+            _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id)
         elif stage == "question":
             _render_question(lesson, flow, course_id)
         elif stage == "feedback":
@@ -703,7 +703,7 @@ def _render_course_diagnostic_result(lesson, result) -> None:
     )
 
 
-def _render_word_problem_screen(lesson, flow, diagnostic_result, course_id) -> None:
+def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> None:
     """Render Screen 1 (concept), Screen 2 (worked example), or advance to Screen 3."""
     stage = flow.get("stage", "concept")
 
