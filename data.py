@@ -1,5 +1,5 @@
 """
-data.py — Static dummy content for VOCogni Version 1.
+data.py — Static dummy content for Vocogni Version 1.
 
 This file holds all course/lesson/question content as plain data structures,
 kept separate from UI code (see spec section 6: "Use dummy course data stored
