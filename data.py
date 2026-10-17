@@ -1255,6 +1255,12 @@ LANGUAGE_OPTIONS = [
     "Prefer not to say", "English", "Bahasa Indonesia", "Spanish", "Mandarin", "French", "Other",
 ]
 
+GENDER_OPTIONS = [
+    "Male",
+    "Female",
+    "Prefer not to say / others",
+]
+
 GRADE_OPTIONS = [
     "Prefer not to say", "Grade 6", "Grade 7", "Grade 8", "Grade 9",
     "Grade 10", "Grade 11", "Grade 12", "Other",
