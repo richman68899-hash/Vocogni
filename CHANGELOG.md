@@ -1,5 +1,9 @@
 # Changelog
 
+- Add an optional saved gender preference to the learner profile for future personalization.
+- Show the current development version in small, muted text at the bottom-left of Settings.
+- Standardize the product name to “Vocogni” in app copy, comments, and documentation.
+
 - Extend the diagnostic-first three-screen lesson flow to Simple Fractions and Algebra Basics.
 - Persist lesson screen checkpoints in existing learner progress records so learners can resume after refresh or re-login.
 - Preserve existing lesson IDs, completed-lesson history, diagnostic results, attempts, and aggregate scores.
