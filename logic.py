@@ -17,6 +17,7 @@ import base64
 import io
 import math
 import struct
+from datetime import datetime, timezone
 import wave
 
 import data
@@ -55,6 +56,8 @@ def blank_course_progress():
         "mistakes": {},
         "diagnostics": {},
         "lesson_assessments": {},
+        "practice_attempts": {},
+        "lesson_screen_progress": {},
     }
 
 
@@ -116,19 +119,85 @@ def course_accuracy(progress, course_id):
     return prog.get("correct_answers", 0) / attempted * 100
 
 
+def course_diagnostic_lesson_id(course_id):
+    """Return the lesson ID holding this course's course-entry diagnostic."""
+    course = data.get_course(course_id)
+    if not course:
+        return None
+    return next(
+        (lesson["id"] for lesson in course["lessons"] if lesson.get("diagnostic")),
+        None,
+    )
+
+
+def course_diagnostic_completed(progress, course_id):
+    """Return True when the configured course-entry diagnostic is saved."""
+    diagnostic_lesson_id = course_diagnostic_lesson_id(course_id)
+    if diagnostic_lesson_id is None:
+        return True
+    prog = progress.get(course_id, {})
+    records = prog.get("diagnostics", {})
+    return isinstance(records, dict) and diagnostic_lesson_id in records
+
+
+def update_lesson_screen_checkpoint(progress, course_id, lesson_id, updates):
+    """Update only one lesson's durable screen checkpoint; leave learning history intact."""
+    if not isinstance(updates, dict):
+        raise TypeError("updates must be a dictionary")
+    course_progress = progress.setdefault(course_id, blank_course_progress())
+    screen_records = course_progress.setdefault("lesson_screen_progress", {})
+    if not isinstance(screen_records, dict):
+        screen_records = {}
+        course_progress["lesson_screen_progress"] = screen_records
+    existing = screen_records.get(lesson_id, {})
+    checkpoint = dict(existing) if isinstance(existing, dict) else {}
+    checkpoint.update(updates)
+    if "completed_screens" in checkpoint:
+        values = checkpoint.get("completed_screens", [])
+        if not isinstance(values, list):
+            values = []
+        clean = []
+        for value in values:
+            try:
+                screen = int(value)
+            except (TypeError, ValueError):
+                continue
+            if screen in (1, 2, 3) and screen not in clean:
+                clean.append(screen)
+        checkpoint["completed_screens"] = clean
+    checkpoint["updated_at"] = datetime.now(timezone.utc).isoformat()
+    screen_records[lesson_id] = checkpoint
+    course_progress["started"] = True
+    return dict(checkpoint)
+
+
+def get_lesson_screen_checkpoint(progress, course_id, lesson_id):
+    """Return a safe copy of the latest saved screen checkpoint for a lesson."""
+    course_progress = progress.get(course_id, {})
+    records = course_progress.get("lesson_screen_progress", {})
+    if not isinstance(records, dict):
+        return {}
+    checkpoint = records.get(lesson_id, {})
+    if not isinstance(checkpoint, dict):
+        return {}
+    result = dict(checkpoint)
+    if isinstance(result.get("completed_screens"), list):
+        result["completed_screens"] = list(result["completed_screens"])
+    return result
+
+
 def course_lesson_progress_percent(progress, course_id):
     course = data.get_course(course_id)
-    total = len(course["lessons"])
-    if total == 0:
+    if not course:
         return 0
+    total = len(course["lessons"])
     prog = progress.get(course_id, {})
     done = len(prog.get("completed_lessons", []))
-    if course_id == "word_problems":
-        # The course diagnostic is item 1 and counts toward completion, but
-        # its saved result remains separate from content-lesson completion.
+    diagnostic_lesson_id = course_diagnostic_lesson_id(course_id)
+    if diagnostic_lesson_id:
         total += 1
-        done += int("wp_l1" in prog.get("diagnostics", {}))
-    return int(round(done / total * 100))
+        done += int(diagnostic_lesson_id in prog.get("diagnostics", {}))
+    return int(round(done / total * 100)) if total else 0
 
 
 def classify_strength(accuracy):
@@ -191,7 +260,14 @@ def overall_stats(progress):
             courses_attempted += 1
         done = len(prog.get("completed_lessons", []))
         lessons_completed += done
-        if done > 0 and done == len(course["lessons"]):
+        diagnostic_id = course_diagnostic_lesson_id(course_id)
+        diagnostic_done = (
+            not diagnostic_id
+            or diagnostic_id in prog.get("diagnostics", {})
+        )
+        if done == len(course["lessons"]) and diagnostic_done and (
+            done > 0 or bool(diagnostic_id and diagnostic_done)
+        ):
             courses_completed += 1
         questions_attempted += prog.get("questions_attempted", 0)
         correct_answers += prog.get("correct_answers", 0)
