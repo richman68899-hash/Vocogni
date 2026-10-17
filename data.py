@@ -1,5 +1,5 @@
 """
-data.py — Static dummy content for VOCogni Version 1.
+data.py — Static dummy content for Vocogni Version 1.
 
 This file holds all course/lesson/question content as plain data structures,
 kept separate from UI code (see spec section 6: "Use dummy course data stored
@@ -1253,6 +1253,12 @@ FEEDBACK_STYLE_OPTIONS = [
 
 LANGUAGE_OPTIONS = [
     "Prefer not to say", "English", "Bahasa Indonesia", "Spanish", "Mandarin", "French", "Other",
+]
+
+GENDER_OPTIONS = [
+    "Male",
+    "Female",
+    "Prefer not to say / others",
 ]
 
 GRADE_OPTIONS = [

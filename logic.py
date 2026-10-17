@@ -1,5 +1,5 @@
 """
-logic.py — Progress engine for VOCogni Version 1.
+logic.py — Progress engine for Vocogni Version 1.
 
 Deliberately framework-free: every function here takes plain data
 (profile / progress dicts) as arguments and returns plain data. Nothing in
@@ -403,7 +403,7 @@ def _recommend_next_step(progress, weakest_stat):
 
 
 def _wrap_summary(body):
-    return "VOCogni Learning Summary \u2014 Prototype\n\n" + body
+    return "Vocogni Learning Summary \u2014 Prototype\n\n" + body
 
 
 # ---------------------------------------------------------------------------

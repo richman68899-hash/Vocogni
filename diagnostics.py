@@ -1,5 +1,5 @@
 """
-diagnostics.py — reusable, transparent lesson diagnostic engine for VOCogni v1.4.
+diagnostics.py — reusable, transparent lesson diagnostic engine for Vocogni v1.4.
 
 This is a rule-based, explainable prototype ("AI-style" decision support), not a
 trained machine-learning model or a validated psychometric assessment.

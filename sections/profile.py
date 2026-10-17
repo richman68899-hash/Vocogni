@@ -1,7 +1,7 @@
 """
 sections/profile.py — Learner profile.
 
-VOCogni Version 1.2.0
+Vocogni Version 1.2.0
 
 All profile fields are optional.
 
@@ -131,7 +131,7 @@ def render() -> None:
 
     st.markdown(
         "<p class='vc-muted'>"
-        "Tell VOCogni a little about yourself. Every field "
+        "Tell Vocogni a little about yourself. Every field "
         "here is optional — skip anything you'd rather not share."
         "</p>",
         unsafe_allow_html=True,
@@ -163,7 +163,7 @@ def _render_read_only(
             "<div class='vc-card'>"
             "You haven't set up your profile yet. "
             "Add your name, goals, and preferences to help "
-            "personalize your VOCogni experience — or skip it "
+            "personalize your Vocogni experience — or skip it "
             "entirely and start learning."
             "</div>",
             unsafe_allow_html=True,
@@ -205,6 +205,11 @@ def _render_read_only(
         _field_row(
             "Age",
             profile.get("age"),
+        )
+
+        _field_row(
+            "Gender",
+            profile.get("gender", data.GENDER_OPTIONS[2]),
         )
 
         _field_row(
@@ -422,6 +427,16 @@ def _render_edit_form(
                 placeholder="Optional",
             )
 
+            gender = st.selectbox(
+                "Gender",
+                data.GENDER_OPTIONS,
+                index=_safe_index(
+                    data.GENDER_OPTIONS,
+                    profile.get("gender", data.GENDER_OPTIONS[2]),
+                ),
+                help="Optional. This preference is saved to your profile.",
+            )
+
             grade = st.selectbox(
                 "Grade",
                 data.GRADE_OPTIONS,
@@ -636,6 +651,7 @@ def _render_edit_form(
             {
                 "name": name.strip(),
                 "age": age.strip(),
+                "gender": gender,
                 "grade": grade,
                 "country": country.strip(),
                 "timezone": timezone,

@@ -1,7 +1,7 @@
 """
 sections/settings.py — Settings.
 
-VOCogni Version 1.2.0
+Vocogni Version 1.2.0
 
 Settings apply immediately.
 
@@ -35,6 +35,7 @@ from typing import Any
 
 import streamlit as st
 
+from version import APP_VERSION
 import state
 
 
@@ -314,7 +315,7 @@ def render() -> None:
     st.markdown(
         "<p class='vc-muted' style='margin-top:0.6rem;'>"
         "These accessibility options only adjust spacing, motion, "
-        "and text size. VOCogni does not make medical claims about "
+        "and text size. Vocogni does not make medical claims about "
         "ADHD or neurodivergence."
         "</p>",
         unsafe_allow_html=True,
@@ -359,3 +360,10 @@ def render() -> None:
         # Tell the central autosave system that durable learner data
         # has changed.
         state.mark_persistent_dirty()
+
+    # App version is intentionally subtle and left-aligned at the bottom.
+    st.markdown(
+        f"<p class='vc-muted' style='font-size:0.75rem; margin-top:2rem; "
+        f"margin-bottom:0; text-align:left;'>Vocogni v{APP_VERSION}</p>",
+        unsafe_allow_html=True,
+    )

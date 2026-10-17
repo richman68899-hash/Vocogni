@@ -1,5 +1,5 @@
 """
-state.py — Session + persistent learner state for VOCogni Version 1.2.0.
+state.py — Session + persistent learner state for Vocogni Version 1.2.0.
 
 Architecture:
 
@@ -88,6 +88,7 @@ def _default_profile() -> dict[str, Any]:
     return {
         "name": "",
         "age": "",
+        "gender": data.GENDER_OPTIONS[2],
         "grade": "Prefer not to say",
         "country": "",
         "timezone": "Prefer not to say",

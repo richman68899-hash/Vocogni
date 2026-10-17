@@ -1,7 +1,7 @@
 # Notes Folders — Feature Specification and Acceptance Record
 
 **Status:** Implementation in progress  
-**Target:** VOCogni prototype v1.3  
+**Target:** Vocogni prototype v1.3  
 **Scope:** Notes and flat folders only
 
 ## User-facing behavior

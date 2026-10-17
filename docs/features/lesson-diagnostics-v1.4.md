@@ -1,7 +1,7 @@
-# VOCogni v1.4 — Lesson Diagnostics and Adaptive Entry
+# Vocogni v1.4 — Lesson Diagnostics and Adaptive Entry
 
 **Status:** Unreleased; code added to a feature branch; integrated tests pending  
-**Owner:** VOCogni project maintainer  
+**Owner:** Vocogni project maintainer  
 **Change ID:** VCG-FEAT-DIAGNOSTICS-001
 
 ## Problem

@@ -1,4 +1,4 @@
-name: VOCogni diagnostics checks
+name: Vocogni diagnostics checks
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
           python-version: "3.12"
       - name: Compile application and diagnostic modules
         run: |
-          python -m py_compile data.py diagnostics.py logic.py state.py sections/course.py sections/progress.py
+          python -m py_compile data.py diagnostics.py logic.py state.py sections/course.py sections/progress.py sections/profile.py sections/settings.py version.py
       - name: Run diagnostic engine unit tests
         run: |
           python -m unittest discover -s tests -v
