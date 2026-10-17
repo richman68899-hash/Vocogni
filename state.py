@@ -1,5 +1,5 @@
 """
-state.py — Session + persistent learner state for VOCogni Version 1.2.0.
+state.py — Session + persistent learner state for Vocogni Version 1.2.0.
 
 Architecture:
 
