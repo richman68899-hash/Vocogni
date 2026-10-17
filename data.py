@@ -81,7 +81,20 @@ COURSES = {
                     "For example, in the fraction 3/4, the whole is split into 4 "
                     "equal parts, and you have 3 of them."
                 ),
-                                "diagnostic": {
+                "worked_example": (
+                    "A chocolate bar is divided into 4 equal pieces. If you eat 3 pieces, "
+                    "you have eaten 3/4: the numerator is 3 pieces and the denominator is 4 equal pieces."
+                ),
+                "interactive_question": {
+                    "id": "fractions_l1_screen3",
+                    "type": "mc",
+                    "prompt": "A pizza is split into 8 equal slices and you eat 5. Which fraction represents the slices eaten?",
+                    "options": ["5/8", "8/5", "3/8", "5/5"],
+                    "answer": "5/8",
+                    "explanation": "Five slices were eaten out of eight equal slices, so the fraction is 5/8.",
+                    "mistake_tag": "Representing fractions",
+                },
+                "diagnostic": {
                     "version": 1,
                     "questions": [
                         {
@@ -298,6 +311,19 @@ COURSES = {
                     "same.\n\n"
                     "For example: 1/5 + 2/5 = (1 + 2)/5 = 3/5."
                 ),
+                "worked_example": (
+                    "For 2/7 + 3/7, the denominators are equal. Add the numerators and keep the denominator: "
+                    "2/7 + 3/7 = 5/7. Do not add the denominators."
+                ),
+                "interactive_question": {
+                    "id": "fractions_l2_screen3",
+                    "type": "mc",
+                    "prompt": "What is 1/6 + 3/6?",
+                    "options": ["4/6", "4/12", "3/6", "1/3"],
+                    "answer": "4/6",
+                    "explanation": "The denominators match, so add the numerators: 1 + 3 = 4, giving 4/6 (which can simplify to 2/3).",
+                    "mistake_tag": "Addition error",
+                },
                 "questions": [
                     {
                         "id": "fractions_l2_q1",
@@ -333,6 +359,19 @@ COURSES = {
                     "factor other than 1.\n\n"
                     "For example: 4/8 — both divide evenly by 4 — simplifies to 1/2."
                 ),
+                "worked_example": (
+                    "To simplify 12/18, divide both numbers by their greatest common factor, 6: "
+                    "12 ÷ 6 = 2 and 18 ÷ 6 = 3, so 12/18 = 2/3."
+                ),
+                "interactive_question": {
+                    "id": "fractions_l3_screen3",
+                    "type": "mc",
+                    "prompt": "What is 8/12 in its simplest form?",
+                    "options": ["2/3", "4/6", "1/3", "8/6"],
+                    "answer": "2/3",
+                    "explanation": "Divide numerator and denominator by 4: 8/12 = 2/3. The fraction 4/6 can be simplified again.",
+                    "mistake_tag": "Incorrect simplification",
+                },
                 "questions": [
                     {
                         "id": "fractions_l3_q1",
@@ -367,11 +406,25 @@ COURSES = {
                 "title": "Real-World Challenge: Scaling a Recipe",
                 "kind": "application",
                 "explanation": (
-                    "REAL-WORLD CHALLENGE\n\n"
-                    "You are scaling a recipe. The original recipe needs 3/4 cup "
-                    "of sugar for 4 servings. You want to make 8 servings.\n\n"
-                    "How many cups of sugar do you need?"
+                    "Recipe scaling keeps ingredient amounts proportional to serving counts. "
+                    "Find the scale factor by dividing the new number of servings by the original "
+                    "number of servings, then multiply every ingredient by that factor."
                 ),
+                "worked_example": (
+                    "A recipe uses 3/4 cup of sugar for 4 servings. For 8 servings, the scale factor is 8 ÷ 4 = 2, "
+                    "so use 3/4 × 2 = 6/4 = 1 1/2 cups."
+                ),
+                "interactive_question": {
+                    "id": "fractions_l4_screen3",
+                    "type": "numeric",
+                    "prompt": "A recipe needs 2/3 cup of oats for 2 servings. How many cups are needed for 6 servings? Enter a decimal.",
+                    "answer": 2,
+                    "tolerance": 0.01,
+                    "whole_number": False,
+                    "input_hint": "e.g. 2",
+                    "explanation": "The number of servings triples (6 ÷ 2 = 3), so multiply 2/3 × 3 = 2 cups.",
+                    "mistake_tag": APPLICATION_MISTAKE_TAG,
+                },
                 "questions": [
                     {
                         "id": "fractions_l4_q1",
@@ -408,7 +461,20 @@ COURSES = {
                     "about finding what number a variable represents.\n\n"
                     "For example, in x + 5 = 12, x is the unknown value we solve for."
                 ),
-                                "diagnostic": {
+                "worked_example": (
+                    "In x + 5 = 12, x stands for the unknown number. The equation is true when x = 7, "
+                    "because 7 + 5 = 12."
+                ),
+                "interactive_question": {
+                    "id": "algebra_l1_screen3",
+                    "type": "mc",
+                    "prompt": "Let n stand for the number of stickers you start with. Which expression means 3 more stickers?",
+                    "options": ["n + 3", "3n", "n - 3", "3 - n"],
+                    "answer": "n + 3",
+                    "explanation": "The letter n represents the starting amount. Three more means add 3: n + 3.",
+                    "mistake_tag": "Meaning of a variable",
+                },
+                "diagnostic": {
                     "version": 1,
                     "questions": [
                         {
@@ -629,6 +695,21 @@ COURSES = {
                     "For example: x + 7 = 15. Subtract 7 from both sides: "
                     "x = 15 - 7 = 8."
                 ),
+                "worked_example": (
+                    "Solve x + 7 = 15. Subtract 7 from both sides so the equation stays balanced: "
+                    "x = 15 − 7 = 8. Check: 8 + 7 = 15."
+                ),
+                "interactive_question": {
+                    "id": "algebra_l2_screen3",
+                    "type": "numeric",
+                    "prompt": "Solve 3x = 24. What is x?",
+                    "answer": 8,
+                    "tolerance": 0.01,
+                    "whole_number": True,
+                    "input_hint": "Enter a whole number.",
+                    "explanation": "Divide both sides by 3: x = 24 ÷ 3 = 8.",
+                    "mistake_tag": "Incorrect inverse operation",
+                },
                 "questions": [
                     {
                         "id": "algebra_l2_q1",
@@ -664,6 +745,19 @@ COURSES = {
                     "dividing by a negative flips the sign of the answer.\n\n"
                     "For example: x - 5 = -2, so x = -2 + 5 = 3."
                 ),
+                "worked_example": (
+                    "Solve x − 5 = −2. Add 5 to both sides: x = −2 + 5 = 3. "
+                    "For −2x = 10, divide by −2, giving x = −5."
+                ),
+                "interactive_question": {
+                    "id": "algebra_l3_screen3",
+                    "type": "mc",
+                    "prompt": "Solve −3x = 12. What is x?",
+                    "options": ["−4", "4", "9", "−9"],
+                    "answer": "−4",
+                    "explanation": "Divide both sides by −3: x = 12 ÷ (−3) = −4.",
+                    "mistake_tag": "Sign errors",
+                },
                 "questions": [
                     {
                         "id": "algebra_l3_q1",
@@ -692,11 +786,25 @@ COURSES = {
                 "title": "Real-World Challenge: Pricing a Product",
                 "kind": "application",
                 "explanation": (
-                    "REAL-WORLD CHALLENGE\n\n"
-                    "You are pricing a product for a small business.\n\n"
-                    "The product costs Rp60,000 to produce. You want a 25% profit.\n\n"
-                    "What should the selling price be?"
+                    "A selling price can be modeled as production cost plus profit. "
+                    "When profit is a percentage of cost, calculate that percentage of the cost first, "
+                    "then add it to the original cost."
                 ),
+                "worked_example": (
+                    "A product costs Rp60,000 to make. A 25% profit on cost is 0.25 × Rp60,000 = Rp15,000. "
+                    "Add the profit to the cost: Rp60,000 + Rp15,000 = Rp75,000."
+                ),
+                "interactive_question": {
+                    "id": "algebra_l4_screen3",
+                    "type": "numeric",
+                    "prompt": "A product costs Rp80,000 to make. The seller adds a profit of 20% of the cost. What is the selling price in rupiah?",
+                    "answer": 96000,
+                    "tolerance": 0.01,
+                    "whole_number": True,
+                    "input_hint": "e.g. 96000",
+                    "explanation": "20% of Rp80,000 is Rp16,000. Add it to the cost: Rp80,000 + Rp16,000 = Rp96,000.",
+                    "mistake_tag": APPLICATION_MISTAKE_TAG,
+                },
                 "questions": [
                     {
                         "id": "algebra_l4_q1",
