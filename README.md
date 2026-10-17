@@ -1,6 +1,6 @@
-# VOCogni — Learning Prototype (v1.4 development)
+# Vocogni — Learning Prototype (v1.4 development)
 
-VOCogni is an applied-learning prototype built around the loop:
+Vocogni is an applied-learning prototype built around the loop:
 
 **Understand → Solve → Apply → Advance**
 
