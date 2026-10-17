@@ -123,6 +123,11 @@ def course_lesson_progress_percent(progress, course_id):
         return 0
     prog = progress.get(course_id, {})
     done = len(prog.get("completed_lessons", []))
+    if course_id == "word_problems":
+        # The course diagnostic is item 1 and counts toward completion, but
+        # its saved result remains separate from content-lesson completion.
+        total += 1
+        done += int("wp_l1" in prog.get("diagnostics", {}))
     return int(round(done / total * 100))
 
 
