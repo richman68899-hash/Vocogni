@@ -1,5 +1,5 @@
 """
-app.py — VOCogni Version 1.2.0 entry point.
+app.py — Vocogni Version 1.2.0 entry point.
 
 Run with:
     streamlit run app.py
@@ -104,7 +104,7 @@ def _render_login() -> None:
 
 def _render_logo() -> None:
     """
-    Render the VOCogni logo in the sidebar.
+    Render the Vocogni logo in the sidebar.
     """
 
     logo_path = os.path.join(
@@ -131,7 +131,7 @@ def _render_logo() -> None:
 
         # Preserve the original fallback behavior.
         st.sidebar.markdown(
-            "<div class='vc-logo-text'>VOCogni</div>"
+            "<div class='vc-logo-text'>Vocogni</div>"
             "<div class='vc-logo-tag'>"
             "Understand → Solve → Apply → Advance"
             "</div>",
@@ -200,7 +200,7 @@ def _render_nav() -> None:
     except Exception:
         user_name = ""
 
-    # Fall back to the existing VOCogni profile.
+    # Fall back to the existing Vocogni profile.
     if not user_name:
 
         profile = st.session_state.get(
@@ -325,12 +325,12 @@ def _load_persistent_state() -> None:
 
 def main() -> None:
     """
-    Main VOCogni application entry point.
+    Main Vocogni application entry point.
     """
 
     # Must happen before other Streamlit page output.
     st.set_page_config(
-        page_title="VOCogni",
+        page_title="Vocogni",
         page_icon="🎓",
         layout="wide",
     )
