@@ -280,11 +280,9 @@ def _render_lesson_row(
     elif not unlocked:
 
         status_text = (
-            (
             "🔒 Complete the diagnostic first"
             if course_id == "word_problems" and not diagnostic_done
             else "🔒 Locked — finish the previous lesson first"
-        )
         )
 
     elif is_current:
@@ -608,14 +606,14 @@ def _render_word_problem_screen(lesson, flow, diagnostic_result, course_id) -> N
             candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
             if lesson.get("diagnostic") and diagnostic_result:
                 route = diagnostic_result.get("outcome_key", "level_1")
-                if route == "prerequisite":
+                if route in ("prerequisite", "level_1"):
+                    # Foundational placement gets the authored interactive item,
+                    # distinct from the already-completed diagnostic questions.
                     route = "level_1"
-                candidates = diagnostics.get_pathway_questions(lesson, route)
-                if not candidates and route == "level_1":
-                    candidates = [
-                        item for item in lesson.get("diagnostic", {}).get("questions", [])
-                        if item.get("stage") == "level_1"
-                    ]
+                    candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
+                else:
+                    # More advanced placement uses the corresponding pathway question.
+                    candidates = diagnostics.get_pathway_questions(lesson, route)
                 if not candidates:
                     candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
 
