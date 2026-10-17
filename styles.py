@@ -1,5 +1,5 @@
 """
-styles.py — Visual design layer for VOCogni.
+styles.py — Visual design layer for Vocogni.
 
 Design intent (Version 1):
   - Palette is a cool ink/paper base (not the common warm-cream-and-serif or
