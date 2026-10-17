@@ -122,6 +122,7 @@ def _default_course_progress() -> dict[str, Any]:
         "diagnostics": {},
         "lesson_assessments": {},
         "practice_attempts": {},
+        "lesson_screen_progress": {},
     }
 
 
@@ -331,6 +332,10 @@ def _merge_progress(
             course_progress["diagnostics"] = {}
         if not isinstance(course_progress.get("lesson_assessments"), dict):
             course_progress["lesson_assessments"] = {}
+        if not isinstance(course_progress.get("practice_attempts"), dict):
+            course_progress["practice_attempts"] = {}
+        if not isinstance(course_progress.get("lesson_screen_progress"), dict):
+            course_progress["lesson_screen_progress"] = {}
 
         progress[course_id] = course_progress
 
