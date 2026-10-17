@@ -1,4 +1,4 @@
-"""Unit tests for VOCogni's reusable lesson diagnostic engine (no Streamlit UI required)."""
+"""Unit tests for Vocogni's reusable lesson diagnostic engine (no Streamlit UI required)."""
 import unittest
 
 import data
