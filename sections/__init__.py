@@ -1,2 +1,2 @@
-"""UI section renderers for VOCogni. Each module exposes a render() function
+"""UI section renderers for Vocogni. Each module exposes a render() function
 that app.py calls based on the active sidebar navigation item."""
