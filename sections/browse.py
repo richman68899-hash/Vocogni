@@ -34,9 +34,10 @@ def _status_for_course(course_id, progress):
     prog = progress.get(course_id, {})
     done = len(prog.get("completed_lessons", []))
     total = len(course["lessons"])
-    if course_id == "word_problems":
+    diagnostic_id = logic.course_diagnostic_lesson_id(course_id)
+    if diagnostic_id:
         total += 1
-        done += int("wp_l1" in prog.get("diagnostics", {}))
+        done += int(diagnostic_id in prog.get("diagnostics", {}))
     if not prog.get("started") and done == 0:
         return "Not started"
     if total > 0 and done >= total:
