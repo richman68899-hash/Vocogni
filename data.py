@@ -735,7 +735,21 @@ COURSES = {
                     "Spotting these clues is the first step to setting up the "
                     "right equation."
                 ),
-                                "diagnostic": {
+                "worked_example": (
+                    "Maya has x stickers. Four more stickers are added. Translate the relationship: "
+                    "the starting amount is x and the extra amount is 4, so the total is x + 4. "
+                    "For comparison, '4 less than x' is x - 4, not 4 - x."
+                ),
+                "interactive_question": {
+                    "id": "wp_l1_screen3",
+                    "type": "mc",
+                    "prompt": "Ben has x cards and receives 4 more. Which expression represents his new total?",
+                    "options": ["x + 4", "4x", "x - 4", "4 - x"],
+                    "answer": "x + 4",
+                    "explanation": "Receiving 4 more means add 4 to the starting amount x, giving x + 4.",
+                    "mistake_tag": "Translating key words",
+                },
+                "diagnostic": {
                     "version": 1,
                     "questions": [
                         {
@@ -954,33 +968,49 @@ COURSES = {
                     "For example: 3 books at $12 each, minus a $5 discount: "
                     "(3 x 12) - 5 = 36 - 5 = 31."
                 ),
+                "worked_example": (
+                    "Three notebooks cost Rp12,000 each and the shop gives Rp5,000 off the total. "
+                    "First multiply: 3 × Rp12,000 = Rp36,000. Then subtract the discount: "
+                    "Rp36,000 − Rp5,000 = Rp31,000."
+                ),
+                "interactive_question": {
+                    "id": "wp_l2_screen3",
+                    "type": "numeric",
+                    "prompt": "Four tickets cost Rp15,000 each. You receive Rp10,000 off the total. How much do you pay in rupiah?",
+                    "answer": 50000,
+                    "tolerance": 0.01,
+                    "whole_number": True,
+                    "input_hint": "e.g. 50000",
+                    "explanation": "4 × Rp15,000 = Rp60,000; subtract Rp10,000 to get Rp50,000.",
+                    "mistake_tag": "Multi-step setup error",
+                },
                 "questions": [
                     {
                         "id": "wp_l2_q1",
                         "type": "numeric",
                         "prompt": (
-                            "A book costs $12. You buy 3 books and get a $5 "
-                            "discount on the total. How much do you pay?"
+                            "A notebook costs Rp12,000. You buy 3 and receive a Rp5,000 "
+                            "discount on the total. How much do you pay in rupiah?"
                         ),
-                        "answer": 31,
+                        "answer": 31000,
                         "tolerance": 0.01,
                         "whole_number": True,
                         "input_hint": "e.g. 31",
-                        "explanation": "(3 x $12) - $5 = $36 - $5 = $31.",
+                        "explanation": "3 × Rp12,000 = Rp36,000; subtract Rp5,000 = Rp31,000.",
                         "mistake_tag": "Multi-step setup error",
                     },
                     {
                         "id": "wp_l2_q2",
                         "type": "numeric",
                         "prompt": (
-                            "You save $15 per week. How many dollars will you have "
+                            "You save Rp15,000 per week. How many rupiah will you have "
                             "saved after 6 weeks?"
                         ),
-                        "answer": 90,
+                        "answer": 90000,
                         "tolerance": 0.01,
                         "whole_number": True,
                         "input_hint": "e.g. 90",
-                        "explanation": "$15 x 6 weeks = $90.",
+                        "explanation": "Rp15,000 × 6 weeks = Rp90,000.",
                         "mistake_tag": "Multi-step setup error",
                     },
                 ],
@@ -994,6 +1024,22 @@ COURSES = {
                     "needed to solve them. Before calculating, identify exactly "
                     "which numbers and relationships actually matter."
                 ),
+                "worked_example": (
+                    "A notebook costs Rp8,000 and you buy 3. The shop has 100 notebooks left in stock, "
+                    "but that detail is irrelevant to your cost. Use only the needed values: "
+                    "3 × Rp8,000 = Rp24,000."
+                ),
+                "interactive_question": {
+                    "id": "wp_l3_screen3",
+                    "type": "numeric",
+                    "prompt": "Five students each buy a ticket for Rp20,000. The hall has 200 seats. What is the total ticket cost in rupiah?",
+                    "answer": 100000,
+                    "tolerance": 0.01,
+                    "whole_number": True,
+                    "input_hint": "e.g. 100000",
+                    "explanation": "Use the number of tickets and the price per ticket: 5 × Rp20,000 = Rp100,000. The hall capacity is not needed.",
+                    "mistake_tag": "Missed key information",
+                },
                 "questions": [
                     {
                         "id": "wp_l3_q1",
@@ -1019,7 +1065,7 @@ COURSES = {
                         "id": "wp_l3_q2",
                         "type": "mc",
                         "prompt": (
-                            "A store sells pens for $2 each. Maria buys 4 pens. The "
+                            "A store sells pens for Rp2,000 each. Maria buys 4 pens. The "
                             "store also has 100 pens in stock. How many pens did "
                             "Maria buy?"
                         ),
@@ -1038,22 +1084,35 @@ COURSES = {
                 "title": "Real-World Challenge: Planning a Class Trip",
                 "kind": "application",
                 "explanation": (
-                    "REAL-WORLD CHALLENGE\n\n"
-                    "You are planning a class trip. Bus rental costs a $150 flat "
-                    "fee plus $8 per student. There are 20 students going.\n\n"
-                    "What is the total cost of the bus?"
+                    "Some real-world costs combine a fixed fee and a variable cost. "
+                    "The model is: total cost = fixed fee + (cost per person × number of people)."
                 ),
-                "questions": [
+                "worked_example": (
+                    "A school club pays a fixed room fee of Rp100,000 plus Rp5,000 for each of 12 attendees. "
+                    "Variable cost: Rp5,000 × 12 = Rp60,000. Total: Rp100,000 + Rp60,000 = Rp160,000."
+                ),
+                "interactive_question": {
+                    "id": "wp_l4_screen3",
+                    "type": "numeric",
+                    "prompt": "A class trip bus costs a fixed Rp150,000 plus Rp8,000 per student. If 20 students go, what is the total bus cost in rupiah?",
+                    "answer": 310000,
+                    "tolerance": 0.01,
+                    "whole_number": True,
+                    "input_hint": "e.g. 310000",
+                    "explanation": "Calculate the student cost first: Rp8,000 × 20 = Rp160,000. Add the fixed Rp150,000 fee: Rp160,000 + Rp160,000 = Rp310,000.",
+                    "mistake_tag": APPLICATION_MISTAKE_TAG,
+                },
+                                "questions": [
                     {
                         "id": "wp_l4_q1",
                         "type": "numeric",
-                        "prompt": "Total bus cost ($):",
-                        "answer": 310,
+                        "prompt": "Total bus cost (Rp):",
+                        "answer": 310000,
                         "tolerance": 0.01,
                         "whole_number": True,
                         "input_hint": "e.g. 310",
                         "explanation": (
-                            "$150 flat fee + ($8 x 20 students) = $150 + $160 = $310."
+                            "Rp150,000 flat fee + (Rp8,000 × 20 students) = Rp150,000 + Rp160,000 = Rp310,000."
                         ),
                         "mistake_tag": APPLICATION_MISTAKE_TAG,
                     }
