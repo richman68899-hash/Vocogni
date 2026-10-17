@@ -160,6 +160,9 @@ def render_course_detail() -> None:
     # Lesson list
     # -----------------------------------------------------------------------
 
+    if course_id == "word_problems":
+        _render_course_diagnostic_row(course_id, progress)
+
     for idx, lesson in enumerate(
         course["lessons"]
     ):
@@ -171,6 +174,7 @@ def render_course_detail() -> None:
             progress,
             completed,
             next_lesson_id,
+            display_index=(idx + 2 if course_id == "word_problems" else idx + 1),
         )
 
     # -----------------------------------------------------------------------
@@ -188,6 +192,38 @@ def render_course_detail() -> None:
         )
 
 
+def _render_course_diagnostic_row(course_id, progress) -> None:
+    """Render the one-time course diagnostic as the first Word Problems item."""
+    course_progress = progress.get(course_id, {})
+    result = course_progress.get("diagnostics", {}).get("wp_l1")
+    done = result is not None
+    row_class = "vc-lesson-row" if done else "vc-lesson-row vc-lesson-row--current"
+    status_text = (
+        "✓ Completed — baseline result saved"
+        if done
+        else "Up next — complete this before Lesson 2"
+    )
+
+    col_info, col_action = st.columns([3, 1])
+    with col_info:
+        st.markdown(
+            f"<div class='{row_class}'><div>"
+            f"<strong>1. Diagnostic — Word Problems</strong><br>"
+            f"<span class='vc-muted'>{status_text}</span>"
+            f"</div></div>",
+            unsafe_allow_html=True,
+        )
+
+    with col_action:
+        label = "View result" if done else "Start diagnostic"
+        if st.button(label, key="course_diagnostic_word_problems", use_container_width=True):
+            st.session_state.current_lesson = "wp_l1"
+            flow = state.new_lesson_flow(course_id, "wp_l1")
+            flow["launch_mode"] = "course_diagnostic"
+            st.session_state.lesson_flow = flow
+            st.rerun()
+
+
 # ===========================================================================
 # LESSON ROW
 # ===========================================================================
@@ -199,16 +235,25 @@ def _render_lesson_row(
     progress,
     completed,
     next_lesson_id,
+    display_index=None,
 ) -> None:
     """
     Render one lesson row.
     """
 
+    if display_index is None:
+        display_index = idx + 1
+
+    diagnostic_done = (
+        "wp_l1" in progress.get("word_problems", {}).get("diagnostics", {})
+    )
     unlocked = logic.is_lesson_unlocked(
         progress,
         course_id,
         idx,
     )
+    if course_id == "word_problems" and not diagnostic_done:
+        unlocked = False
 
     is_done = lesson["id"] in completed
 
@@ -235,7 +280,11 @@ def _render_lesson_row(
     elif not unlocked:
 
         status_text = (
-            "🔒 Locked — finish the previous lesson first"
+            (
+            "🔒 Complete the diagnostic first"
+            if course_id == "word_problems" and not diagnostic_done
+            else "🔒 Locked — finish the previous lesson first"
+        )
         )
 
     elif is_current:
@@ -271,7 +320,7 @@ def _render_lesson_row(
         st.markdown(
             f"<div class='{row_class}'>"
             f"<div>"
-            f"<strong>{idx + 1}. {lesson['title']}</strong> "
+            f"<strong>{display_index}. {lesson['title']}</strong> "
             f"{kind_badge}<br>"
             f"<span class='vc-muted'>{status_text}</span>"
             f"</div>"
@@ -359,8 +408,52 @@ def render_lesson_flow() -> None:
         st.session_state.lesson_flow = None
         st.rerun()
 
+    launch_mode = flow.get("launch_mode")
     st.markdown(f"<span class='vc-muted'>{course['title']}</span>", unsafe_allow_html=True)
-    st.markdown(f"<h2>{lesson['title']}</h2>", unsafe_allow_html=True)
+    display_title = "Diagnostic — Word Problems" if launch_mode == "course_diagnostic" else lesson["title"]
+    st.markdown(f"<h2>{display_title}</h2>", unsafe_allow_html=True)
+
+    if launch_mode == "course_diagnostic":
+        if diagnostic_result is not None:
+            _render_course_diagnostic_result(lesson, diagnostic_result)
+        else:
+            _render_diagnostic(lesson, course_id)
+        return
+
+    # Word Problems lessons use the same three-screen teaching sequence.
+    if course_id == "word_problems":
+        if lesson_id == "wp_l1" and diagnostic_result is None:
+            st.info("Complete the course diagnostic before starting this lesson.")
+            _render_diagnostic(lesson, course_id)
+            return
+
+        if flow.get("view") == "attempt_complete":
+            _render_attempt_complete(course, lesson, flow, diagnostic_result, lesson_attempts)
+            return
+
+        if flow.get("structured_lesson") and flow.get("view") in ("structured_lesson", "practice"):
+            stage = flow.get("stage", "concept")
+            if stage in ("concept", "worked_example"):
+                _render_word_problem_screen(lesson, flow, diagnostic_result, course_id)
+            elif stage == "question":
+                _render_question(lesson, flow, course_id)
+            elif stage == "feedback":
+                _render_feedback(lesson, flow)
+            elif stage == "complete":
+                _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
+            else:
+                flow["view"] = "structured_lesson"
+                flow["stage"] = "concept"
+                st.rerun()
+            return
+
+        flow.update({
+            "view": "structured_lesson",
+            "stage": "concept",
+            "structured_lesson": True,
+        })
+        _render_word_problem_screen(lesson, flow, diagnostic_result, course_id)
+        return
 
     # State is derived from durable records, not a fragile "started" boolean.
     if diagnostic_config and diagnostic_result is None:
@@ -440,6 +533,119 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
             st.rerun()
 
 
+def _render_course_diagnostic_result(lesson, result) -> None:
+    """Show the saved one-time course diagnostic without opening a practice route."""
+    st.markdown("### Diagnostic results")
+    st.metric("Baseline score", f"{result.get('score', 0)} / {result.get('total', 5)}",
+              f"{result.get('percent', 0)}%")
+    st.subheader(result.get("outcome_label", "Diagnostic completed"))
+    st.write(result.get("outcome_summary", "Your baseline result has been saved."))
+    st.caption(result.get("next_action", "Continue to the first learning lesson."))
+
+    weaknesses = result.get("weaknesses", [])
+    if weaknesses:
+        st.markdown("#### Skills to review")
+        for weakness in weaknesses:
+            st.markdown(
+                f"- **{weakness.get('skill_tag', 'Skill')}** — "
+                f"{weakness.get('recommended_action', 'Review this concept.')}"
+            )
+    else:
+        st.success("No weaknesses were flagged by these five diagnostic items.")
+
+    with st.expander("Review diagnostic answers"):
+        for index, item in enumerate(result.get("answer_review", []), start=1):
+            label = "Correct" if item.get("correct") else "Needs review"
+            st.markdown(f"**{index}. {label} — {item.get('skill_tag', 'Skill')}**")
+            st.caption(item.get("prompt", ""))
+            st.write(f"Your answer: {item.get('user_answer')}")
+            st.write(f"Expected answer: {item.get('expected_answer')}")
+            st.write(item.get("explanation", ""))
+
+    st.caption(
+        "This is a one-time baseline diagnostic. It is the first course item, "
+        "not a replacement for the four learning lessons."
+    )
+
+
+def _render_word_problem_screen(lesson, flow, diagnostic_result, course_id) -> None:
+    """Render Screen 1 (concept), Screen 2 (worked example), or advance to Screen 3."""
+    stage = flow.get("stage", "concept")
+
+    if stage == "concept":
+        st.markdown("### Screen 1 of 3 — Concept explanation")
+        st.markdown(
+            f"<div class='{_box_class(lesson)}'>{lesson['explanation']}</div>",
+            unsafe_allow_html=True,
+        )
+        if lesson.get("diagnostic") and diagnostic_result:
+            st.info(
+                f"Diagnostic placement: {diagnostic_result.get('outcome_label', 'Start with the core idea')}. "
+                f"{diagnostic_result.get('next_action', '')}"
+            )
+            if diagnostic_result.get("outcome_key") == "prerequisite":
+                review = lesson.get("diagnostic", {}).get("prerequisite_review", "")
+                if review:
+                    st.caption(f"Prerequisite to review: {review}")
+
+        if st.button("Next: Worked example", type="primary", key=f"screen1_next_{lesson['id']}"):
+            flow["stage"] = "worked_example"
+            st.rerun()
+        return
+
+    if stage == "worked_example":
+        st.markdown("### Screen 2 of 3 — Worked example")
+        st.markdown(
+            f"<div class='{_box_class(lesson)}'>{lesson.get('worked_example', '')}</div>",
+            unsafe_allow_html=True,
+        )
+        if st.button("← Back to concept", key=f"screen2_back_{lesson['id']}"):
+            flow["stage"] = "concept"
+            st.rerun()
+
+        if st.button("Next: Interactive question", type="primary", key=f"screen2_next_{lesson['id']}"):
+            route = "standard"
+            candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
+            if lesson.get("diagnostic") and diagnostic_result:
+                route = diagnostic_result.get("outcome_key", "level_1")
+                if route == "prerequisite":
+                    route = "level_1"
+                candidates = diagnostics.get_pathway_questions(lesson, route)
+                if not candidates and route == "level_1":
+                    candidates = [
+                        item for item in lesson.get("diagnostic", {}).get("questions", [])
+                        if item.get("stage") == "level_1"
+                    ]
+                if not candidates:
+                    candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
+
+            candidates = [item for item in candidates if isinstance(item, dict)]
+            if not candidates:
+                st.error("This lesson needs one interactive question before it can continue.")
+                return
+
+            # Screen 3 is a single formative checkpoint. The first diagnostic-routed
+            # practice item is used for Lesson 2 of the course; other lessons use
+            # their explicitly authored interactive question.
+            question = candidates[0]
+            course_progress = state.get_course_progress(course_id)
+            history = course_progress.get("practice_attempts", {}).get(lesson["id"], [])
+            flow.update({
+                "view": "practice",
+                "stage": "question",
+                "q_index": 0,
+                "results": [],
+                "active_questions": [question],
+                "attempt_number": len(history) + 1,
+                "selected_pathway": route,
+                "structured_lesson": True,
+                "last_correct": None,
+                "last_user_answer": None,
+            })
+            st.rerun()
+        return
+
+
 def _start_practice_attempt(lesson, flow, diagnostic_result, pathway) -> None:
     """Initialize a clean practice attempt without touching the diagnostic."""
     previous = int(flow.get("attempt_number", 0))
@@ -500,6 +706,38 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
 
 
 def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) -> None:
+    if flow.get("structured_lesson"):
+        results = flow.get("results", [])
+        correct = sum(bool(item.get("correct")) for item in results)
+        total = len(results)
+        st.markdown("### Lesson checkpoint")
+        st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
+        st.markdown(
+            "<div class='vc-card'>"
+            "The concept, worked example, and interactive question are complete. "
+            "Your answer and feedback have been recorded."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        review_col, back_col = st.columns(2)
+        with review_col:
+            if st.button("Review this lesson", type="primary", use_container_width=True,
+                         key=f"structured_review_{lesson['id']}"):
+                flow.update({
+                    "view": "structured_lesson", "stage": "concept",
+                    "q_index": 0, "results": [], "active_questions": [],
+                    "last_correct": None, "last_user_answer": None,
+                })
+                st.rerun()
+        with back_col:
+            if st.button("Back to lessons", use_container_width=True,
+                         key=f"structured_back_{lesson['id']}"):
+                state.flush_persistent_save()
+                st.session_state.current_lesson = None
+                st.session_state.lesson_flow = None
+                st.rerun()
+        return
+
     results = flow.get("results", [])
     correct = sum(bool(x.get("correct")) for x in results)
     st.markdown("### Practice results")
@@ -830,6 +1068,9 @@ def _render_question(
     # Question heading
     # -----------------------------------------------------------------------
 
+    if flow.get("structured_lesson"):
+        st.markdown("### Screen 3 of 3 — Interactive question")
+
     st.markdown(
         f"<span class='vc-muted'>"
         f"Question {idx + 1} of {total}"
@@ -959,7 +1200,7 @@ def _render_question(
         # Determine next stage
         # ---------------------------------------------------------------
 
-        if (
+        if flow.get("structured_lesson") or (
             settings.get(
                 "feedback_timing",
                 "Immediate",
@@ -1007,6 +1248,11 @@ def _render_feedback(
     idx = flow["q_index"]
 
     question = questions[idx]
+
+    if flow.get("structured_lesson"):
+        st.markdown("### Screen 3 of 3 — Interactive question")
+        st.markdown(f"#### {question['prompt']}")
+        st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
     is_correct = flow["last_correct"]
 
