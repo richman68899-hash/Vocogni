@@ -163,6 +163,10 @@ def render_course_detail() -> None:
     if course_id == "word_problems":
         _render_course_diagnostic_row(course_id, progress)
 
+    diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
+    if diagnostic_lesson_id:
+        _render_course_diagnostic_row(course_id, progress)
+
     for idx, lesson in enumerate(
         course["lessons"]
     ):
@@ -174,7 +178,7 @@ def render_course_detail() -> None:
             progress,
             completed,
             next_lesson_id,
-            display_index=(idx + 2 if course_id == "word_problems" else idx + 1),
+            display_index=(idx + 2 if diagnostic_lesson_id else idx + 1),
         )
 
     # -----------------------------------------------------------------------
@@ -182,33 +186,40 @@ def render_course_detail() -> None:
     # -----------------------------------------------------------------------
 
     if next_lesson is None:
-
-        st.markdown(
-            "<div class='vc-card' style='margin-top:0.5rem;'>"
-            "You've completed every lesson in this course. "
-            "Check the Progress page for a full breakdown of how you did."
-            "</div>",
-            unsafe_allow_html=True,
-        )
+        if logic.course_diagnostic_completed(progress, course_id):
+            st.markdown(
+                "<div class='vc-card' style='margin-top:0.5rem;'>"
+                "You've completed every item in this course. "
+                "Check the Progress page for a full breakdown of how you did."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info("Complete the course-entry diagnostic to finish this course.")
 
 
 def _render_course_diagnostic_row(course_id, progress) -> None:
-    """Render the one-time course diagnostic as the first Word Problems item."""
+    """Render the saved one-time diagnostic as the first item in a course."""
+    course = data.get_course(course_id)
+    diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
+    if not course or not diagnostic_lesson_id:
+        return
+
     course_progress = progress.get(course_id, {})
-    result = course_progress.get("diagnostics", {}).get("wp_l1")
+    result = course_progress.get("diagnostics", {}).get(diagnostic_lesson_id)
     done = result is not None
     row_class = "vc-lesson-row" if done else "vc-lesson-row vc-lesson-row--current"
     status_text = (
         "✓ Completed — baseline result saved"
         if done
-        else "Up next — complete this before Lesson 2"
+        else "Up next — complete this before starting new lessons"
     )
 
     col_info, col_action = st.columns([3, 1])
     with col_info:
         st.markdown(
             f"<div class='{row_class}'><div>"
-            f"<strong>1. Diagnostic — Word Problems</strong><br>"
+            f"<strong>1. Diagnostic — {course['title']}</strong><br>"
             f"<span class='vc-muted'>{status_text}</span>"
             f"</div></div>",
             unsafe_allow_html=True,
@@ -216,9 +227,9 @@ def _render_course_diagnostic_row(course_id, progress) -> None:
 
     with col_action:
         label = "View result" if done else "Start diagnostic"
-        if st.button(label, key="course_diagnostic_word_problems", use_container_width=True):
-            st.session_state.current_lesson = "wp_l1"
-            flow = state.new_lesson_flow(course_id, "wp_l1")
+        if st.button(label, key=f"course_diagnostic_{course_id}", use_container_width=True):
+            st.session_state.current_lesson = diagnostic_lesson_id
+            flow = state.new_lesson_flow(course_id, diagnostic_lesson_id)
             flow["launch_mode"] = "course_diagnostic"
             st.session_state.lesson_flow = flow
             st.rerun()
@@ -244,18 +255,21 @@ def _render_lesson_row(
     if display_index is None:
         display_index = idx + 1
 
-    diagnostic_done = (
-        "wp_l1" in progress.get("word_problems", {}).get("diagnostics", {})
-    )
+    diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
+    diagnostic_done = logic.course_diagnostic_completed(progress, course_id)
+    is_done = lesson["id"] in completed
+
     unlocked = logic.is_lesson_unlocked(
         progress,
         course_id,
         idx,
     )
-    if course_id == "word_problems" and not diagnostic_done:
+    # Preserve access to lessons learners had already completed before this
+    # release, but require the diagnostic before starting new course lessons.
+    if is_done:
+        unlocked = True
+    elif diagnostic_lesson_id and not diagnostic_done:
         unlocked = False
-
-    is_done = lesson["id"] in completed
 
     is_current = lesson["id"] == next_lesson_id
 
@@ -281,7 +295,7 @@ def _render_lesson_row(
 
         status_text = (
             "🔒 Complete the diagnostic first"
-            if course_id == "word_problems" and not diagnostic_done
+            if diagnostic_lesson_id and not diagnostic_done
             else "🔒 Locked — finish the previous lesson first"
         )
 
@@ -408,7 +422,7 @@ def render_lesson_flow() -> None:
 
     launch_mode = flow.get("launch_mode")
     st.markdown(f"<span class='vc-muted'>{course['title']}</span>", unsafe_allow_html=True)
-    display_title = "Diagnostic — Word Problems" if launch_mode == "course_diagnostic" else lesson["title"]
+    display_title = f"Diagnostic — {course['title']}" if launch_mode == "course_diagnostic" else lesson["title"]
     st.markdown(f"<h2>{display_title}</h2>", unsafe_allow_html=True)
 
     if launch_mode == "course_diagnostic":
@@ -418,42 +432,38 @@ def render_lesson_flow() -> None:
             _render_diagnostic(lesson, course_id)
         return
 
-    # Word Problems lessons use the same three-screen teaching sequence.
-    if course_id == "word_problems":
-        if lesson_id == "wp_l1" and diagnostic_result is None:
-            st.info("Complete the course diagnostic before starting this lesson.")
+    # Structured lessons across every course share the same three-screen flow.
+    if lesson.get("worked_example") and lesson.get("interactive_question"):
+        if diagnostic_config and diagnostic_result is None:
+            st.info("Complete the course-entry diagnostic before starting this lesson.")
             _render_diagnostic(lesson, course_id)
             return
+
+        if not flow.get("structured_lesson"):
+            _initialize_structured_lesson_flow(
+                lesson, course_id, flow, diagnostic_result
+            )
 
         if flow.get("view") == "attempt_complete":
             _render_attempt_complete(course, lesson, flow, diagnostic_result, lesson_attempts)
             return
 
-        if flow.get("structured_lesson") and flow.get("view") in ("structured_lesson", "practice"):
-            stage = flow.get("stage", "concept")
-            if stage in ("concept", "worked_example"):
-                _render_word_problem_screen(lesson, flow, diagnostic_result, course_id)
-            elif stage == "question":
-                _render_question(lesson, flow, course_id)
-            elif stage == "feedback":
-                _render_feedback(lesson, flow)
-            elif stage == "complete":
-                _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
-            else:
-                flow["view"] = "structured_lesson"
-                flow["stage"] = "concept"
-                st.rerun()
-            return
-
-        flow.update({
-            "view": "structured_lesson",
-            "stage": "concept",
-            "structured_lesson": True,
-        })
-        _render_word_problem_screen(lesson, flow, diagnostic_result, course_id)
+        stage = flow.get("stage", "concept")
+        if stage in ("concept", "worked_example"):
+            _render_word_problem_screen(lesson, flow, diagnostic_result, course_id)
+        elif stage == "question":
+            _render_question(lesson, flow, course_id)
+        elif stage == "feedback":
+            _render_feedback(lesson, flow)
+        elif stage == "complete":
+            _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
+        else:
+            flow["view"] = "structured_lesson"
+            flow["stage"] = "concept"
+            st.rerun()
         return
 
-    # State is derived from durable records, not a fragile "started" boolean.
+    # Legacy fallback remains available for any lesson not yet converted.
     if diagnostic_config and diagnostic_result is None:
         _render_diagnostic(lesson, course_id)
         return
@@ -531,6 +541,133 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
             st.rerun()
 
 
+def _select_structured_question(lesson, diagnostic_result):
+    """Choose Screen 3's question and route, using placement when a diagnostic exists."""
+    authored = lesson.get("interactive_question")
+    route = "standard"
+    candidates = [authored] if authored else []
+    if lesson.get("diagnostic") and diagnostic_result:
+        route = diagnostic_result.get("outcome_key", "level_1")
+        if route in ("prerequisite", "level_1"):
+            route = "level_1"
+            candidates = [authored] if authored else []
+        else:
+            candidates = diagnostics.get_pathway_questions(lesson, route)
+        if not candidates:
+            candidates = [authored] if authored else []
+    candidates = [item for item in candidates if isinstance(item, dict)]
+    return (candidates[0] if candidates else None), route
+
+
+def _find_lesson_question_by_id(lesson, question_id):
+    """Find an authored question by stable ID, including diagnostic pathways."""
+    if not question_id:
+        return None
+    candidates = []
+    authored = lesson.get("interactive_question")
+    if isinstance(authored, dict):
+        candidates.append(authored)
+    candidates.extend(lesson.get("questions", []))
+    diagnostic = lesson.get("diagnostic", {})
+    if isinstance(diagnostic, dict):
+        candidates.extend(diagnostic.get("questions", []))
+        for pathway in diagnostic.get("pathways", {}).values():
+            if isinstance(pathway, dict):
+                candidates.extend(pathway.get("questions", []))
+    return next(
+        (question for question in candidates
+         if isinstance(question, dict) and question.get("id") == question_id),
+        None,
+    )
+
+
+def _save_lesson_screen_checkpoint(course_id, lesson_id, updates) -> bool:
+    """Save one lesson's resumable screen state inside the existing progress record."""
+    logic.update_lesson_screen_checkpoint(
+        st.session_state.progress, course_id, lesson_id, updates
+    )
+    state.mark_persistent_dirty()
+    return state.flush_persistent_save()
+
+
+def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_result) -> None:
+    """Resume an unfinished saved lesson; leave completed history intact for review."""
+    progress = st.session_state.progress
+    checkpoint = logic.get_lesson_screen_checkpoint(progress, course_id, lesson["id"])
+    history = (
+        progress.get(course_id, {})
+        .get("practice_attempts", {})
+        .get(lesson["id"], [])
+    )
+    next_attempt = len(history) + 1
+    if not checkpoint.get("completed"):
+        screen = checkpoint.get("current_screen", 1)
+        try:
+            screen = int(screen)
+        except (TypeError, ValueError):
+            screen = 1
+        if screen not in (1, 2, 3):
+            screen = 1
+        attempt_number = int(checkpoint.get("attempt_number", next_attempt) or next_attempt)
+        route = checkpoint.get("selected_pathway", "standard")
+        base = {
+            "structured_lesson": True,
+            "attempt_number": attempt_number,
+            "selected_pathway": route,
+            "q_index": 0,
+            "results": [],
+            "last_correct": None,
+            "last_user_answer": None,
+        }
+        if screen in (1, 2):
+            base.update({
+                "view": "structured_lesson",
+                "stage": "concept" if screen == 1 else "worked_example",
+                "active_questions": [],
+            })
+        else:
+            question = _find_lesson_question_by_id(lesson, checkpoint.get("question_id"))
+            if question is None:
+                question, route = _select_structured_question(lesson, diagnostic_result)
+                base["selected_pathway"] = route
+            if question is not None:
+                submitted = bool(checkpoint.get("screen_3_submitted"))
+                base.update({
+                    "view": "practice",
+                    "stage": "feedback" if submitted else "question",
+                    "active_questions": [question],
+                    "last_correct": checkpoint.get("last_correct") if submitted else None,
+                    "last_user_answer": checkpoint.get("last_answer") if submitted else None,
+                })
+                if submitted:
+                    base["results"] = [{
+                        "correct": bool(checkpoint.get("last_correct")),
+                        "explanation": question.get("explanation", ""),
+                    }]
+            else:
+                base.update({
+                    "view": "structured_lesson",
+                    "stage": "worked_example",
+                    "active_questions": [],
+                })
+        flow.update(base)
+        return
+
+    # A completed lesson opens at Screen 1 for review; its history is untouched.
+    flow.update({
+        "structured_lesson": True,
+        "view": "structured_lesson",
+        "stage": "concept",
+        "attempt_number": next_attempt,
+        "selected_pathway": "standard",
+        "q_index": 0,
+        "results": [],
+        "active_questions": [],
+        "last_correct": None,
+        "last_user_answer": None,
+    })
+
+
 def _render_course_diagnostic_result(lesson, result) -> None:
     """Show the saved one-time course diagnostic without opening a practice route."""
     st.markdown("### Diagnostic results")
@@ -587,8 +724,28 @@ def _render_word_problem_screen(lesson, flow, diagnostic_result, course_id) -> N
                     st.caption(f"Prerequisite to review: {review}")
 
         if st.button("Next: Worked example", type="primary", key=f"screen1_next_{lesson['id']}"):
+            history = (
+                st.session_state.progress.get(course_id, {})
+                .get("practice_attempts", {})
+                .get(lesson["id"], [])
+            )
+            attempt_number = len(history) + 1
+            saved = _save_lesson_screen_checkpoint(course_id, lesson["id"], {
+                "current_screen": 2,
+                "completed_screens": [1],
+                "completed": False,
+                "screen_3_submitted": False,
+                "question_id": None,
+                "last_answer": None,
+                "last_correct": None,
+                "attempt_number": attempt_number,
+            })
             flow["stage"] = "worked_example"
-            st.rerun()
+            flow["attempt_number"] = attempt_number
+            if saved:
+                st.rerun()
+            else:
+                st.error("Screen progress is pending save. Keep the app open and retry saving before leaving.")
         return
 
     if stage == "worked_example":
@@ -598,49 +755,67 @@ def _render_word_problem_screen(lesson, flow, diagnostic_result, course_id) -> N
             unsafe_allow_html=True,
         )
         if st.button("← Back to concept", key=f"screen2_back_{lesson['id']}"):
+            checkpoint = logic.get_lesson_screen_checkpoint(
+                st.session_state.progress, course_id, lesson["id"]
+            )
+            saved = _save_lesson_screen_checkpoint(course_id, lesson["id"], {
+                "current_screen": 1,
+                "completed_screens": [],
+                "completed": False,
+                "screen_3_submitted": False,
+                "question_id": None,
+                "last_answer": None,
+                "last_correct": None,
+                "attempt_number": checkpoint.get("attempt_number", flow.get("attempt_number", 1)),
+            })
             flow["stage"] = "concept"
-            st.rerun()
+            if saved:
+                st.rerun()
+            else:
+                st.error("Screen progress is pending save. Keep the app open and retry saving before leaving.")
 
         if st.button("Next: Interactive question", type="primary", key=f"screen2_next_{lesson['id']}"):
-            route = "standard"
-            candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
-            if lesson.get("diagnostic") and diagnostic_result:
-                route = diagnostic_result.get("outcome_key", "level_1")
-                if route in ("prerequisite", "level_1"):
-                    # Foundational placement gets the authored interactive item,
-                    # distinct from the already-completed diagnostic questions.
-                    route = "level_1"
-                    candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
-                else:
-                    # More advanced placement uses the corresponding pathway question.
-                    candidates = diagnostics.get_pathway_questions(lesson, route)
-                if not candidates:
-                    candidates = [lesson.get("interactive_question")] if lesson.get("interactive_question") else []
-
-            candidates = [item for item in candidates if isinstance(item, dict)]
-            if not candidates:
+            question, route = _select_structured_question(lesson, diagnostic_result)
+            if question is None:
                 st.error("This lesson needs one interactive question before it can continue.")
                 return
 
-            # Screen 3 is a single formative checkpoint. The first diagnostic-routed
-            # practice item is used for Lesson 2 of the course; other lessons use
-            # their explicitly authored interactive question.
-            question = candidates[0]
-            course_progress = state.get_course_progress(course_id)
-            history = course_progress.get("practice_attempts", {}).get(lesson["id"], [])
+            checkpoint = logic.get_lesson_screen_checkpoint(
+                st.session_state.progress, course_id, lesson["id"]
+            )
+            history = (
+                st.session_state.progress.get(course_id, {})
+                .get("practice_attempts", {})
+                .get(lesson["id"], [])
+            )
+            attempt_number = int(checkpoint.get("attempt_number", len(history) + 1) or (len(history) + 1))
+            saved = _save_lesson_screen_checkpoint(course_id, lesson["id"], {
+                "current_screen": 3,
+                "completed_screens": [1, 2],
+                "completed": False,
+                "screen_3_submitted": False,
+                "question_id": question.get("id"),
+                "last_answer": None,
+                "last_correct": None,
+                "attempt_number": attempt_number,
+                "selected_pathway": route,
+            })
             flow.update({
                 "view": "practice",
                 "stage": "question",
                 "q_index": 0,
                 "results": [],
                 "active_questions": [question],
-                "attempt_number": len(history) + 1,
+                "attempt_number": attempt_number,
                 "selected_pathway": route,
                 "structured_lesson": True,
                 "last_correct": None,
                 "last_user_answer": None,
             })
-            st.rerun()
+            if saved:
+                st.rerun()
+            else:
+                st.error("Screen 3 is open, but saving this checkpoint has not been confirmed. Keep the app open and retry saving before leaving.")
         return
 
 
@@ -695,6 +870,24 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
         state.mark_persistent_dirty()
+    if flow.get("structured_lesson"):
+        active_questions = flow.get("active_questions", [])
+        current_question = active_questions[0] if active_questions else {}
+        logic.update_lesson_screen_checkpoint(
+            st.session_state.progress, course_id, lesson["id"], {
+                "current_screen": 3,
+                "completed_screens": [1, 2, 3],
+                "completed": True,
+                "screen_3_submitted": True,
+                "question_id": current_question.get("id"),
+                "last_answer": flow.get("last_user_answer"),
+                "last_correct": flow.get("last_correct"),
+                "attempt_number": attempt_number,
+                "selected_pathway": flow.get("selected_pathway", "standard"),
+            }
+        )
+        state.mark_persistent_dirty()
+
     save_ok = state.flush_persistent_save()
     flow["view"] = "attempt_complete"
     flow["stage"] = "complete"
@@ -1177,6 +1370,21 @@ def _render_question(
         # Therefore the persistent state is now dirty.
         # ---------------------------------------------------------------
 
+        if flow.get("structured_lesson"):
+            logic.update_lesson_screen_checkpoint(
+                st.session_state.progress, course_id, lesson["id"], {
+                    "current_screen": 3,
+                    "completed_screens": [1, 2, 3],
+                    "completed": False,
+                    "screen_3_submitted": True,
+                    "question_id": question.get("id"),
+                    "last_answer": user_answer,
+                    "last_correct": is_correct,
+                    "attempt_number": flow.get("attempt_number", 1),
+                    "selected_pathway": flow.get("selected_pathway", "standard"),
+                }
+            )
+
         state.mark_persistent_dirty()
 
         # ---------------------------------------------------------------
@@ -1226,7 +1434,16 @@ def _render_question(
         # will not reach its normal end-of-run flush.
         # ---------------------------------------------------------------
 
-        _rerun_after_persistence()
+        if flow.get("structured_lesson"):
+            if state.flush_persistent_save():
+                st.rerun()
+            else:
+                st.error(
+                    "Your answer is recorded in this session, but the save failed. "
+                    "Use the retry-save option before leaving; the answer checkpoint remains pending."
+                )
+        else:
+            _rerun_after_persistence()
 
 
 # ===========================================================================
