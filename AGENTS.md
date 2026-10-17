@@ -1,7 +1,7 @@
-# Codex Instructions for VOCogni
+# Codex Instructions for Vocogni
 
 ## Purpose
-VOCogni is a Grade 7–9 mathematics learning prototype. Its product loop is **Understand → Solve → Apply → Advance**. The current codebase is the source of truth; plans and previous AI summaries are context, not proof that a feature works.
+Vocogni is a Grade 7–9 mathematics learning prototype. Its product loop is **Understand → Solve → Apply → Advance**. The current codebase is the source of truth; plans and previous AI summaries are context, not proof that a feature works.
 
 ## Before substantial work
 - Read `README.md` for the repository map and current verification commands.
