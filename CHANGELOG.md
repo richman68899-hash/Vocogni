@@ -1,5 +1,10 @@
 # Changelog
 
+- Extend the diagnostic-first three-screen lesson flow to Simple Fractions and Algebra Basics.
+- Persist lesson screen checkpoints in existing learner progress records so learners can resume after refresh or re-login.
+- Preserve existing lesson IDs, completed-lesson history, diagnostic results, attempts, and aggregate scores.
+
+
 ## Unreleased
 - Add a separate first-item diagnostic to the Word Problems course while retaining the four learning lessons.
 - Give each Word Problems lesson a three-screen concept → worked example → interactive question flow.
