@@ -101,10 +101,18 @@ def _render_topic_detail(progress):
     st.progress(pct)
     lessons_done = len(prog.get("completed_lessons", []))
     st.markdown(
-        f"<span class='vc-muted'>{pct}% complete \u2014 {lessons_done} of "
-        f"{len(course['lessons'])} lessons</span>",
+        f"<span class='vc-muted'>{pct}% course progress — {lessons_done} of "
+        f"{len(course['lessons'])} learning lessons completed</span>",
         unsafe_allow_html=True,
     )
+    diagnostic_id = logic.course_diagnostic_lesson_id(course_id)
+    if diagnostic_id:
+        diagnostic_done = diagnostic_id in prog.get("diagnostics", {})
+        st.caption(
+            "Course-entry diagnostic: completed and saved."
+            if diagnostic_done
+            else "Course-entry diagnostic: not completed yet."
+        )
 
     row = st.columns(3)
     with row[0]:
