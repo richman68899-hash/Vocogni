@@ -11,7 +11,7 @@
 - Count the course diagnostic in Word Problems progress and add structural regression tests.
 
 
-All notable VOCogni changes are recorded here. Features remain under `Unreleased` until their acceptance tests are complete, the pull request is merged, and a release tag is created.
+All notable Vocogni changes are recorded here. Features remain under `Unreleased` until their acceptance tests are complete, the pull request is merged, and a release tag is created.
 
 ## [Unreleased] — Lesson flow rebuild and diagnostic-gated practice
 
