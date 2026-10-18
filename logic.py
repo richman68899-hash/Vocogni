@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 import wave
 
 import data
+import assessment
 
 APPLICATION_TAG = data.APPLICATION_MISTAKE_TAG
 
@@ -30,11 +31,13 @@ APPLICATION_TAG = data.APPLICATION_MISTAKE_TAG
 # ---------------------------------------------------------------------------
 
 def check_answer(question, user_answer):
-    """Return True if user_answer is correct for the given question dict."""
-    if question["type"] == "mc":
+    """Return whether a response earns full credit for its configured question."""
+    if question.get("type") == "open_ended":
+        return assessment.grade_open_ended(question, user_answer)["is_full_credit"]
+    if question.get("type") == "mc":
         return user_answer == question["answer"]
 
-    # numeric
+    # Numeric legacy questions.
     try:
         user_val = float(user_answer)
     except (TypeError, ValueError):
