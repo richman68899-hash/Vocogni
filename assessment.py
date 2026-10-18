@@ -111,7 +111,11 @@ def _point_matches(point: dict, raw: str, answer_text: str, compact_text: str, n
     if "regex_any" in point:
         configured = True
         patterns = point.get("regex_any") or []
-        if not any(re.search(pattern, normalize_words(raw), flags=re.IGNORECASE) for pattern in patterns):
+        if not any(
+            re.search(pattern, normalize_words(raw), flags=re.IGNORECASE)
+            or re.search(pattern, compact_text, flags=re.IGNORECASE)
+            for pattern in patterns
+        ):
             return False
 
     if "numeric_targets" in point:
