@@ -44,6 +44,7 @@ import data
 import diagnostics
 import logic
 import state
+import assessment
 
 
 # ===========================================================================
@@ -1294,6 +1295,23 @@ def _render_question(
 
         can_submit = choice is not None
 
+    elif question.get("type") == "open_ended":
+
+        if settings.get("difficulty") == "Easy" and question.get("input_hint"):
+            st.caption(f"Guidance: {question['input_hint']}")
+
+        st.caption(
+            "Show your reasoning. Marks are awarded for the configured criteria; "
+            "valid equivalent wording and notation may be accepted."
+        )
+        user_answer = st.text_area(
+            "Your answer:",
+            key=answer_key,
+            height=150,
+            placeholder="Type your formula, equation, calculation, or explanation...",
+        )
+        can_submit = bool(user_answer and user_answer.strip())
+
     else:
 
         if (
@@ -1342,9 +1360,15 @@ def _render_question(
         # Calculate correctness
         # ---------------------------------------------------------------
 
-        is_correct = logic.check_answer(
-            question,
-            user_answer,
+        grade = (
+            assessment.grade_open_ended(question, user_answer)
+            if question.get("type") == "open_ended"
+            else None
+        )
+        is_correct = (
+            grade["is_full_credit"]
+            if grade is not None
+            else logic.check_answer(question, user_answer)
         )
 
         # ---------------------------------------------------------------
@@ -1380,6 +1404,7 @@ def _render_question(
                     "question_id": question.get("id"),
                     "last_answer": user_answer,
                     "last_correct": is_correct,
+                    "last_grade": grade,
                     "attempt_number": flow.get("attempt_number", 1),
                     "selected_pathway": flow.get("selected_pathway", "standard"),
                 }
@@ -1392,15 +1417,40 @@ def _render_question(
         # ---------------------------------------------------------------
 
         flow["last_correct"] = is_correct
-
         flow["last_user_answer"] = user_answer
+        flow["last_grade"] = grade
 
-        flow["results"].append(
-            {
-                "correct": is_correct,
-                "explanation": question["explanation"],
-            }
-        )
+        result_record = {
+            "correct": is_correct,
+            "explanation": question["explanation"],
+            "question_id": question.get("id"),
+            "raw_answer": str(user_answer) if question.get("type") == "open_ended" else None,
+        }
+        if grade is not None:
+            result_record.update({
+                "marks_awarded": grade["marks_awarded"],
+                "max_marks": grade["max_marks"],
+                "marking_feedback": grade["feedback"],
+                "warnings": grade["warnings"],
+                "point_results": grade["point_results"],
+            })
+            course_progress = st.session_state.progress.setdefault(course_id, {})
+            course_progress["open_ended_marks_awarded"] = (
+                course_progress.get("open_ended_marks_awarded", 0) + grade["marks_awarded"]
+            )
+            course_progress["open_ended_marks_available"] = (
+                course_progress.get("open_ended_marks_available", 0) + grade["max_marks"]
+            )
+            course_progress.setdefault("open_ended_attempts", []).append({
+                "lesson_id": lesson["id"],
+                "question_id": question.get("id"),
+                "marks_awarded": grade["marks_awarded"],
+                "max_marks": grade["max_marks"],
+                "percent": grade["percent"],
+                "submitted_at": datetime.now(timezone.utc).isoformat(),
+                "warnings": grade["warnings"],
+            })
+        flow["results"].append(result_record)
 
         # ---------------------------------------------------------------
         # Determine next stage
@@ -1490,6 +1540,25 @@ def _render_feedback(
         f"</div>",
         unsafe_allow_html=True,
     )
+
+    grade = flow.get("last_grade")
+    if grade:
+        st.metric(
+            "Mark-scheme practice score",
+            f"{grade.get('marks_awarded', 0)} / {grade.get('max_marks', 0)} marks",
+            f"{grade.get('percent', 0)}%",
+        )
+        if grade.get("warnings"):
+            for warning in grade["warnings"]:
+                st.warning(warning)
+        feedback_items = grade.get("feedback", [])
+        if feedback_items:
+            with st.expander("Marking-point feedback", expanded=not grade.get("is_full_credit", False)):
+                for item in feedback_items:
+                    st.write(f"• {item}")
+        st.caption(
+            "This is transparent, rubric-based practice marking. It is not an official Cambridge mark scheme."
+        )
 
     # -----------------------------------------------------------------------
     # Correct-answer sound
