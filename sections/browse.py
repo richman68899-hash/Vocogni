@@ -49,9 +49,35 @@ def _render_grid():
     st.markdown("<h2>Browse Courses</h2>", unsafe_allow_html=True)
 
     progress = st.session_state.progress
+    coach = logic.get_mistake_coach(progress)
+    if coach:
+        st.markdown("### Your next best step")
+        st.markdown(
+            f"""
+            <div style="border:1px solid var(--vc-border, #d7e0e5);border-radius:12px;padding:1rem;margin:.35rem 0 1rem 0;">
+              <div style="font-size:.78rem;opacity:.75;margin-bottom:.35rem;">MISTAKE-TO-MASTERY COACH</div>
+              <div style="font-weight:700;font-size:1.08rem;">{coach['skill']}</div>
+              <div style="margin:.35rem 0;">{coach['why']}</div>
+              <div style="margin:.35rem 0;"><strong>Evidence:</strong> {coach['evidence_label']}</div>
+              <div><strong>Try next:</strong> {coach['action']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if coach["available_course_ids"]:
+            target_id = coach["available_course_ids"][0]
+            target = data.get_course(target_id)
+            if st.button(
+                f"Open {target['title']} to practise",
+                key=f"mistake_coach_open_{target_id}",
+            ):
+                st.session_state.selected_course_id = target_id
+                st.session_state.page = "Browse Courses"
+                st.rerun()
+
     recs = logic.generate_recommendations(progress)
     if recs:
-        st.markdown("<span class='vc-muted'>Recommended for you</span>", unsafe_allow_html=True)
+        st.markdown("<span class='vc-muted'>Other recommendations</span>", unsafe_allow_html=True)
         chips = "".join(f"<span class='vc-recommend-chip'>{r}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
