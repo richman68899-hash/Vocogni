@@ -1134,6 +1134,14 @@ def _render_diagnostic(lesson, course_id) -> None:
                     "Choose one answer", question.get("options", []),
                     index=None, key=key,
                 )
+            elif question.get("type") == "open_ended":
+                raw = st.text_area(
+                    "Your written answer",
+                    key=key,
+                    height=100,
+                    placeholder="Type your reasoning, formula, or equation...",
+                )
+                answers[question["id"]] = raw.strip() or None
             else:
                 raw = st.text_input("Your answer", key=key)
                 if raw.strip():
