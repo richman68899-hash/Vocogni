@@ -223,6 +223,27 @@ def grade_open_ended(question: dict, response: object) -> dict:
         if not matched:
             missing.append(point.get("criteria", "A marking point was not demonstrated."))
 
+    # An authored canonical answer is guaranteed to be a complete model
+    # answer. Accept it as full credit even if the individual points use
+    # compact matching rules designed for shorter free-form responses.
+    canonical_answers = []
+    if isinstance(question.get("answer"), str) and question["answer"].strip():
+        canonical_answers.append(question["answer"])
+    canonical_answers.extend(
+        item for item in question.get("accepted_answers", [])
+        if isinstance(item, str) and item.strip()
+    )
+    canonical_hit = any(
+        normalize_notation(raw) == normalize_notation(candidate)
+        for candidate in canonical_answers
+    )
+    if canonical_hit and max_marks:
+        awarded = max_marks
+        for item in point_results:
+            item["marks_awarded"] = item["marks_available"]
+            item["matched"] = True
+        missing = []
+
     warnings = detect_typo_warnings(raw, question)
     full_credit = bool(max_marks) and awarded == max_marks
     feedback = []
