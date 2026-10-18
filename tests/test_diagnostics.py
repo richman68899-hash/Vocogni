@@ -5,6 +5,21 @@ import data
 import diagnostics
 
 
+def deliberately_wrong_answer(question):
+    """Return a wrong response regardless of the question's input type."""
+    if question.get("type") == "mc":
+        return next(
+            option for option in question.get("options", [])
+            if option != question.get("answer")
+        )
+    if question.get("type") == "numeric":
+        try:
+            return float(question["answer"]) + 987.0
+        except (TypeError, ValueError):
+            return "deliberately incorrect response"
+    return f"deliberately incorrect response for {question.get('id', 'question')}"
+
+
 def configured_lessons():
     return [
         (course, lesson)
@@ -87,7 +102,7 @@ class DiagnosticEngineTests(unittest.TestCase):
             for score, expected in expected_routes.items():
                 answers = {q["id"]: q["answer"] for q in questions}
                 wrong_count = 5 - score
-                for question in other_questions[-wrong_count:] if wrong_count else []:
+                for question in (other_questions[-wrong_count:] if wrong_count else []):
                     answers[question["id"]] = deliberately_wrong_answer(question)
                 result = diagnostics.evaluate_diagnostic(config, answers)
                 with self.subTest(lesson=lesson["id"], score=score):
