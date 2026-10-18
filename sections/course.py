@@ -43,6 +43,8 @@ import streamlit as st
 import data
 import diagnostics
 import chemistry_grading
+import math_grading
+import quadratics_visuals
 import logic
 import state
 
@@ -764,6 +766,10 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
             f"<div class='{_box_class(lesson)}'>{lesson['explanation']}</div>",
             unsafe_allow_html=True,
         )
+        if lesson.get("visual_key"):
+            quadratics_visuals.render_lesson_visual(
+                lesson, key_prefix=f"course_{course_id}"
+            )
         if lesson.get("diagnostic") and diagnostic_result:
             st.info(
                 f"Diagnostic placement: {diagnostic_result.get('outcome_label', 'Start with the core idea')}. "
@@ -1449,7 +1455,11 @@ def _render_question(
 
         marking_result = None
         if question.get("type") == "open_ended":
-            marking_result = chemistry_grading.evaluate_open_response(question, user_answer)
+            marking_result = (
+                math_grading.evaluate_open_response(question, user_answer)
+                if question.get("grader") == "math"
+                else chemistry_grading.evaluate_open_response(question, user_answer)
+            )
             is_correct = bool(marking_result["full_credit"])
         else:
             is_correct = logic.check_answer(question, user_answer)

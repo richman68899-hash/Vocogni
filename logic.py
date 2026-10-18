@@ -36,10 +36,14 @@ def check_answer(question, user_answer):
         return user_answer == question.get("answer")
 
     if question_type == "open_ended":
-        # Lazy import keeps the base progress engine framework-free and lets
-        # chemistry use criterion-level marks without changing old course types.
-        import chemistry_grading
-        result = chemistry_grading.evaluate_open_response(question, user_answer)
+        # Lazy imports keep the progress engine independent of the UI framework.
+        if question.get("grader") == "math":
+            import math_grading
+            grader = math_grading
+        else:
+            import chemistry_grading
+            grader = chemistry_grading
+        result = grader.evaluate_open_response(question, user_answer)
         return bool(result["full_credit"])
 
     if question_type != "numeric":

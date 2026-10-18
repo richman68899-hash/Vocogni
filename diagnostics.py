@@ -114,8 +114,13 @@ def validate_diagnostic_config(config: Any) -> list[str]:
         ):
             errors.append(f"Question {index} has invalid multiple-choice options/answer.")
         if question.get("type") == "open_ended":
-            import chemistry_grading
-            for rubric_error in chemistry_grading.validate_open_response_question(question):
+            if question.get("grader") == "math":
+                import math_grading
+                grader = math_grading
+            else:
+                import chemistry_grading
+                grader = chemistry_grading
+            for rubric_error in grader.validate_open_response_question(question):
                 errors.append(f"Question {index}: {rubric_error}.")
         elif question.get("type") not in ("mc", "numeric"):
             errors.append(f"Question {index} has unsupported type '{question.get('type')}'.")
@@ -155,8 +160,13 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         answer = answers.get(question["id"])
         marking = None
         if question.get("type") == "open_ended":
-            import chemistry_grading
-            marking = chemistry_grading.evaluate_open_response(question, answer)
+            if question.get("grader") == "math":
+                import math_grading
+                grader = math_grading
+            else:
+                import chemistry_grading
+                grader = chemistry_grading
+            marking = grader.evaluate_open_response(question, answer)
             correct = bool(marking["full_credit"])
             marks_awarded += int(marking["score"])
             maximum_marks += int(marking["max_marks"])
