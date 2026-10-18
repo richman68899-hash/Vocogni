@@ -1232,6 +1232,47 @@ COURSES = {
 
 COURSE_ORDER = ["fractions", "algebra", "word_problems"]
 
+# Shared catalogue taxonomy: every course uses the same category/subject fields.
+COURSE_CATEGORIES = [
+    {"id": "academics", "label": "Academics"},
+]
+COURSE_SUBJECTS = [
+    {"id": "mathematics", "label": "Mathematics"},
+    {"id": "chemistry", "label": "Chemistry"},
+    {"id": "physics", "label": "Physics"},
+    {"id": "biology", "label": "Biology"},
+    {"id": "english", "label": "English"},
+    {"id": "computer_science", "label": "Computer Science"},
+    {"id": "other", "label": "Other"},
+]
+
+# Chemistry content is authored separately from UI and registered here so
+# every existing data.get_course / logic / progress consumer sees it.
+from chemistry_course import CHEMISTRY_COURSE
+
+COURSES[CHEMISTRY_COURSE["id"]] = CHEMISTRY_COURSE
+COURSE_ORDER.append(CHEMISTRY_COURSE["id"])
+
+_SUBJECT_BY_COURSE = {
+    "fractions": "mathematics",
+    "algebra": "mathematics",
+    "word_problems": "mathematics",
+    "chemistry_9701": "chemistry",
+}
+_CATEGORY_LABELS = {item["id"]: item["label"] for item in COURSE_CATEGORIES}
+_SUBJECT_LABELS = {item["id"]: item["label"] for item in COURSE_SUBJECTS}
+
+# Backfill metadata for all current courses without changing their IDs or
+# lesson/progress structures. Lesson count is always derived from published data.
+for _course in COURSES.values():
+    _course.setdefault("category_id", "academics")
+    _course.setdefault("subject_id", _SUBJECT_BY_COURSE.get(_course["id"], "other"))
+    _course["category_label"] = _CATEGORY_LABELS.get(_course["category_id"], "Other")
+    _course["subject_label"] = _SUBJECT_LABELS.get(_course["subject_id"], "Other")
+    _course["lesson_count"] = len(_course.get("lessons", []))
+    _course.setdefault("level", "Not specified")
+    _course.setdefault("curriculum", "General")
+
 SUBJECT_OPTIONS = [
     "Math", "Science", "Language Arts", "History", "Art", "Music",
     "Computer Science", "Physical Education", "Other",
