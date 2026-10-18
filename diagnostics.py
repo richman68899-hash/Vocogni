@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import logic
+import assessment
 
 REQUIRED_STAGES = ("prerequisite", "level_1", "level_2", "level_3", "project")
 
@@ -113,7 +114,13 @@ def validate_diagnostic_config(config: Any) -> list[str]:
             or question.get("answer") not in question.get("options", [])
         ):
             errors.append(f"Question {index} has invalid multiple-choice options/answer.")
-        if question.get("type") not in ("mc", "numeric"):
+        if question.get("type") == "open_ended" and (
+            not isinstance(question.get("marking_points"), list)
+            or not question.get("marking_points")
+            or int(question.get("max_marks", 0) or 0) <= 0
+        ):
+            errors.append(f"Question {index} needs a marking_points rubric and positive max_marks.")
+        if question.get("type") not in ("mc", "numeric", "open_ended"):
             errors.append(f"Question {index} has unsupported type '{question.get('type')}'.")
     if set(seen_stages) != set(REQUIRED_STAGES) or len(seen_stages) != len(set(seen_stages)):
         errors.append("Use each required stage exactly once: prerequisite, level_1, level_2, level_3, project.")
@@ -133,6 +140,8 @@ def validate_diagnostic_config(config: Any) -> list[str]:
 def _is_correct(question: dict[str, Any], answer: Any) -> bool:
     if answer is None or (isinstance(answer, str) and not answer.strip()):
         return False
+    if question.get("type") == "open_ended":
+        return assessment.grade_open_ended(question, answer)["is_full_credit"]
     return bool(logic.check_answer(question, answer))
 
 
@@ -143,15 +152,27 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         raise ValueError("Invalid diagnostic configuration: " + " ".join(errors))
 
     review: list[dict[str, Any]] = []
-    correct_count = 0
+    item_percents: list[float] = []
+    all_items_full = True
     prerequisite_correct = False
     for question in config["questions"]:
         answer = answers.get(question["id"])
-        correct = _is_correct(question, answer)
-        correct_count += int(correct)
+        grade = (
+            assessment.grade_open_ended(question, answer)
+            if question.get("type") == "open_ended"
+            else None
+        )
+        correct = grade["is_full_credit"] if grade else _is_correct(question, answer)
+        item_percent = float(grade["percent"]) if grade else (100.0 if correct else 0.0)
+        item_percents.append(item_percent)
+        all_items_full = all_items_full and correct
         if question["stage"] == "prerequisite":
-            prerequisite_correct = correct
-        review.append({
+            # A multi-point written prerequisite passes once at least two
+            # thirds of its rubric is demonstrated; MC items retain all-or-nothing scoring.
+            prerequisite_correct = (
+                item_percent >= 67.0 if grade else correct
+            )
+        review_item = {
             "question_id": question["id"],
             "stage": question["stage"],
             "skill_tag": question["skill_tag"],
@@ -160,16 +181,27 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
             "expected_answer": question["answer"],
             "correct": correct,
             "explanation": question["explanation"],
-        })
+            "marks_awarded": grade["marks_awarded"] if grade else int(correct),
+            "max_marks": grade["max_marks"] if grade else 1,
+            "marking_feedback": grade["feedback"] if grade else [],
+            "warnings": grade["warnings"] if grade else [],
+        }
+        review.append(review_item)
 
     total = len(config["questions"])
-    percent = round(correct_count / total * 100)
+    # Scale open-ended item-level credit back to the existing five-point
+    # placement scale so existing MC diagnostics keep their behavior.
+    score = round(sum(item_percents) / 100)
+    if score >= 5 and not all_items_full:
+        score = 4
+    correct_count = score
+    percent = round(sum(item_percents) / total) if total else 0
     # Foundational prerequisite failure takes priority: advanced answers can
     # otherwise mask a gap that prevents secure learning of the target concept.
     if not prerequisite_correct:
         outcome_key = "prerequisite"
         placement_reason = "The prerequisite check was incorrect, so the system recommends reviewing the foundation first."
-    elif correct_count == 5:
+    elif all_items_full and correct_count == 5:
         outcome_key = "project"
         placement_reason = "All five diagnostic items were correct, including the project-readiness item."
     elif correct_count == 4:
@@ -189,7 +221,7 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
                 "skill_tag": item["skill_tag"],
                 "question_id": item["question_id"],
                 "stage": item["stage"],
-                "why_flagged": "The learner's response did not match the expected answer.",
+                "why_flagged": "One or more marking points were not demonstrated.",
                 "recommended_action": (
                     config.get("prerequisite_review", "")
                     if item["stage"] == "prerequisite"
@@ -204,6 +236,8 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         "score": correct_count,
         "total": total,
         "percent": percent,
+        "all_items_full": all_items_full,
+        "marking_model": "rubric-partial-credit" if any(q.get("type") == "open_ended" for q in config["questions"]) else "exact-answer",
         "outcome_key": outcome_key,
         "unlocked_pathways": unlocked_pathways_for_score({
             "score": correct_count,
