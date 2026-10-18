@@ -677,8 +677,12 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
 def _render_course_diagnostic_result(lesson, result) -> None:
     """Show the saved one-time course diagnostic without opening a practice route."""
     st.markdown("### Diagnostic results")
-    st.metric("Baseline score", f"{result.get('score', 0)} / {result.get('total', 5)}",
+    st.metric("Fully correct items", f"{result.get('score', 0)} / {result.get('total', 5)}",
               f"{result.get('percent', 0)}%")
+    if result.get("max_marks"):
+        st.metric("Open-response marks", f"{result.get('marks_awarded', 0)} / {result.get('max_marks')}",
+                  f"{result.get('mark_percent', 0)}%")
+        st.caption("The initial placement uses fully correct items; partial marks are displayed separately.")
     st.subheader(result.get("outcome_label", "Diagnostic completed"))
     st.write(result.get("outcome_summary", "Your baseline result has been saved."))
     st.caption(result.get("next_action", "Continue to the first learning lesson."))
@@ -701,6 +705,16 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.caption(item.get("prompt", ""))
             st.write(f"Your answer: {item.get('user_answer')}")
             st.write(f"Expected answer: {item.get('expected_answer')}")
+            if item.get("marks_awarded") is not None:
+                st.write(f"Marks: {item.get('marks_awarded')} / {item.get('max_marks', 0)}")
+                if item.get("typo_warning"):
+                    st.warning(item["typo_warning"])
+                for point in item.get("marking_points", []):
+                    st.write(
+                        f"{'✓' if point.get('met') else '•'} "
+                        f"{point.get('criteria')}: "
+                        f"{point.get('marks_awarded', 0)}/{point.get('marks_available', 0)}"
+                    )
             st.write(item.get("explanation", ""))
 
     st.caption(
@@ -850,13 +864,21 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     existing = next((x for x in history if x.get("attempt_number") == attempt_number), None)
     results = flow.get("results", [])
     correct = sum(bool(x.get("correct")) for x in results)
+    awarded_marks = sum(int(x.get("score", int(bool(x.get("correct"))))) for x in results)
+    maximum_marks = sum(int(x.get("max_marks", 1)) for x in results)
+    mark_percent = round(awarded_marks / maximum_marks * 100) if maximum_marks else 0
+    accuracy_percent = round(correct / len(results) * 100) if results else 0
+    has_marked_responses = any("max_marks" in x for x in results)
     if existing is None:
         route = flow.get("selected_pathway", "standard")
         label = diagnostics.PATHWAY_META.get(route, {}).get("label", "Standard practice")
         history.append({
             "attempt_number": attempt_number, "pathway": route, "pathway_label": label,
             "correct": correct, "total": len(results),
-            "percent": round(correct / len(results) * 100) if results else 0,
+            "percent": mark_percent if has_marked_responses else accuracy_percent,
+            "accuracy_percent": accuracy_percent,
+            "marks_awarded": awarded_marks if has_marked_responses else None,
+            "max_marks": maximum_marks if has_marked_responses else None,
             "completed_at": datetime.now(timezone.utc).isoformat(),
             "results": list(results),
         })
@@ -868,10 +890,15 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     if diagnostic_result and not prog.setdefault("lesson_assessments", {}).get(lesson["id"]) and results:
         baseline = diagnostic_result
         prog["lesson_assessments"][lesson["id"]] = {
-            "baseline_score": baseline.get("score", 0), "baseline_total": baseline.get("total", 5),
-            "baseline_percent": baseline.get("percent", 0), "post_correct": correct,
-            "post_total": len(results), "post_practice_percent": round(correct / len(results) * 100),
-            "percentage_point_difference": round(correct / len(results) * 100) - baseline.get("percent", 0),
+            "baseline_score": baseline.get("marks_awarded", baseline.get("score", 0)),
+            "baseline_total": baseline.get("max_marks", baseline.get("total", 5)),
+            "baseline_percent": baseline.get("mark_percent", baseline.get("percent", 0)),
+            "post_correct": correct,
+            "post_total": len(results),
+            "post_practice_percent": mark_percent if has_marked_responses else accuracy_percent,
+            "percentage_point_difference": (mark_percent if has_marked_responses else accuracy_percent) - baseline.get("mark_percent", baseline.get("percent", 0)),
+            "marks_awarded": awarded_marks if has_marked_responses else None,
+            "max_marks": maximum_marks if has_marked_responses else None,
             "pathway": flow.get("selected_pathway", "unknown"),
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -907,8 +934,19 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
         results = flow.get("results", [])
         correct = sum(bool(item.get("correct")) for item in results)
         total = len(results)
-        st.markdown("### Lesson checkpoint")
-        st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
+        has_marked_responses = any("max_marks" in item for item in results)
+        if has_marked_responses:
+            marks = sum(int(item.get("score", int(bool(item.get("correct"))))) for item in results)
+            max_marks = sum(int(item.get("max_marks", 1)) for item in results)
+            percent = round(marks / max_marks * 100) if max_marks else 0
+            st.markdown("### Lesson checkpoint")
+            st.metric("Open-response marks", f"{marks} / {max_marks}", f"{percent}%")
+            st.caption("Marks follow this question's configured practice rubric; they are not an official Cambridge grade.")
+            if marks < max_marks:
+                st.info("Review the mark-by-mark feedback before retrying the question.")
+        else:
+            st.markdown("### Lesson checkpoint")
+            st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
         st.markdown(
             "<div class='vc-card'>"
             "The concept, worked example, and interactive question are complete. "
