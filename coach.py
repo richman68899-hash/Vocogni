@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import random
-import re
-
 import streamlit as st
 
 import data
@@ -195,8 +193,10 @@ def render(progress):
                     st.write(question["explanation"])
             st.session_state[attempts_key] = question_index + 1
             state.mark_persistent_dirty()
-            state.flush_persistent_save()
-            st.rerun()
+            if state.flush_persistent_save():
+                st.rerun()
+            else:
+                st.error("Your answer was recorded in this session, but saving failed. It will remain pending for retry.")
 
     coach_data = course_progress.get("coach", {})
     st.markdown("#### Coaching data")
