@@ -23,6 +23,8 @@ def render():
     st.markdown("<hr>", unsafe_allow_html=True)
     coach.render(progress)
     st.markdown("<hr>", unsafe_allow_html=True)
+    _render_lesson_diagnostics(progress)
+    st.markdown("<hr>", unsafe_allow_html=True)
     _render_ai_summary(profile, progress)
 
 
@@ -92,7 +94,7 @@ def _render_topic_detail(progress):
     st.markdown("<h3>Topic progress</h3>", unsafe_allow_html=True)
     courses = data.all_courses_in_order()
     labels = [c["topic_label"] for c in courses]
-    selected_label = st.selectbox("Select a topic", labels)
+    selected_label = st.selectbox("Select a topic", labels, key="progress_topic_select")
     course = next(c for c in courses if c["topic_label"] == selected_label)
     course_id = course["id"]
     prog = progress.get(course_id, {})
@@ -147,37 +149,50 @@ def _render_topic_detail(progress):
         for tag, count in mistakes:
             st.markdown(f"- {tag} ({count})")
 
-    # Lesson-level diagnostic results and the later practice checkpoint.
-    st.markdown("<h4 style='margin-top:1rem;'>Lesson diagnostics</h4>", unsafe_allow_html=True)
-    diagnostic_records = prog.get("diagnostics", {})
-    lesson_assessments = prog.get("lesson_assessments", {})
-    if not diagnostic_records:
-        st.caption("No lesson diagnostics have been completed for this topic yet.")
-    else:
-        for lesson_id, result in diagnostic_records.items():
-            lesson, _ = data.get_lesson(course_id, lesson_id)
-            lesson_title = lesson.get("title", lesson_id) if lesson else lesson_id
-            st.markdown(f"**{lesson_title}**")
+
+
+def _render_lesson_diagnostics(progress):
+    courses = data.all_courses_in_order()
+    labels = [course["topic_label"] for course in courses]
+    if not labels:
+        return
+    selected_label = st.session_state.get("progress_topic_select", labels[0])
+    course = next((item for item in courses if item["topic_label"] == selected_label), courses[0])
+    course_id = course["id"]
+    prog = progress.get(course_id, {})
+# Lesson-level diagnostic results and the later practice checkpoint.
+st.markdown("<h4 style='margin-top:1rem;'>Lesson diagnostics</h4>", unsafe_allow_html=True)
+diagnostic_records = prog.get("diagnostics", {})
+lesson_assessments = prog.get("lesson_assessments", {})
+if not diagnostic_records:
+    st.caption("No lesson diagnostics have been completed for this topic yet.")
+else:
+    for lesson_id, result in diagnostic_records.items():
+        lesson, _ = data.get_lesson(course_id, lesson_id)
+        lesson_title = lesson.get("title", lesson_id) if lesson else lesson_id
+        st.markdown(f"**{lesson_title}**")
+        st.write(
+            f"Baseline: {result.get('score', 0)}/{result.get('total', 5)} "
+            f"({result.get('percent', 0)}%) — {result.get('outcome_label', 'Placement unavailable')}"
+        )
+        weaknesses = [
+            item.get("skill_tag")
+            for item in result.get("weaknesses", [])
+            if item.get("skill_tag")
+        ]
+        if weaknesses:
+            st.write("Skills flagged: " + ", ".join(dict.fromkeys(weaknesses)))
+        assessment = lesson_assessments.get(lesson_id)
+        if assessment:
             st.write(
-                f"Baseline: {result.get('score', 0)}/{result.get('total', 5)} "
-                f"({result.get('percent', 0)}%) — {result.get('outcome_label', 'Placement unavailable')}"
+                f"Post-lesson practice: {assessment.get('post_correct', 0)}/"
+                f"{assessment.get('post_total', 0)} "
+                f"({assessment.get('post_practice_percent', 0)}%); descriptive difference "
+                f"{assessment.get('percentage_point_difference', 0):+d} percentage points."
             )
-            weaknesses = [
-                item.get("skill_tag")
-                for item in result.get("weaknesses", [])
-                if item.get("skill_tag")
-            ]
-            if weaknesses:
-                st.write("Skills flagged: " + ", ".join(dict.fromkeys(weaknesses)))
-            assessment = lesson_assessments.get(lesson_id)
-            if assessment:
-                st.write(
-                    f"Post-lesson practice: {assessment.get('post_correct', 0)}/"
-                    f"{assessment.get('post_total', 0)} "
-                    f"({assessment.get('post_practice_percent', 0)}%); descriptive difference "
-                    f"{assessment.get('percentage_point_difference', 0):+d} percentage points."
-                )
-    st.caption("The current diagnostic is a rule-based prototype. Results identify areas to investigate; they are not a clinical, psychometric, or validated mastery assessment.")
+st.caption("The current diagnostic is a rule-based prototype. Results identify areas to investigate; they are not a clinical, psychometric, or validated mastery assessment.")
+
+
 
 
 def _render_recommendations(progress):
