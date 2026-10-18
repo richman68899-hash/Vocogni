@@ -42,6 +42,7 @@ import streamlit as st
 
 import data
 import diagnostics
+import chemistry_grading
 import logic
 import state
 
@@ -643,7 +644,12 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
                     base["results"] = [{
                         "correct": bool(checkpoint.get("last_correct")),
                         "explanation": question.get("explanation", ""),
+                        "score": (checkpoint.get("last_marking") or {}).get("score", int(bool(checkpoint.get("last_correct")))),
+                        "max_marks": (checkpoint.get("last_marking") or {}).get("max_marks", 1),
+                        "marking": checkpoint.get("last_marking"),
+                        "typo_warning": (checkpoint.get("last_marking") or {}).get("typo_warning"),
                     }]
+                    base["last_marking"] = checkpoint.get("last_marking")
             else:
                 base.update({
                     "view": "structured_lesson",
@@ -1087,6 +1093,10 @@ def _render_diagnostic(lesson, course_id) -> None:
                     "Choose one answer", question.get("options", []),
                     index=None, key=key,
                 )
+            elif question["type"] == "open_ended":
+                answers[question["id"]] = st.text_area(
+                    "Write your answer and working", key=key, height=110
+                )
             else:
                 raw = st.text_input("Your answer", key=key)
                 if raw.strip():
@@ -1294,6 +1304,21 @@ def _render_question(
 
         can_submit = choice is not None
 
+    elif question["type"] == "open_ended":
+
+        st.caption(
+            f"Mark allocation: {question.get('max_marks', 1)} marks. "
+            "Show the relevant formula, reasoning, equation, or calculation. "
+            "A terminology warning will not change your answer automatically."
+        )
+        user_answer = st.text_area(
+            "Your answer and working:",
+            key=answer_key,
+            height=160,
+            placeholder="Write your answer, including reasoning and units where relevant.",
+        )
+        can_submit = bool(user_answer and user_answer.strip())
+
     else:
 
         if (
@@ -1342,10 +1367,12 @@ def _render_question(
         # Calculate correctness
         # ---------------------------------------------------------------
 
-        is_correct = logic.check_answer(
-            question,
-            user_answer,
-        )
+        marking_result = None
+        if question.get("type") == "open_ended":
+            marking_result = chemistry_grading.evaluate_open_response(question, user_answer)
+            is_correct = bool(marking_result["full_credit"])
+        else:
+            is_correct = logic.check_answer(question, user_answer)
 
         # ---------------------------------------------------------------
         # Update durable learner progress
@@ -1380,6 +1407,7 @@ def _render_question(
                     "question_id": question.get("id"),
                     "last_answer": user_answer,
                     "last_correct": is_correct,
+                    "last_marking": marking_result,
                     "attempt_number": flow.get("attempt_number", 1),
                     "selected_pathway": flow.get("selected_pathway", "standard"),
                 }
@@ -1392,15 +1420,21 @@ def _render_question(
         # ---------------------------------------------------------------
 
         flow["last_correct"] = is_correct
-
         flow["last_user_answer"] = user_answer
+        flow["last_marking"] = marking_result
 
-        flow["results"].append(
-            {
-                "correct": is_correct,
-                "explanation": question["explanation"],
-            }
-        )
+        result_record = {
+            "correct": is_correct,
+            "explanation": question["explanation"],
+        }
+        if marking_result is not None:
+            result_record.update({
+                "score": marking_result["score"],
+                "max_marks": marking_result["max_marks"],
+                "marking": marking_result,
+                "typo_warning": marking_result.get("typo_warning"),
+            })
+        flow["results"].append(result_record)
 
         # ---------------------------------------------------------------
         # Determine next stage
@@ -1465,11 +1499,12 @@ def _render_feedback(
     question = questions[idx]
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Interactive question")
+        st.markdown("### Screen 3 of 3 — Open response and feedback" if question.get("type") == "open_ended" else "### Screen 3 of 3 — Interactive question")
         st.markdown(f"#### {question['prompt']}")
         st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
     is_correct = flow["last_correct"]
+    marking = flow.get("last_marking") if question.get("type") == "open_ended" else None
 
     feedback_class = (
         "vc-feedback--correct"
@@ -1478,9 +1513,13 @@ def _render_feedback(
     )
 
     headline = (
-        "Correct."
-        if is_correct
-        else "Not quite."
+        f"Full marks — {marking.get('score', 0)}/{marking.get('max_marks', 0)}."
+        if marking and is_correct
+        else (
+            f"Partial credit — {marking.get('score', 0)}/{marking.get('max_marks', 0)} marks."
+            if marking and marking.get("score", 0) > 0
+            else ("Correct." if is_correct else "Not quite.")
+        )
     )
 
     st.markdown(
@@ -1490,6 +1529,22 @@ def _render_feedback(
         f"</div>",
         unsafe_allow_html=True,
     )
+
+    if marking:
+        st.markdown(f"**Marking summary:** {marking.get('feedback', '')}")
+        if marking.get("typo_warning"):
+            st.warning(marking["typo_warning"])
+        with st.expander("Mark-by-mark feedback", expanded=bool(marking.get("typo_warning"))):
+            for point in marking.get("marking_points", []):
+                icon = "✓" if point.get("met") else "•"
+                st.markdown(
+                    f"{icon} **{point.get('criteria', 'Marking point')}** — "
+                    f"{point.get('marks_awarded', 0)}/{point.get('marks_available', 0)} marks"
+                )
+                if point.get("feedback"):
+                    st.caption(point["feedback"])
+        st.markdown("**Model explanation**")
+        st.write(question.get("explanation", ""))
 
     # -----------------------------------------------------------------------
     # Correct-answer sound
