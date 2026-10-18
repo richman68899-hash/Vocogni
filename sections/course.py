@@ -551,7 +551,7 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
 
 def _select_structured_questions(lesson, diagnostic_result):
     """Select a short open-response practice set and optional diagnostic pathway item."""
-    authored = lesson.get("practice_questions") or lesson.get("questions") or []
+    authored = lesson.get("practice_questions") or []
     if not authored and lesson.get("interactive_question"):
         authored = [lesson["interactive_question"]]
     candidates = [item for item in authored if isinstance(item, dict)]
@@ -940,7 +940,11 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
         state.mark_persistent_dirty()
     if flow.get("structured_lesson"):
         active_questions = flow.get("active_questions", [])
-        current_question = active_questions[0] if active_questions else {}
+        current_index = min(
+            max(int(flow.get("q_index", 0) or 0), 0),
+            max(len(active_questions) - 1, 0),
+        )
+        current_question = active_questions[current_index] if active_questions else {}
         logic.update_lesson_screen_checkpoint(
             st.session_state.progress, course_id, lesson["id"], {
                 "current_screen": 3,
@@ -987,8 +991,8 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
         st.markdown(
             "<div class='vc-card'>"
-            "The concept, worked example, and interactive question are complete. "
-            "Your answer and feedback have been recorded."
+            "The concept, worked example, and open-ended practice set are complete. "
+            "Your responses, marking breakdowns, and feedback have been recorded."
             "</div>",
             unsafe_allow_html=True,
         )
@@ -1594,7 +1598,8 @@ def _render_feedback(
     question = questions[idx]
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Open response and feedback" if question.get("type") == "open_ended" else "### Screen 3 of 3 — Interactive question")
+        st.markdown("### Screen 3 of 3 — Practice set")
+        st.caption(f"Practice question {idx + 1} of {len(questions)}")
         st.markdown(f"#### {question['prompt']}")
         st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
