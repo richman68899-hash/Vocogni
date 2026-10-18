@@ -497,6 +497,10 @@ LESSONS = [
 <h3>Precision traps</h3>
 <ul><li>Keep the minus in h = −b/(2a) visible; bracket negative coefficients.</li><li>Axis of symmetry is x = h, not (h, k) and not y = h.</li><li>In a(x − h)² + k, read the bracket sign carefully.</li><li>Keep exact fractions/radicals until final rounding.</li><li>Roots are where y = 0; the vertex is the turning point.</li><li>Inclusive endpoints for ≥/≤; excluded endpoints for &gt;/&lt;.</li><li>Use a test point rather than assuming which side to shade.</li><li>An intersection answer needs an ordered pair; substitute to find y and check both equations.</li><li>For indefinite integrals include + C; for definite integrals compute F(upper) − F(lower).</li></ul>
 <p><strong>Five-second audit:</strong> signs → correct form → boundary/endpoints → units/rounding → substitution check.</p>
+<h3>Source alignment and final mental model</h3>
+<p>The supplied note's running example, y = x² − 5x + 6, aligns with the school G9A Revision Practice Paper. Its completing-the-square sequence aligns with the PMT Education worksheet, <em>GCSE Maths – Algebra: Completing the Square (Higher Only)</em>. Integration is an explicitly added extension in the note, not a topic evidenced by those located source materials.</p>
+<p><strong>Final mental model:</strong> the equation determines a parabola; completing the square exposes its symmetry; roots locate where y = 0; inequalities select intervals or regions; simultaneous equations locate shared points; integration measures signed accumulation and area.</p>
+<p>Source reference: <a href="https://pmt.physicsandmathstutor.com/download/Maths/GCSE/Worksheets/Algebra/Graphs/c.%20Completing%20the%20Square%20%28H%29.pdf">PMT Education — Completing the Square (Higher Only)</a>.</p>
 """,
         "worked_example": """
 <h4>Apply the five-second audit to a sketch</h4>
