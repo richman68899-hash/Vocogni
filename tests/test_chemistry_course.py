@@ -51,6 +51,22 @@ class ChemistryCourseStructureTests(unittest.TestCase):
             ids.append(question["id"])
         self.assertEqual(len(ids), len(set(ids)))
 
+    def test_diagnostic_pathway_rubrics_are_valid(self):
+        config = chemistry_course.COURSE_DIAGNOSTIC
+        questions = list(config["questions"])
+        for pathway in config["pathways"].values():
+            questions.extend(pathway.get("questions", []))
+        for question in questions:
+            with self.subTest(question=question["id"]):
+                self.assertEqual(
+                    chemistry_grading.validate_open_response_question(question),
+                    [],
+                )
+                self.assertEqual(
+                    sum(point["marks"] for point in question["marking_points"]),
+                    question["max_marks"],
+                )
+
     def test_course_entry_diagnostic_has_valid_five_stage_config(self):
         errors = diagnostics.validate_diagnostic_config(chemistry_course.COURSE_DIAGNOSTIC)
         self.assertEqual(errors, [])
