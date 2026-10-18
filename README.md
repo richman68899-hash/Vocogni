@@ -120,6 +120,21 @@ The diagnostic currently covers only the three initial foundation lessons.
 
 ---
 
+## Chemistry course and open-ended practice marking
+
+The Chemistry Formulae and Equations course is authored in
+`chemistry_course.py` as twelve lessons with concept explanations, worked
+examples, open-ended practice questions, and configured marking points. The
+course content follows the learner-provided chemistry master note.
+
+`assessment.py` provides deterministic, auditable rubric marking. It awards
+marks by configured marking point, accepts selected equivalent notation and
+orthographic variants, and issues spelling/terminology warnings without
+rewriting the learner's response. It is practice marking—not an official
+Cambridge mark scheme or an external examiner judgment. Validate authored
+rubrics against the intended question and syllabus before using results for
+high-stakes decisions. Unit and regression tests live under `tests/`.
+
 ## Known prototype limitations
 
 - **Prototype, not production validated.** Auth0 OIDC handles identity and
@@ -128,9 +143,9 @@ The diagnostic currently covers only the three initial foundation lessons.
 - **No real generative AI.** The Progress summary and recommendations use
   templates/rules. The v1.4 diagnostic engine is an explainable rule-based
   system; it does not call an LLM or claim to infer cognition.
-- **Diagnostics are early heuristics.** Diagnostic content is currently
-  attached to three initial lessons. Five questions and initial placement
-  thresholds are not validated assessment instruments. Learner-facing
+- **Diagnostics are early heuristics.** Diagnostic content is attached
+  to configured foundation lessons across the current courses. Five-item
+  placement thresholds are not validated assessment instruments. Learner-facing
   results should be interpreted as a starting-point signal, not a definitive
   mastery label.
 - **Baseline and post-lesson values are not equivalent tests.** The Progress
@@ -141,9 +156,10 @@ The diagnostic currently covers only the three initial foundation lessons.
   the placement engine. Future lessons need their own five tagged items,
   prerequisite review text, and pathway question sets. Existing Settings
   difficulty preferences still do not constitute machine-learning adaptation.
-- **Three courses by design in the current content model:** Simple Fractions,
-  Algebra Basics, and Word Problems. Current diagnostics are on the first
-  foundation lesson in each course, not all twelve lessons.
+- **Course catalogue:** course cards use shared category, subject,
+  level, curriculum, and derived lesson-count metadata. Current course content
+  includes Simple Fractions, Algebra Basics, Word Problems, and the
+  12-lesson Chemical Formulae and Equations course (Cambridge 9701 terminology).
 - **Dark mode is a CSS approximation.** Streamlit's native widget chrome may
   not fully invert under the app-wide CSS override.
 - **Audio depends on browser policy.** A blocked sound cue should not interrupt
