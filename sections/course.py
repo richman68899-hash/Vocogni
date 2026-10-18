@@ -1350,7 +1350,7 @@ def _render_question(
     # -----------------------------------------------------------------------
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Interactive question")
+        st.markdown("### Screen 3 of 3 — Practice set")
 
     st.markdown(
         f"<span class='vc-muted'>"
