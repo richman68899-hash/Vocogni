@@ -76,9 +76,9 @@ COURSE_DIAGNOSTIC = {
             "Al = 2, S = 3, O = 12",
             "The subscript outside brackets multiplies every atom in SO₄: three sulfur atoms and twelve oxygen atoms.",
             [
-                _point("al", "Identifies two aluminium atoms", match_any=["al=2", "2 al", "2 aluminium", "2 aluminum"]),
-                _point("s", "Identifies three sulfur atoms", match_any=["s=3", "3 s", "3 sulfur", "3 sulphur"]),
-                _point("o", "Identifies twelve oxygen atoms", match_any=["o=12", "12 o", "12 oxygen"]),
+                _point("al", "Identifies two aluminium atoms", match_groups=[["aluminium", "aluminum", "al"], ["2"]]),
+                _point("s", "Identifies three sulfur atoms", match_groups=[["sulfur", "sulphur", "s"], ["3"]]),
+                _point("o", "Identifies twelve oxygen atoms", match_groups=[["oxygen", "o"], ["12"]]),
             ], 3
         ),
         _diagnostic_question(
@@ -214,9 +214,9 @@ LESSONS = [
             "There are 2 Al, 3 S, and 12 O atoms. The bracket subscript multiplies atoms in SO₄. A coefficient multiplies the entire formula; a subscript defines the composition of a substance.",
             "Formula notation", 5,
             [
-                _point("al", "States Al = 2", match_any=["al=2", "2 al", "2 aluminium", "2 aluminum"]),
-                _point("s", "States S = 3", match_any=["s=3", "3 s", "3 sulfur", "3 sulphur"]),
-                _point("o", "States O = 12", match_any=["o=12", "12 o", "12 oxygen"]),
+                _point("al", "States Al = 2", match_groups=[["aluminium", "aluminum", "al"], ["2"]]),
+                _point("s", "States S = 3", match_groups=[["sulfur", "sulphur", "s"], ["3"]]),
+                _point("o", "States O = 12", match_groups=[["oxygen", "o"], ["12"]]),
                 _point("bracket", "Explains the 3 multiplies the entire SO₄ group", match_groups=[["3", "three"], ["bracket", "so4", "group"], ["multiply", "times", "each"]]),
                 _point("coefficient", "Distinguishes coefficient from subscript", match_groups=[["coefficient"], ["whole formula", "entire formula", "number of units", "number of molecules"], ["subscript"], ["atoms", "composition", "identity"]]),
             ],
