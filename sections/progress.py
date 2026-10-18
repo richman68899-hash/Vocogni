@@ -138,6 +138,18 @@ def _render_topic_detail(progress):
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
+    rubric_attempts = prog.get("open_ended_attempts", [])
+    if isinstance(rubric_attempts, list) and rubric_attempts:
+        earned_marks = sum(int(item.get("marks_awarded", 0)) for item in rubric_attempts if isinstance(item, dict))
+        available_marks = sum(int(item.get("max_marks", 0)) for item in rubric_attempts if isinstance(item, dict))
+        rubric_percent = round(earned_marks / available_marks * 100) if available_marks else 0
+        st.markdown("#### Open-ended rubric scoring")
+        st.metric("Marks earned", f"{earned_marks} / {available_marks}", f"{rubric_percent}%")
+        st.caption(
+            "This score totals the marking points earned across recorded open-ended attempts, "
+            "including retakes. It is a practice score, not an official Cambridge result."
+        )
+
     mistakes = logic.common_mistakes_for_course(progress, course_id)
     if mistakes:
         st.markdown("<h4 style='margin-top:1rem;'>Common mistakes</h4>", unsafe_allow_html=True)
