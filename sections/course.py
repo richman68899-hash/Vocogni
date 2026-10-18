@@ -117,6 +117,17 @@ def render_course_detail() -> None:
         f"<p class='vc-muted'>{course['short_description']}</p>",
         unsafe_allow_html=True,
     )
+    category = course.get("category", "Other")
+    subject = course.get("subject", "Other")
+    level = course.get("level", "Not specified")
+    curriculum = course.get("curriculum", "Not specified")
+    lesson_count = int(course.get("lesson_count", len(course.get("lessons", []))))
+    st.markdown(
+        f"<p class='vc-muted'>{category} · {subject} · {level} · {lesson_count} lessons</p>",
+        unsafe_allow_html=True,
+    )
+    if curriculum != "Not specified":
+        st.caption(f"Curriculum: {curriculum}")
 
     st.progress(pct)
 
@@ -160,9 +171,6 @@ def render_course_detail() -> None:
     # -----------------------------------------------------------------------
     # Lesson list
     # -----------------------------------------------------------------------
-
-    if course_id == "word_problems":
-        _render_course_diagnostic_row(course_id, progress)
 
     diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
     if diagnostic_lesson_id:
@@ -639,12 +647,25 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
                     "active_questions": [question],
                     "last_correct": checkpoint.get("last_correct") if submitted else None,
                     "last_user_answer": checkpoint.get("last_answer") if submitted else None,
+                    "last_grade": checkpoint.get("last_grade") if submitted else None,
                 })
                 if submitted:
-                    base["results"] = [{
+                    grade = checkpoint.get("last_grade")
+                    restored_result = {
                         "correct": bool(checkpoint.get("last_correct")),
                         "explanation": question.get("explanation", ""),
-                    }]
+                        "question_id": question.get("id"),
+                        "raw_answer": checkpoint.get("last_answer"),
+                    }
+                    if isinstance(grade, dict):
+                        restored_result.update({
+                            "marks_awarded": grade.get("marks_awarded", 0),
+                            "max_marks": grade.get("max_marks", 0),
+                            "marking_feedback": grade.get("feedback", []),
+                            "warnings": grade.get("warnings", []),
+                            "point_results": grade.get("point_results", []),
+                        })
+                    base["results"] = [restored_result]
             else:
                 base.update({
                     "view": "structured_lesson",
@@ -848,10 +869,14 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     if existing is None:
         route = flow.get("selected_pathway", "standard")
         label = diagnostics.PATHWAY_META.get(route, {}).get("label", "Standard practice")
+        earned_marks = sum(int(item.get("marks_awarded", 1 if item.get("correct") else 0)) for item in results)
+        available_marks = sum(int(item.get("max_marks", 1)) for item in results)
+        marks_percent = round(earned_marks / available_marks * 100) if available_marks else 0
         history.append({
             "attempt_number": attempt_number, "pathway": route, "pathway_label": label,
             "correct": correct, "total": len(results),
-            "percent": round(correct / len(results) * 100) if results else 0,
+            "percent": marks_percent if any("marks_awarded" in item for item in results) else (round(correct / len(results) * 100) if results else 0),
+            "marks_awarded": earned_marks, "max_marks": available_marks,
             "completed_at": datetime.now(timezone.utc).isoformat(),
             "results": list(results),
         })
@@ -865,8 +890,17 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
         prog["lesson_assessments"][lesson["id"]] = {
             "baseline_score": baseline.get("score", 0), "baseline_total": baseline.get("total", 5),
             "baseline_percent": baseline.get("percent", 0), "post_correct": correct,
-            "post_total": len(results), "post_practice_percent": round(correct / len(results) * 100),
-            "percentage_point_difference": round(correct / len(results) * 100) - baseline.get("percent", 0),
+            "post_total": len(results),
+            "post_practice_percent": (
+                round(sum(int(item.get("marks_awarded", 1 if item.get("correct") else 0)) for item in results)
+                      / sum(int(item.get("max_marks", 1)) for item in results) * 100)
+                if sum(int(item.get("max_marks", 1)) for item in results) else 0
+            ),
+            "percentage_point_difference": (
+                round(sum(int(item.get("marks_awarded", 1 if item.get("correct") else 0)) for item in results)
+                      / sum(int(item.get("max_marks", 1)) for item in results) * 100)
+                if sum(int(item.get("max_marks", 1)) for item in results) else 0
+            ) - baseline.get("percent", 0),
             "pathway": flow.get("selected_pathway", "unknown"),
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -883,6 +917,7 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
                 "question_id": current_question.get("id"),
                 "last_answer": flow.get("last_user_answer"),
                 "last_correct": flow.get("last_correct"),
+                "last_grade": flow.get("last_grade"),
                 "attempt_number": attempt_number,
                 "selected_pathway": flow.get("selected_pathway", "standard"),
             }
@@ -903,7 +938,11 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
         correct = sum(bool(item.get("correct")) for item in results)
         total = len(results)
         st.markdown("### Lesson checkpoint")
-        st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
+        earned_marks = sum(int(item.get("marks_awarded", 1 if item.get("correct") else 0)) for item in results)
+        available_marks = sum(int(item.get("max_marks", 1)) for item in results)
+        marks_percent = round(earned_marks / available_marks * 100) if available_marks else 0
+        st.metric("Rubric score", f"{earned_marks} / {available_marks} marks", f"{marks_percent}%")
+        st.caption(f"{correct} of {total} response(s) earned full credit.")
         st.markdown(
             "<div class='vc-card'>"
             "The concept, worked example, and interactive question are complete. "
