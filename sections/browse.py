@@ -55,11 +55,11 @@ def _render_grid():
         chips = "".join(f"<span class='vc-recommend-chip'>{r}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
-    col_search, col_status, col_diff = st.columns([2, 1, 1])
+    col_search, col_status, col_diff, col_category, col_subject = st.columns([2, 1, 1, 1, 1])
     with col_search:
         search = st.text_input(
             "Search courses", value=st.session_state.browse_search,
-            placeholder="Search by title or topic",
+            placeholder="Search by title, category, subject, or topic",
         )
     with col_status:
         status_filter = st.selectbox(
@@ -69,19 +69,41 @@ def _render_grid():
     with col_diff:
         difficulties = sorted({c["difficulty"] for c in data.COURSES.values()})
         diff_filter = st.selectbox("Difficulty", ["All"] + difficulties)
+    with col_category:
+        category_labels = {item["id"]: item["label"] for item in data.COURSE_CATEGORIES}
+        category_filter = st.selectbox(
+            "Category", ["All"] + list(category_labels),
+            format_func=lambda key: "All" if key == "All" else category_labels.get(key, key),
+            key="browse_category_filter",
+        )
+    with col_subject:
+        subject_labels = {item["id"]: item["label"] for item in data.COURSE_SUBJECTS}
+        subject_filter = st.selectbox(
+            "Subject", ["All"] + list(subject_labels),
+            format_func=lambda key: "All" if key == "All" else subject_labels.get(key, key),
+            key="browse_subject_filter",
+        )
 
     st.session_state.browse_search = search
     st.session_state.browse_status_filter = status_filter
 
     filtered = []
     for course in data.all_courses_in_order():
-        haystack = (course["title"] + " " + course["short_description"]).lower()
+        haystack = " ".join([
+            course["title"], course["short_description"],
+            course.get("category_label", ""), course.get("subject_label", ""),
+            course.get("level", ""), course.get("curriculum", ""),
+        ]).lower()
         if search and search.lower() not in haystack:
             continue
         status = _status_for_course(course["id"], progress)
         if status_filter != "All" and status != status_filter:
             continue
         if diff_filter != "All" and course["difficulty"] != diff_filter:
+            continue
+        if category_filter != "All" and course.get("category_id") != category_filter:
+            continue
+        if subject_filter != "All" and course.get("subject_id") != subject_filter:
             continue
         filtered.append(course)
 
@@ -110,6 +132,12 @@ def _render_course_card(course, progress):
         unsafe_allow_html=True,
     )
     st.markdown(f"<p style='margin-top:0.6rem;'>{course['short_description']}</p>", unsafe_allow_html=True)
+    st.caption(
+        f"{course.get('category_label', 'Other')} · "
+        f"{course.get('subject_label', 'Other')} · "
+        f"{course.get('lesson_count', len(course['lessons']))} lessons · "
+        f"{course.get('level', 'Level not specified')}"
+    )
     st.progress(pct)
     st.markdown(f"<span class='vc-muted'>{pct}% complete</span>", unsafe_allow_html=True)
 
