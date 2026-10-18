@@ -89,7 +89,7 @@ COURSE_DIAGNOSTIC = {
             [
                 _point("name", "Names iron(III) chloride", match_any=["iron(iii)chloride", "ironiii chloride", "iron 3 chloride"]),
                 _point("charge", "Deducts an iron charge of +3 from three chloride ions", match_groups=[["three chloride", "3cl", "3 chloride"], ["+3", "positive 3", "iron is 3"]]),
-            ], 2, ["chloride", "chlorate"]
+            ], 2, ["chloride"]
         ),
         _diagnostic_question(
             "chem9701_entry_d3", "level_2", "Formula writing",
@@ -135,7 +135,7 @@ COURSE_DIAGNOSTIC = {
                         _point("charge", "Shows 2(+3) + 3(−2) = 0", match_any=["2(+3)+3(-2)=0", "2*3+3*(-2)=0", "6-6=0", "two aluminium and three sulfate"]),
                     ],
                     answer="Al₂(SO₄)₃; 2(+3) + 3(−2) = 0",
-                    typo_terms=["sulfate", "sulfite"],
+                    typo_terms=["sulfate"],
                 )
             ]
         },
@@ -169,7 +169,7 @@ COURSE_DIAGNOSTIC = {
                         _point("spectators", "Identifies K⁺ and Cl⁻ as spectator ions", match_groups=[["k+", "potassium ion"], ["cl-", "chloride ion"], ["spectator", "unchanged"]]),
                     ],
                     answer="Ba²⁺(aq) + SO₄²⁻(aq) → BaSO₄(s); K⁺ and Cl⁻ are spectators",
-                    typo_terms=["sulfate", "sulfite", "precipitate"],
+                    typo_terms=["sulfate", "precipitate"],
                 )
             ]
         }
@@ -321,7 +321,7 @@ LESSONS = [
                 _point("neutral", "Connects formula ratios to charge neutrality", match_groups=[["charge"], ["zero", "neutral", "balance"]]),
             ],
             answer="Ca(OH)₂; Mg(NO₃)₂; Al₂(SO₄)₃; (NH₄)₃PO₄; Ca₃(PO₄)₂; Fe(NO₃)₃. Brackets multiply an entire repeated ion.",
-            typo_terms=["nitrate", "nitrite", "sulfate", "sulfite", "phosphate", "phosphite", "hydroxide"],
+            typo_terms=["nitrate", "sulfate", "phosphate", "hydroxide"],
         ),
     ),
     _lesson(
@@ -346,7 +346,7 @@ LESSONS = [
         _open_question(
             "chem9701_l04_q", "Name HCl(aq), HBr(aq), HBr(g), HNO₃, HNO₂, H₂SO₄, H₂SO₃, and H₃PO₄. State the naming rule for -ate and -ite oxyanions.",
             "Hydrochloric acid; hydrobromic acid; hydrogen bromide gas; nitric acid; nitrous acid; sulfuric acid; sulfurous acid; phosphoric acid. -ate becomes -ic acid and -ite becomes -ous acid, with no hydro- for oxyacids.",
-            "Acid nomenclature", 6,
+            "Acid nomenclature", 7,
             [
                 _point("hcl", "Names HCl(aq) hydrochloric acid", match_any=["hydrochloric acid"]),
                 _point("hbr_aq", "Names HBr(aq) hydrobromic acid", match_any=["hydrobromic acid"]),
@@ -401,7 +401,7 @@ LESSONS = [
                 _point("balance", "Says choose a smallest ratio that makes total charge zero", match_groups=[["ratio", "subscript"], ["zero", "neutral", "balance"]]),
             ],
             answer="Cu₂SO₄ and CuSO₄. The Roman numeral gives Cu charge; identify ions, balance total charge to zero, keep polyatomic groups intact, then check.",
-            typo_terms=["sulfate", "sulfite", "oxidation"],
+            typo_terms=["sulfate", "oxidation"],
         ),
     ),
     _lesson(
@@ -490,7 +490,7 @@ LESSONS = [
                 _point("kcl", "Labels KCl aqueous and explains it remains dissolved", match_groups=[["kcl(aq)", "kcl (aq)"], ["soluble", "dissolved", "potassium salts"]]),
             ],
             answer="BaCl₂(aq) + K₂SO₄(aq) → BaSO₄(s) + 2KCl(aq).",
-            typo_terms=["sulfate", "sulfite", "precipitate", "aqueous"],
+            typo_terms=["sulfate", "precipitate", "aqueous"],
         ),
     ),
     _lesson(
@@ -532,7 +532,7 @@ LESSONS = [
                 _point("why", "Explains identical ions cancel because unchanged on both sides", match_groups=[["same", "identical"], ["both sides"], ["unchanged", "spectator"]]),
             ],
             answer="Complete: Ba²⁺ + 2Cl⁻ + 2K⁺ + SO₄²⁻ → BaSO₄(s) + 2K⁺ + 2Cl⁻. Net: Ba²⁺ + SO₄²⁻ → BaSO₄(s).",
-            typo_terms=["sulfate", "sulfite", "spectator", "aqueous"],
+            typo_terms=["sulfate", "spectator", "aqueous"],
         ),
     ),
     _lesson(
