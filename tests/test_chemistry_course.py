@@ -46,6 +46,34 @@ class ChemistryCourseStructureTests(unittest.TestCase):
                         question["max_marks"],
                     )
 
+    def test_each_practice_model_answer_is_full_credit(self):
+        for lesson in chemistry_course.LESSONS:
+            for question in lesson["practice_questions"]:
+                with self.subTest(question=question["id"]):
+                    result = chemistry_grading.evaluate_open_response(
+                        question, question["answer"]
+                    )
+                    self.assertTrue(result["full_credit"])
+                    self.assertEqual(result["score"], question["max_marks"])
+
+    def test_each_entry_diagnostic_model_answer_is_full_credit(self):
+        config = chemistry_course.COURSE_DIAGNOSTIC
+        for question in config["questions"]:
+            with self.subTest(question=question["id"]):
+                result = chemistry_grading.evaluate_open_response(
+                    question, question["answer"]
+                )
+                self.assertTrue(result["full_credit"])
+                self.assertEqual(result["score"], question["max_marks"])
+        for route, pathway in config["pathways"].items():
+            for question in pathway.get("questions", []):
+                with self.subTest(pathway=route, question=question["id"]):
+                    result = chemistry_grading.evaluate_open_response(
+                        question, question["answer"]
+                    )
+                    self.assertTrue(result["full_credit"])
+                    self.assertEqual(result["score"], question["max_marks"])
+
     def test_question_ids_are_unique_within_course(self):
         ids = []
         for lesson in chemistry_course.LESSONS:
