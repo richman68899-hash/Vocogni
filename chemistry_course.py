@@ -44,7 +44,7 @@ def _lesson(number, title, explanation, worked_example, question, *,
         "explanation": explanation,
         "worked_example": worked_example,
         "interactive_question": question,
-        "questions": [question],
+        "questions": [questionundefined
         "skill_ids": [question["skill_tag"]],
     }
     if diagnostic:
@@ -84,7 +84,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d2", "level_1", "Compound naming",
             "Name FeCl₃ and explain how you know the Roman numeral.",
-            "iron(III) chloride",
+            "iron(III) chloride. Three Cl⁻ ions total −3, so iron is +3.",
             "Three chloride ions contribute a total charge of −3, so iron is +3 in this compound.",
             [
                 _point("name", "Names iron(III) chloride", match_any=["iron(iii)chloride", "ironiii chloride", "iron 3 chloride"]),
@@ -94,7 +94,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d3", "level_2", "Formula writing",
             "Write the formula for calcium hydroxide and explain the role of the brackets.",
-            "Ca(OH)₂",
+            "Ca(OH)₂. Ca²⁺ is balanced by two OH⁻ ions, giving total charge zero; brackets group the repeated hydroxide ions.",
             "Ca²⁺ requires two OH⁻ ions; brackets show the hydroxide group is repeated twice.",
             [
                 _point("formula", "Writes Ca(OH)₂", match_any=["ca(oh)2"]),
@@ -104,7 +104,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d4", "level_3", "Equation balancing",
             "Balance Fe + HCl → FeCl₂ + H₂. State what you changed.",
-            "Fe + 2HCl → FeCl₂ + H₂",
+            "Fe + 2HCl → FeCl₂ + H₂. Change the coefficient before HCl; do not change subscripts.",
             "The coefficient 2 before HCl balances both chlorine atoms and hydrogen atoms without changing a subscript.",
             [
                 _point("balanced", "Gives the balanced coefficient ratio 1:2:1:1", match_any=["fe+2hcl->fecl2+h2", "fe+2hcl→fecl2+h2"]),
@@ -114,7 +114,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d5", "project", "Net ionic equations",
             "Write the net ionic equation for strong-acid/strong-alkali neutralisation and name the ions omitted from HCl + NaOH.",
-            "H⁺(aq) + OH⁻(aq) → H₂O(l)",
+            "H⁺(aq) + OH⁻(aq) → H₂O(l); Na⁺ and Cl⁻ are unchanged spectator ions.",
             "Na⁺ and Cl⁻ are unchanged spectator ions, so the net ionic equation is H⁺ + OH⁻ → H₂O.",
             [
                 _point("net", "Writes H⁺ + OH⁻ → H₂O", match_any=["h++oh-->h2o", "h+(aq)+oh-(aq)->h2o(l)", "h+ + oh- -> h2o"]),
@@ -150,7 +150,7 @@ COURSE_DIAGNOSTIC = {
                         _point("equation", "Gives coefficients 2, 3, 1, 3", match_any=["2fe(no3)3+3mgo->fe2o3+3mg(no3)2", "2fe(no3)3+3mgo→fe2o3+3mg(no3)2"]),
                         _point("group", "Explains nitrate is unchanged and can be counted as a unit", match_groups=[["nitrate", "no3"], ["group", "unit", "intact", "unchanged"]]),
                     ],
-                    answer="2Fe(NO₃)₃ + 3MgO → Fe₂O₃ + 3Mg(NO₃)₂",
+                    answer="2Fe(NO₃)₃ + 3MgO → Fe₂O₃ + 3Mg(NO₃)₂. Nitrate stays intact on both sides and can be counted as a group.",
                     typo_terms=["nitrate", "nitrite"],
                 )
             ]
@@ -220,7 +220,7 @@ LESSONS = [
                 _point("bracket", "Explains the 3 multiplies the entire SO₄ group", match_groups=[["3", "three"], ["bracket", "so4", "group"], ["multiply", "times", "each"]]),
                 _point("coefficient", "Distinguishes coefficient from subscript", match_groups=[["coefficient"], ["whole formula", "entire formula", "number of units", "number of molecules"], ["subscript"], ["atoms", "atom ratio", "atom ratios", "atom count", "composition", "identity"]]),
             ],
-            answer="Al = 2; S = 3; O = 12. The bracket subscript multiplies SO₄; a coefficient multiplies the whole formula, while subscripts define atom ratios.",
+            answer="Al = 2, S = 3, O = 12. The bracket subscript 3 multiplies every atom in SO₄. A coefficient multiplies the whole formula; a subscript defines the atom ratio and substance composition.",
         ),
         diagnostic=COURSE_DIAGNOSTIC,
     ),
@@ -263,7 +263,7 @@ LESSONS = [
                 _point("co2", "Names CO₂ carbon dioxide", match_any=["carbon dioxide"]),
                 _point("n2o4", "Names N₂O₄ dinitrogen tetroxide", match_any=["dinitrogen tetroxide", "dinitrogen tetraoxide"]),
             ],
-            answer="FeCl₂ iron(II) chloride; FeCl₃ iron(III) chloride; CO₂ carbon dioxide; N₂O₄ dinitrogen tetroxide.",
+            answer="FeCl₂ is iron(II) chloride; FeCl₃ is iron(III) chloride; CO₂ is carbon dioxide; N₂O₄ is dinitrogen tetroxide. Each Cl⁻ is −1, so Fe is +2 in FeCl₂ and +3 in FeCl₃.",
             typo_terms=["chloride", "chlorate", "dioxide", "tetroxide"],
         ),
     ),
@@ -320,7 +320,7 @@ LESSONS = [
                 _point("brackets", "Explains brackets multiply/retain a whole polyatomic ion", match_groups=[["bracket", "parenthes"], ["whole", "complete", "group", "ion"], ["repeat", "multipl", "number of"]]),
                 _point("neutral", "Connects formula ratios to charge neutrality", match_groups=[["charge"], ["zero", "neutral", "balance"]]),
             ],
-            answer="Ca(OH)₂; Mg(NO₃)₂; Al₂(SO₄)₃; (NH₄)₃PO₄; Ca₃(PO₄)₂; Fe(NO₃)₃. Brackets multiply an entire repeated ion.",
+            answer="Ca(OH)₂; Mg(NO₃)₂; Al₂(SO₄)₃; (NH₄)₃PO₄; Ca₃(PO₄)₂; Fe(NO₃)₃. Brackets multiply an entire repeated polyatomic ion. Each ionic formula has total charge zero.",
             typo_terms=["nitrate", "sulfate", "phosphate", "hydroxide"],
         ),
     ),
@@ -356,7 +356,7 @@ LESSONS = [
                 _point("phosphoric", "Names H₃PO₄ phosphoric acid", match_any=["phosphoric acid"]),
                 _point("suffix", "States -ate → -ic and -ite → -ous, without hydro- for oxyacids", match_groups=[["ate"], ["ic acid", "-ic"], ["ite"], ["ous acid", "-ous"], ["no hydro", "without hydro", "not hydro"]]),
             ],
-            answer="HCl(aq) hydrochloric acid; HBr(aq) hydrobromic acid; HBr(g) hydrogen bromide gas; HNO₃ nitric; HNO₂ nitrous; H₂SO₄ sulfuric; H₂SO₃ sulfurous; H₃PO₄ phosphoric acid. -ate to -ic, -ite to -ous.",
+            answer="HCl(aq) is hydrochloric acid; HBr(aq) is hydrobromic acid; HBr(g) is hydrogen bromide gas; HNO₃ is nitric acid; HNO₂ is nitrous acid; H₂SO₄ is sulfuric acid; H₂SO₃ is sulfurous acid; H₃PO₄ is phosphoric acid. -ate becomes -ic acid and -ite becomes -ous acid; oxyacids do not use hydro-.",
             typo_terms=["hydrochloric", "hydrobromic", "nitric", "nitrous", "sulfuric", "sulfurous", "phosphoric"],
         ),
     ),
@@ -400,7 +400,7 @@ LESSONS = [
                 _point("ions", "Says identify ions and their charges", match_groups=[["ion"], ["charge"]]),
                 _point("balance", "Says choose a smallest ratio that makes total charge zero", match_groups=[["ratio", "subscript"], ["zero", "neutral", "balance"]]),
             ],
-            answer="Cu₂SO₄ and CuSO₄. The Roman numeral gives Cu charge; identify ions, balance total charge to zero, keep polyatomic groups intact, then check.",
+            answer="Copper(I) sulfate is Cu₂SO₄; copper(II) sulfate is CuSO₄. The Roman numeral gives the copper charge, not atom count. Identify ions, balance total charge to zero, keep polyatomic groups intact, then check.",
             typo_terms=["sulfate", "oxidation"],
         ),
     ),
@@ -447,7 +447,7 @@ LESSONS = [
                 _point("states", "Assigns (s), (aq), (l), and (g) consistently", match_groups=[["caco3(s)", "caco3 (s)"], ["hcl(aq)", "hcl (aq)"], ["h2o(l)", "h2o (l)"], ["co2(g)", "co2 (g)"]]),
                 _point("method", "Explains coefficients changed and subscripts were not changed", match_groups=[["coefficient"], ["not subscripts", "subscripts unchanged", "don't change subscripts", "do not change subscripts"]]),
             ],
-            answer="CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g)",
+            answer="CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g). Balance with coefficients only; do not change subscripts because they define the substances.",
             typo_terms=["coefficient", "subscript", "carbonate"],
         ),
     ),
@@ -531,7 +531,7 @@ LESSONS = [
                 _point("spectators", "Identifies K⁺ and Cl⁻ as spectators", match_groups=[["k+", "potassium"], ["cl-", "chloride"], ["spectator", "unchanged"]]),
                 _point("why", "Explains identical ions cancel because unchanged on both sides", match_groups=[["same", "identical"], ["both sides"], ["unchanged", "spectator"]]),
             ],
-            answer="Complete: Ba²⁺ + 2Cl⁻ + 2K⁺ + SO₄²⁻ → BaSO₄(s) + 2K⁺ + 2Cl⁻. Net: Ba²⁺ + SO₄²⁻ → BaSO₄(s).",
+            answer="Complete: Ba²⁺ + 2Cl⁻ + 2K⁺ + SO₄²⁻ → BaSO₄(s) + 2K⁺ + 2Cl⁻. Net: Ba²⁺ + SO₄²⁻ → BaSO₄(s). K⁺ and Cl⁻ are spectators because the same ions remain unchanged on both sides.",
             typo_terms=["sulfate", "spectator", "aqueous"],
         ),
     ),
@@ -568,7 +568,7 @@ LESSONS = [
                 _point("alkali_volume", "Converts 25.0 cm³ to 0.0250 dm³", numeric_targets=[{"value":0.0250,"tolerance":0.00001}]),
                 _point("concentration", "Calculates approximately 0.242 mol dm⁻³ NaOH", numeric_targets=[{"value":0.242,"tolerance":0.001}], match_any=["mol dm", "moldm", "mol/dm"]),
             ],
-            answer="c(NaOH) = 0.242 mol dm⁻³",
+            answer="15.10 cm³ = 0.01510 dm³; n(H₂SO₄) = 0.003020 mol; acid:NaOH ratio = 1:2; n(NaOH) = 0.006040 mol; 25.0 cm³ = 0.0250 dm³; c(NaOH) = 0.2416 ≈ 0.242 mol dm⁻³.",
             typo_terms=["concentration", "titration", "sulfuric", "stoichiometry"],
         ),
     ),
@@ -689,7 +689,7 @@ LESSONS = [
                 _point("sequence1", "Places correct formulae before balancing", match_groups=[["formula"], ["before", "first"], ["balance"]]),
                 _point("sequence2", "Includes states, splitting, cancellation and final atom/charge check", match_groups=[["state"], ["aqueous", "split", "ions"], ["cancel"], ["atom"], ["charge"]]),
             ],
-            answer="Ca(OH)₂; change coefficients only; NaCl(aq); cancel K⁺ only if identical on both sides. Write formulas, balance, add states, split soluble aqueous electrolytes, cancel spectators, check atoms and charge.",
+            answer="Ca(OH)₂ is correct because the two hydroxide ions need brackets. Write correct formulae first, then change coefficients only; never change subscripts. Dissolved NaCl is NaCl(aq). Cancel K⁺ only if identical on both sides. Add states, split eligible aqueous electrolytes, keep solids, liquids, gases and water intact, cancel spectators, then check atoms and charge.",
             typo_terms=["coefficient", "subscript", "aqueous", "spectator"],
         ),
         kind="application",
