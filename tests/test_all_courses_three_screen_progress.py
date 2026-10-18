@@ -21,7 +21,8 @@ class AllCoursesThreeScreenTests(unittest.TestCase):
     def test_every_learning_lesson_has_three_screen_content(self):
         seen_question_ids = set()
         for course in data.all_courses_in_order():
-            self.assertEqual(len(course["lessons"]), 4)
+            self.assertGreaterEqual(len(course["lessons"]), 1)
+            self.assertEqual(course["lesson_count"], len(course["lessons"]))
             for lesson in course["lessons"]:
                 with self.subTest(course=course["id"], lesson=lesson["id"]):
                     self.assertTrue(lesson.get("explanation", "").strip())
@@ -32,13 +33,16 @@ class AllCoursesThreeScreenTests(unittest.TestCase):
                         self.assertIn(field, question)
                     self.assertNotIn(question["id"], seen_question_ids)
                     seen_question_ids.add(question["id"])
-                    self.assertIn(question["type"], ("mc", "numeric"))
+                    self.assertIn(question["type"], ("mc", "numeric", "open_ended"))
                     if question["type"] == "mc":
                         self.assertIsInstance(question.get("options"), list)
                         self.assertIn(question["answer"], question["options"])
-                    else:
+                    elif question["type"] == "numeric":
                         self.assertIn("tolerance", question)
                         self.assertIn("whole_number", question)
+                    else:
+                        self.assertGreater(question.get("max_marks", 0), 0)
+                        self.assertTrue(question.get("marking_points"))
 
     def test_course_progress_counts_saved_diagnostic_without_changing_lesson_history(self):
         for course in data.all_courses_in_order():
@@ -63,9 +67,17 @@ class AllCoursesThreeScreenTests(unittest.TestCase):
                 "score": 4, "total": 5, "percent": 80
             }
             self.assertTrue(logic.course_diagnostic_completed(progress, course_id))
-            self.assertEqual(logic.course_lesson_progress_percent(progress, course_id), 20)
+            expected_diagnostic_percent = round(100 / (len(course["lessons"]) + 1))
+            self.assertEqual(
+                logic.course_lesson_progress_percent(progress, course_id),
+                expected_diagnostic_percent,
+            )
             progress[course_id]["completed_lessons"].append(first_lesson_id)
-            self.assertEqual(logic.course_lesson_progress_percent(progress, course_id), 40)
+            expected_two_items_percent = round(200 / (len(course["lessons"]) + 1))
+            self.assertEqual(
+                logic.course_lesson_progress_percent(progress, course_id),
+                expected_two_items_percent,
+            )
             self.assertEqual(progress[course_id]["questions_attempted"], 9)
             self.assertEqual(progress[course_id]["correct_answers"], 6)
             self.assertEqual(progress[course_id]["mistakes"], {"Existing error": 2})

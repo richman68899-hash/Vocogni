@@ -113,7 +113,11 @@ def validate_diagnostic_config(config: Any) -> list[str]:
             or question.get("answer") not in question.get("options", [])
         ):
             errors.append(f"Question {index} has invalid multiple-choice options/answer.")
-        if question.get("type") not in ("mc", "numeric"):
+        if question.get("type") == "open_ended":
+            import chemistry_grading
+            for rubric_error in chemistry_grading.validate_open_response_question(question):
+                errors.append(f"Question {index}: {rubric_error}.")
+        elif question.get("type") not in ("mc", "numeric"):
             errors.append(f"Question {index} has unsupported type '{question.get('type')}'.")
     if set(seen_stages) != set(REQUIRED_STAGES) or len(seen_stages) != len(set(seen_stages)):
         errors.append("Use each required stage exactly once: prerequisite, level_1, level_2, level_3, project.")
@@ -144,14 +148,26 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
 
     review: list[dict[str, Any]] = []
     correct_count = 0
+    marks_awarded = 0
+    maximum_marks = 0
     prerequisite_correct = False
     for question in config["questions"]:
         answer = answers.get(question["id"])
-        correct = _is_correct(question, answer)
+        marking = None
+        if question.get("type") == "open_ended":
+            import chemistry_grading
+            marking = chemistry_grading.evaluate_open_response(question, answer)
+            correct = bool(marking["full_credit"])
+            marks_awarded += int(marking["score"])
+            maximum_marks += int(marking["max_marks"])
+        else:
+            correct = _is_correct(question, answer)
+            marks_awarded += int(correct)
+            maximum_marks += 1
         correct_count += int(correct)
         if question["stage"] == "prerequisite":
             prerequisite_correct = correct
-        review.append({
+        item = {
             "question_id": question["id"],
             "stage": question["stage"],
             "skill_tag": question["skill_tag"],
@@ -160,7 +176,17 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
             "expected_answer": question["answer"],
             "correct": correct,
             "explanation": question["explanation"],
-        })
+        }
+        if marking:
+            item.update({
+                "marks_awarded": marking["score"],
+                "max_marks": marking["max_marks"],
+                "mark_percent": marking["percent"],
+                "marking_points": marking["marking_points"],
+                "typo_warning": marking["typo_warning"],
+                "marking_feedback": marking["feedback"],
+            })
+        review.append(item)
 
     total = len(config["questions"])
     percent = round(correct_count / total * 100)
@@ -204,6 +230,9 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         "score": correct_count,
         "total": total,
         "percent": percent,
+        "marks_awarded": marks_awarded,
+        "max_marks": maximum_marks,
+        "mark_percent": round(marks_awarded / maximum_marks * 100) if maximum_marks else 0,
         "outcome_key": outcome_key,
         "unlocked_pathways": unlocked_pathways_for_score({
             "score": correct_count,

@@ -84,7 +84,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d2", "level_1", "Compound naming",
             "Name FeCl₃ and explain how you know the Roman numeral.",
-            "iron(III) chloride",
+            "iron(III) chloride. Three Cl⁻ ions total −3, so iron is +3.",
             "Three chloride ions contribute a total charge of −3, so iron is +3 in this compound.",
             [
                 _point("name", "Names iron(III) chloride", match_any=["iron(iii)chloride", "ironiii chloride", "iron 3 chloride"]),
@@ -94,7 +94,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d3", "level_2", "Formula writing",
             "Write the formula for calcium hydroxide and explain the role of the brackets.",
-            "Ca(OH)₂",
+            "Ca(OH)₂. Ca²⁺ is balanced by two OH⁻ ions, giving total charge zero; brackets group the repeated hydroxide ions.",
             "Ca²⁺ requires two OH⁻ ions; brackets show the hydroxide group is repeated twice.",
             [
                 _point("formula", "Writes Ca(OH)₂", match_any=["ca(oh)2"]),
@@ -104,7 +104,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d4", "level_3", "Equation balancing",
             "Balance Fe + HCl → FeCl₂ + H₂. State what you changed.",
-            "Fe + 2HCl → FeCl₂ + H₂",
+            "Fe + 2HCl → FeCl₂ + H₂. Change the coefficient before HCl; do not change subscripts.",
             "The coefficient 2 before HCl balances both chlorine atoms and hydrogen atoms without changing a subscript.",
             [
                 _point("balanced", "Gives the balanced coefficient ratio 1:2:1:1", match_any=["fe+2hcl->fecl2+h2", "fe+2hcl→fecl2+h2"]),
@@ -114,7 +114,7 @@ COURSE_DIAGNOSTIC = {
         _diagnostic_question(
             "chem9701_entry_d5", "project", "Net ionic equations",
             "Write the net ionic equation for strong-acid/strong-alkali neutralisation and name the ions omitted from HCl + NaOH.",
-            "H⁺(aq) + OH⁻(aq) → H₂O(l)",
+            "H⁺(aq) + OH⁻(aq) → H₂O(l); Na⁺ and Cl⁻ are unchanged spectator ions.",
             "Na⁺ and Cl⁻ are unchanged spectator ions, so the net ionic equation is H⁺ + OH⁻ → H₂O.",
             [
                 _point("net", "Writes H⁺ + OH⁻ → H₂O", match_any=["h++oh-->h2o", "h+(aq)+oh-(aq)->h2o(l)", "h+ + oh- -> h2o"]),
@@ -150,7 +150,7 @@ COURSE_DIAGNOSTIC = {
                         _point("equation", "Gives coefficients 2, 3, 1, 3", match_any=["2fe(no3)3+3mgo->fe2o3+3mg(no3)2", "2fe(no3)3+3mgo→fe2o3+3mg(no3)2"]),
                         _point("group", "Explains nitrate is unchanged and can be counted as a unit", match_groups=[["nitrate", "no3"], ["group", "unit", "intact", "unchanged"]]),
                     ],
-                    answer="2Fe(NO₃)₃ + 3MgO → Fe₂O₃ + 3Mg(NO₃)₂",
+                    answer="2Fe(NO₃)₃ + 3MgO → Fe₂O₃ + 3Mg(NO₃)₂. Nitrate stays intact on both sides and can be counted as a group.",
                     typo_terms=["nitrate", "nitrite"],
                 )
             ]
@@ -220,7 +220,7 @@ LESSONS = [
                 _point("bracket", "Explains the 3 multiplies the entire SO₄ group", match_groups=[["3", "three"], ["bracket", "so4", "group"], ["multiply", "times", "each"]]),
                 _point("coefficient", "Distinguishes coefficient from subscript", match_groups=[["coefficient"], ["whole formula", "entire formula", "number of units", "number of molecules"], ["subscript"], ["atoms", "atom ratio", "atom ratios", "atom count", "composition", "identity"]]),
             ],
-            answer="Al = 2; S = 3; O = 12. The bracket subscript multiplies SO₄; a coefficient multiplies the whole formula, while subscripts define atom ratios.",
+            answer="Al = 2, S = 3, O = 12. The bracket subscript 3 multiplies every atom in SO₄. A coefficient multiplies the whole formula; a subscript defines the atom ratio and substance composition.",
         ),
         diagnostic=COURSE_DIAGNOSTIC,
     ),
@@ -263,7 +263,7 @@ LESSONS = [
                 _point("co2", "Names CO₂ carbon dioxide", match_any=["carbon dioxide"]),
                 _point("n2o4", "Names N₂O₄ dinitrogen tetroxide", match_any=["dinitrogen tetroxide", "dinitrogen tetraoxide"]),
             ],
-            answer="FeCl₂ iron(II) chloride; FeCl₃ iron(III) chloride; CO₂ carbon dioxide; N₂O₄ dinitrogen tetroxide.",
+            answer="FeCl₂ is iron(II) chloride; FeCl₃ is iron(III) chloride; CO₂ is carbon dioxide; N₂O₄ is dinitrogen tetroxide. Each Cl⁻ is −1, so Fe is +2 in FeCl₂ and +3 in FeCl₃.",
             typo_terms=["chloride", "chlorate", "dioxide", "tetroxide"],
         ),
     ),
@@ -320,7 +320,7 @@ LESSONS = [
                 _point("brackets", "Explains brackets multiply/retain a whole polyatomic ion", match_groups=[["bracket", "parenthes"], ["whole", "complete", "group", "ion"], ["repeat", "multipl", "number of"]]),
                 _point("neutral", "Connects formula ratios to charge neutrality", match_groups=[["charge"], ["zero", "neutral", "balance"]]),
             ],
-            answer="Ca(OH)₂; Mg(NO₃)₂; Al₂(SO₄)₃; (NH₄)₃PO₄; Ca₃(PO₄)₂; Fe(NO₃)₃. Brackets multiply an entire repeated ion.",
+            answer="Ca(OH)₂; Mg(NO₃)₂; Al₂(SO₄)₃; (NH₄)₃PO₄; Ca₃(PO₄)₂; Fe(NO₃)₃. Brackets multiply an entire repeated polyatomic ion. Each ionic formula has total charge zero.",
             typo_terms=["nitrate", "sulfate", "phosphate", "hydroxide"],
         ),
     ),
@@ -356,7 +356,7 @@ LESSONS = [
                 _point("phosphoric", "Names H₃PO₄ phosphoric acid", match_any=["phosphoric acid"]),
                 _point("suffix", "States -ate → -ic and -ite → -ous, without hydro- for oxyacids", match_groups=[["ate"], ["ic acid", "-ic"], ["ite"], ["ous acid", "-ous"], ["no hydro", "without hydro", "not hydro"]]),
             ],
-            answer="HCl(aq) hydrochloric acid; HBr(aq) hydrobromic acid; HBr(g) hydrogen bromide gas; HNO₃ nitric; HNO₂ nitrous; H₂SO₄ sulfuric; H₂SO₃ sulfurous; H₃PO₄ phosphoric acid. -ate to -ic, -ite to -ous.",
+            answer="HCl(aq) is hydrochloric acid; HBr(aq) is hydrobromic acid; HBr(g) is hydrogen bromide gas; HNO₃ is nitric acid; HNO₂ is nitrous acid; H₂SO₄ is sulfuric acid; H₂SO₃ is sulfurous acid; H₃PO₄ is phosphoric acid. -ate becomes -ic acid and -ite becomes -ous acid; oxyacids do not use hydro-.",
             typo_terms=["hydrochloric", "hydrobromic", "nitric", "nitrous", "sulfuric", "sulfurous", "phosphoric"],
         ),
     ),
@@ -400,7 +400,7 @@ LESSONS = [
                 _point("ions", "Says identify ions and their charges", match_groups=[["ion"], ["charge"]]),
                 _point("balance", "Says choose a smallest ratio that makes total charge zero", match_groups=[["ratio", "subscript"], ["zero", "neutral", "balance"]]),
             ],
-            answer="Cu₂SO₄ and CuSO₄. The Roman numeral gives Cu charge; identify ions, balance total charge to zero, keep polyatomic groups intact, then check.",
+            answer="Copper(I) sulfate is Cu₂SO₄; copper(II) sulfate is CuSO₄. The Roman numeral gives the copper charge, not atom count. Identify ions, balance total charge to zero, keep polyatomic groups intact, then check.",
             typo_terms=["sulfate", "oxidation"],
         ),
     ),
@@ -447,7 +447,7 @@ LESSONS = [
                 _point("states", "Assigns (s), (aq), (l), and (g) consistently", match_groups=[["caco3(s)", "caco3 (s)"], ["hcl(aq)", "hcl (aq)"], ["h2o(l)", "h2o (l)"], ["co2(g)", "co2 (g)"]]),
                 _point("method", "Explains coefficients changed and subscripts were not changed", match_groups=[["coefficient"], ["not subscripts", "subscripts unchanged", "don't change subscripts", "do not change subscripts"]]),
             ],
-            answer="CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g)",
+            answer="CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g). Balance with coefficients only; do not change subscripts because they define the substances.",
             typo_terms=["coefficient", "subscript", "carbonate"],
         ),
     ),
@@ -489,7 +489,7 @@ LESSONS = [
                 _point("precipitate", "Labels BaSO₄ as solid precipitate", match_groups=[["baso4(s)", "baso4 (s)"], ["insoluble", "precipitate"]]),
                 _point("kcl", "Labels KCl aqueous and explains it remains dissolved", match_groups=[["kcl(aq)", "kcl (aq)"], ["soluble", "dissolved", "potassium salts"]]),
             ],
-            answer="BaCl₂(aq) + K₂SO₄(aq) → BaSO₄(s) + 2KCl(aq).",
+            answer="BaCl₂(aq) + K₂SO₄(aq) → BaSO₄(s) + 2KCl(aq). Barium sulfate is insoluble and forms a precipitate; potassium chloride remains dissolved.",
             typo_terms=["sulfate", "precipitate", "aqueous"],
         ),
     ),
@@ -531,7 +531,7 @@ LESSONS = [
                 _point("spectators", "Identifies K⁺ and Cl⁻ as spectators", match_groups=[["k+", "potassium"], ["cl-", "chloride"], ["spectator", "unchanged"]]),
                 _point("why", "Explains identical ions cancel because unchanged on both sides", match_groups=[["same", "identical"], ["both sides"], ["unchanged", "spectator"]]),
             ],
-            answer="Complete: Ba²⁺ + 2Cl⁻ + 2K⁺ + SO₄²⁻ → BaSO₄(s) + 2K⁺ + 2Cl⁻. Net: Ba²⁺ + SO₄²⁻ → BaSO₄(s).",
+            answer="Complete: Ba²⁺ + 2Cl⁻ + 2K⁺ + SO₄²⁻ → BaSO₄(s) + 2K⁺ + 2Cl⁻. Net: Ba²⁺ + SO₄²⁻ → BaSO₄(s). K⁺ and Cl⁻ are spectators because the same ions remain unchanged on both sides.",
             typo_terms=["sulfate", "spectator", "aqueous"],
         ),
     ),
@@ -568,7 +568,7 @@ LESSONS = [
                 _point("alkali_volume", "Converts 25.0 cm³ to 0.0250 dm³", numeric_targets=[{"value":0.0250,"tolerance":0.00001}]),
                 _point("concentration", "Calculates approximately 0.242 mol dm⁻³ NaOH", numeric_targets=[{"value":0.242,"tolerance":0.001}], match_any=["mol dm", "moldm", "mol/dm"]),
             ],
-            answer="c(NaOH) = 0.242 mol dm⁻³",
+            answer="15.10 cm³ = 0.01510 dm³; n(H₂SO₄) = 0.003020 mol; acid:NaOH ratio = 1:2; n(NaOH) = 0.006040 mol; 25.0 cm³ = 0.0250 dm³; c(NaOH) = 0.2416 ≈ 0.242 mol dm⁻³.",
             typo_terms=["concentration", "titration", "sulfuric", "stoichiometry"],
         ),
     ),
@@ -689,12 +689,244 @@ LESSONS = [
                 _point("sequence1", "Places correct formulae before balancing", match_groups=[["formula"], ["before", "first"], ["balance"]]),
                 _point("sequence2", "Includes states, splitting, cancellation and final atom/charge check", match_groups=[["state"], ["aqueous", "split", "ions"], ["cancel"], ["atom"], ["charge"]]),
             ],
-            answer="Ca(OH)₂; change coefficients only; NaCl(aq); cancel K⁺ only if identical on both sides. Write formulas, balance, add states, split soluble aqueous electrolytes, cancel spectators, check atoms and charge.",
+            answer="Ca(OH)₂ is correct because the two hydroxide ions need brackets. Write correct formulae first, then change coefficients only; never change subscripts. Dissolved NaCl is NaCl(aq). Cancel K⁺ only if identical on both sides. Add states, split eligible aqueous electrolytes, keep solids, liquids, gases and water intact, cancel spectators, then check atoms and charge.",
             typo_terms=["coefficient", "subscript", "aqueous", "spectator"],
         ),
         kind="application",
     ),
 ]
+
+
+# Screen 3 is a short practice set, not just a single item. These additional
+# open-ended questions stay within the course skills and use the same rubric
+# format as the main question. Each lesson keeps its main question first.
+_EXTRA_PRACTICE = {
+    1: [
+        _open_question("chem9701_l01_q2",
+            "Expand 3Ca(OH)₂ and state the total numbers of Ca, O, and H atoms.",
+            "The coefficient multiplies the entire formula, so Ca = 3, O = 6, and H = 6.",
+            "Formula notation", 3, [
+                _point("ca", "States Ca = 3", regex_any=[r"(?:^|[^a-z])ca(?:=|:|is)3(?:[^0-9]|$)"]),
+                _point("o", "States O = 6", regex_any=[r"(?:^|[^a-z])o(?:=|:|is)6(?:[^0-9]|$)"]),
+                _point("h", "States H = 6", regex_any=[r"(?:^|[^a-z])h(?:=|:|is)6(?:[^0-9]|$)"]),
+            ], answer="Ca = 3, O = 6, H = 6."),
+        _open_question("chem9701_l01_q3",
+            "Show why Al₂O₃ is electrically neutral when aluminium ions are Al³⁺ and oxide ions are O²⁻.",
+            "Two Al³⁺ ions contribute +6 and three O²⁻ ions contribute −6, giving total charge zero.",
+            "Ionic charge", 2, [
+                _point("positive", "Calculates total positive charge as +6", match_groups=[["2al", "two al", "two aluminium"], ["+6", "positive 6", "2(+3)", "2*3"]]),
+                _point("negative", "Calculates total negative charge as −6 and concludes neutrality", match_groups=[["-6", "negative 6", "3(-2)", "3*(-2)"], ["zero", "neutral", "balances"]]),
+            ], answer="2(+3) + 3(−2) = +6 − 6 = 0."),
+    ],
+    2: [
+        _open_question("chem9701_l02_q2",
+            "Name PbO₂ and CuBr. Show how charge balance determines the Roman numeral in each name.",
+            "PbO₂ is lead(IV) oxide because two O²⁻ ions total −4. CuBr is copper(I) bromide because Br⁻ is −1.",
+            "Compound naming", 4, [
+                _point("lead", "Names PbO₂ lead(IV) oxide", match_any=["lead(iv)oxide", "lead(4)oxide", "leadiv oxide"]),
+                _point("copper", "Names CuBr copper(I) bromide", match_any=["copper(i)bromide", "copper(1)bromide", "copperi bromide"]),
+                _point("lead_charge", "Uses two oxide ions to deduce Pb is +4", match_groups=[["two oxygen", "2o", "two oxide"], ["-4", "negative four"], ["+4", "lead(iv)", "lead is 4"]]),
+                _point("copper_charge", "Uses bromide −1 to deduce Cu is +1", match_groups=[["bromide"], ["-1", "negative one"], ["+1", "copper(i)", "copper is 1"]]),
+            ], answer="PbO₂ is lead(IV) oxide because two O²⁻ ions total −4, so Pb is +4. CuBr is copper(I) bromide because Br⁻ is −1, so Cu is +1."),
+        _open_question("chem9701_l02_q3",
+            "Name SF₆, N₂O₅, and PBr₅. Explain what the prefixes tell you.",
+            "Sulfur hexafluoride; dinitrogen pentoxide; phosphorus pentabromide. Prefixes state atom counts in molecular compounds.",
+            "Molecular prefixes", 4, [
+                _point("sf6", "Names SF₆ sulfur hexafluoride", match_any=["sulfur hexafluoride", "sulphur hexafluoride"]),
+                _point("n2o5", "Names N₂O₅ dinitrogen pentoxide", match_any=["dinitrogen pentoxide"]),
+                _point("pbr5", "Names PBr₅ phosphorus pentabromide", match_any=["phosphorus pentabromide"]),
+                _point("prefix", "Explains prefixes state atom counts in molecular compounds", match_groups=[["prefix"], ["number", "count", "how many"], ["atom"]]),
+            ], answer="Sulfur hexafluoride; dinitrogen pentoxide; phosphorus pentabromide. The prefixes give atom counts in these molecular compounds."),
+    ],
+    3: [
+        _open_question("chem9701_l03_q2",
+            "Write the formulae for magnesium nitrate and ammonium phosphate. Explain the charge ratios.",
+            "Mg(NO₃)₂ balances Mg²⁺ with two NO₃⁻ ions. (NH₄)₃PO₄ balances three NH₄⁺ with PO₄³⁻.",
+            "Polyatomic ions and formulae", 4, [
+                _point("mg", "Writes Mg(NO₃)₂", match_any=["mg(no3)2"]),
+                _point("ammonium", "Writes (NH₄)₃PO₄", match_any=["(nh4)3po4"]),
+                _point("mg_charge", "Explains +2 magnesium requires two −1 nitrates", match_groups=[["mg2+", "magnesium +2", "magnesium is +2"], ["two nitrate", "2no3", "two no3"], ["-1", "negative one"]]),
+                _point("ammonium_charge", "Explains three +1 ammonium ions balance −3 phosphate", match_groups=[["three ammonium", "3nh4"], ["+1", "positive one"], ["po4", "phosphate"], ["-3", "negative three", "neutral", "zero"]]),
+            ], answer="Mg(NO₃)₂ because Mg²⁺ is balanced by two NO₃⁻ ions; (NH₄)₃PO₄ because three NH₄⁺ ions balance PO₄³⁻."),
+        _open_question("chem9701_l03_q3",
+            "Distinguish nitrate from nitrite and sulfate from sulfite by formula and oxygen count.",
+            "Nitrate NO₃⁻ versus nitrite NO₂⁻; sulfate SO₄²⁻ versus sulfite SO₃²⁻. In each pair the -ite ion has one fewer oxygen.",
+            "Polyatomic ions", 4, [
+                _point("nitrate", "Writes NO₃⁻ for nitrate", match_any=["no3-","no3⁻"]),
+                _point("nitrite", "Writes NO₂⁻ for nitrite", match_any=["no2-","no2⁻"]),
+                _point("sulfate", "Writes SO₄²⁻ for sulfate", match_any=["so42-","so₄²⁻","so4^2-"]),
+                _point("oxygen", "States the -ite member has one fewer oxygen in both pairs", match_groups=[["-ite", "ite"], ["one fewer", "one less", "fewer oxygen"], ["oxygen"]]),
+            ], answer="Nitrate NO₃⁻, nitrite NO₂⁻; sulfate SO₄²⁻, sulfite SO₃²⁻; -ite has one fewer O."),
+    ],
+    4: [
+        _open_question("chem9701_l04_q2",
+            "Name HNO₃ and HNO₂, then explain the suffix change using the names nitrate and nitrite.",
+            "HNO₃ is nitric acid from nitrate; HNO₂ is nitrous acid from nitrite. -ate becomes -ic and -ite becomes -ous.",
+            "Acid nomenclature", 3, [
+                _point("nitric", "Names HNO₃ nitric acid", match_any=["nitric acid"]),
+                _point("nitrous", "Names HNO₂ nitrous acid", match_any=["nitrous acid"]),
+                _point("suffix", "Explains -ate → -ic and -ite → -ous", match_groups=[["ate"], ["ic"], ["ite"], ["ous"]]),
+            ], answer="HNO₃ nitric acid; HNO₂ nitrous acid. -ate becomes -ic; -ite becomes -ous.",
+            typo_terms=["nitric", "nitrous"]),
+        _open_question("chem9701_l04_q3",
+            "Distinguish HBr(g) from HBr(aq) and state the binary-acid naming rule.",
+            "HBr(g) is hydrogen bromide gas; HBr(aq) is hydrobromic acid. For an oxygen-free acid in aqueous solution, use hydro- + anion root + -ic acid.",
+            "Acid nomenclature", 3, [
+                _point("gas", "Identifies HBr(g) as hydrogen bromide gas", match_groups=[["hydrogen bromide"], ["gas", "(g)"]]),
+                _point("aqueous", "Identifies HBr(aq) as hydrobromic acid", match_any=["hydrobromic acid"]),
+                _point("rule", "States hydro- + root + -ic acid for a binary acid", match_groups=[["hydro"], ["root"], ["ic acid", "-ic"]]),
+            ], answer="HBr(g) is hydrogen bromide gas; HBr(aq) is hydrobromic acid. For an oxygen-free acid in water, use hydro- + anion root + -ic acid."),
+    ],
+    5: [
+        _open_question("chem9701_l05_q2",
+            "Write the formulae for copper(I) oxide and copper(II) oxide. Explain why the formulae differ.",
+            "Copper(I) oxide is Cu₂O; copper(II) oxide is CuO. O²⁻ needs two Cu⁺ ions but only one Cu²⁺ ion.",
+            "Name–formula translation", 3, [
+                _point("cu1", "Writes Cu₂O for copper(I) oxide", match_any=["cu2o"]),
+                _point("cu2", "Writes CuO for copper(II) oxide", match_any=["cuo"]),
+                _point("ratio", "Explains metal charge changes the neutral ratio with O²⁻", match_groups=[["cu+", "copper(i)", "copper one"], ["cu2+", "copper(ii)", "copper two"], ["o2-", "oxide"], ["ratio", "two copper", "1:2", "two cu"]]),
+            ], answer="Copper(I) oxide is Cu₂O; copper(II) oxide is CuO. Cu⁺ requires two copper ions to balance O²⁻, whereas Cu²⁺ balances oxide 1:1."),
+        _open_question("chem9701_l05_q3",
+            "Write the formula for dinitrogen pentoxide and name FeCl₂. Explain how prefixes differ from Roman numerals.",
+            "Dinitrogen pentoxide is N₂O₅; FeCl₂ is iron(II) chloride. Prefixes give atom counts in molecular compounds; Roman numerals give a variable-charge metal's oxidation state.",
+            "Name–formula translation", 4, [
+                _point("n2o5", "Writes N₂O₅", match_any=["n2o5"]),
+                _point("iron", "Names FeCl₂ iron(II) chloride", match_any=["iron(ii)chloride", "iron(2)chloride"]),
+                _point("prefix", "Says prefixes describe atom counts in molecular compounds", match_groups=[["prefix"], ["atom count", "number of atoms", "how many atoms"], ["molecular"]]),
+                _point("roman", "Says Roman numerals describe metal oxidation state/charge", match_groups=[["roman numeral"], ["oxidation state", "charge"], ["metal"]]),
+            ], answer="Dinitrogen pentoxide is N₂O₅; FeCl₂ is iron(II) chloride. Prefixes count atoms in molecular compounds; Roman numerals give a variable-charge metal oxidation state, not atom count."),
+    ],
+    6: [
+        _open_question("chem9701_l06_q2",
+            "Balance the complete combustion of hexane: C₆H₁₄ + O₂ → CO₂ + H₂O. State the order you used.",
+            "2C₆H₁₄ + 19O₂ → 12CO₂ + 14H₂O. A useful method is to balance C, then H, then O.",
+            "Equation balancing", 4, [
+                _point("equation", "Gives coefficients 2, 19, 12, 14", match_any=["2c6h14+19o2->12co2+14h2o", "2c6h14+19o2→12co2+14h2o"]),
+                _point("carbon", "Balances 12 carbon atoms", match_groups=[["carbon", "c"], ["12"]]),
+                _point("hydrogen", "Balances 28 hydrogen atoms", match_groups=[["hydrogen", "h"], ["28"]]),
+                _point("order", "Describes balancing C, then H, then O", match_groups=[["c", "carbon"], ["h", "hydrogen"], ["o", "oxygen"]]),
+            ], answer="2C₆H₁₄ + 19O₂ → 12CO₂ + 14H₂O. There are 12 carbon atoms and 28 hydrogen atoms on each side; a useful order is C, then H, then O."),
+        _open_question("chem9701_l06_q3",
+            "Balance  Al(OH)₃ → Al₂O₃ + H₂O and explain why you must not change any formula subscripts.",
+            "2Al(OH)₃ → Al₂O₃ + 3H₂O. Coefficients balance atom counts without changing substance identity.",
+            "Equation balancing", 2, [
+                _point("equation", "Gives 2Al(OH)₃ → Al₂O₃ + 3H₂O", match_any=["2al(oh)3->al2o3+3h2o", "2al(oh)3→al2o3+3h2o"]),
+                _point("rule", "Explains coefficients change but subscripts define substances", match_groups=[["coefficient"], ["not subscripts", "subscripts unchanged"], ["substance", "identity", "formula"]]),
+            ], answer="2Al(OH)₃ → Al₂O₃ + 3H₂O. Change coefficients only; subscripts define the substances."),
+    ],
+    7: [
+        _open_question("chem9701_l07_q2",
+            "State two solubility patterns from the course and give one relevant exception.",
+            "Examples: all nitrates are soluble; Group 1 and ammonium salts are soluble; most halides are soluble with AgCl and PbCl₂ as exceptions; BaSO₄ and PbSO₄ are insoluble.",
+            "Solubility", 3, [
+                _point("pattern1", "States one correct general solubility pattern", match_any=["all nitrates soluble", "nitrates are soluble", "group 1", "ammonium salts soluble", "most chlorides", "most sulfates"]),
+                _point("pattern2", "States a second valid pattern", match_any=["all nitrates soluble", "nitrates are soluble", "group 1", "ammonium salts soluble", "most chlorides", "most sulfates", "most carbonates", "most phosphates"]),
+                _point("exception", "Gives a source-listed exception", match_any=["agcl", "pbcl2", "baso4", "pbso4", "caso4"]),
+            ], answer="All nitrates are soluble; Group 1 and ammonium salts are soluble; most chlorides are soluble except AgCl and PbCl₂; BaSO₄ is insoluble."),
+        _open_question("chem9701_l07_q3",
+            "Add state symbols to CaCO₃ + HCl → CaCl₂ + H₂O + CO₂ and explain why the products have those states.",
+            "CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g). The carbonate is solid, solutions are aqueous, water is liquid, and carbon dioxide is gas.",
+            "State symbols", 4, [
+                _point("equation", "Writes balanced equation with state symbols", match_any=["caco3(s)+2hcl(aq)->cacl2(aq)+h2o(l)+co2(g)", "caco3(s)+2hcl(aq)→cacl2(aq)+h2o(l)+co2(g)"]),
+                _point("solid", "Identifies CaCO₃ as a solid", match_any=["caco3(s)"]),
+                _point("aqueous", "Identifies HCl and CaCl₂ as aqueous", match_groups=[["hcl(aq)"], ["cacl2(aq)"]]),
+                _point("products", "Identifies liquid water and gaseous carbon dioxide", match_groups=[["h2o(l)"], ["co2(g)"]]),
+            ], answer="CaCO₃(s) + 2HCl(aq) → CaCl₂(aq) + H₂O(l) + CO₂(g). CaCO₃ is solid; HCl and CaCl₂ are aqueous; water is liquid; CO₂ is gas."),
+    ],
+    8: [
+        _open_question("chem9701_l08_q2",
+            "Write the net ionic equation for zinc displacing copper from aqueous copper(II) sulfate. Identify the spectator ion.",
+            "Zn(s) + Cu²⁺(aq) → Zn²⁺(aq) + Cu(s). Sulfate, SO₄²⁻, is the spectator ion.",
+            "Ionic equations", 2, [
+                _point("net", "Writes Zn + Cu²⁺ → Zn²⁺ + Cu", match_any=["zn(s)+cu2+(aq)->zn2+(aq)+cu(s)", "zn+cu2+->zn2++cu"]),
+                _point("spectator", "Identifies sulfate as the spectator ion", match_groups=[["sulfate", "so4"], ["spectator", "unchanged"]]),
+            ], answer="Zn(s) + Cu²⁺(aq) → Zn²⁺(aq) + Cu(s); sulfate is spectator."),
+        _open_question("chem9701_l08_q3",
+            "Write the net ionic equation for HCl(aq) + NaOH(aq) → NaCl(aq) + H₂O(l). Explain which ions cancel.",
+            "H⁺(aq) + OH⁻(aq) → H₂O(l). Na⁺ and Cl⁻ are spectator ions and cancel.",
+            "Ionic equations", 3, [
+                _point("net", "Writes H⁺ + OH⁻ → H₂O", match_any=["h++oh-->h2o", "h+(aq)+oh-(aq)->h2o(l)"]),
+                _point("sodium", "Identifies Na⁺ as spectator", match_any=["na+"]),
+                _point("chloride", "Identifies Cl⁻ as spectator and explains cancellation", match_groups=[["cl-"], ["spectator", "cancel", "unchanged"]]),
+            ], answer="H⁺(aq) + OH⁻(aq) → H₂O(l); Na⁺ and Cl⁻ cancel."),
+    ],
+    9: [
+        _open_question("chem9701_l09_q2",
+            "A metal hydroxide sample of 25.0 cm³ at 0.0500 mol dm⁻³ is neutralised by 12.50 cm³ of 0.200 mol dm⁻³ HCl. Calculate both amounts in moles and deduce the hydroxide pattern.",
+            "n(hydroxide) = 0.0500 × 0.0250 = 1.25×10⁻³ mol. n(HCl) = 0.200 × 0.01250 = 2.50×10⁻³ mol. Ratio hydroxide:HCl = 1:2, consistent with M(OH)₂ + 2HCl → MCl₂ + 2H₂O.",
+            "Titration stoichiometry", 3, [
+                _point("hydroxide_moles", "Calculates 1.25×10⁻³ mol hydroxide", numeric_targets=[{"value":0.00125,"tolerance":0.00001}]),
+                _point("acid_moles", "Calculates 2.50×10⁻³ mol HCl", numeric_targets=[{"value":0.00250,"tolerance":0.00001}]),
+                _point("ratio", "Deduces 1:2 ratio and M(OH)₂ pattern", match_groups=[["1:2", "1 to 2", "twice"], ["m(oh)2", "two oh", "two hydroxide"]]),
+            ], answer="n(hydroxide)=1.25×10⁻³ mol; n(HCl)=2.50×10⁻³ mol; ratio 1:2, so M(OH)₂."),
+        _open_question("chem9701_l09_q3",
+            "Explain the sequence for finding an unknown concentration in a titration. Include the unit conversion and balanced-equation ratio.",
+            "Convert cm³ to dm³; use n=cV for known solution moles; use the balanced equation coefficient ratio to find unknown moles; calculate c=n/V using the unknown volume in dm³.",
+            "Titration method", 3, [
+                _point("convert", "Converts cm³ to dm³ by dividing by 1000", match_groups=[["cm3", "cm³"], ["dm3", "dm³"], ["1000"]]),
+                _point("moles", "Uses n = cV for known-solution moles", match_groups=[["n=cv", "c*v", "concentration"], ["moles", "amount"]]),
+                _point("ratio", "Uses coefficient ratio then c = n/V", match_groups=[["balanced equation", "coefficient ratio", "mole ratio"], ["c=n/v", "n/v", "concentration"]]),
+            ], answer="Convert cm³ to dm³ by dividing by 1000, calculate known moles with n=cV, apply the balanced-equation mole ratio, then calculate c=n/V using the unknown volume in dm³."),
+    ],
+    10: [
+        _open_question("chem9701_l10_q2",
+            "Using 2Na + S → Na₂S, the available quantities give 0.40 mol Na and 0.25 mol S. Calculate each divided by its coefficient and the maximum Na₂S amount.",
+            "Na: 0.40/2 = 0.20. S: 0.25/1 = 0.25. Sodium is limiting, so the maximum Na₂S amount is 0.20 mol.",
+            "Limiting reactants", 3, [
+                _point("na", "Calculates 0.20 for sodium after dividing by 2", numeric_targets=[{"value":0.20,"tolerance":0.01}]),
+                _point("s", "Calculates 0.25 for sulfur after dividing by 1", numeric_targets=[{"value":0.25,"tolerance":0.01}]),
+                _point("product", "Identifies sodium as limiting and 0.20 mol Na₂S as maximum", match_groups=[["sodium", "na"], ["limiting"], ["0.20", "0.2"], ["na2s", "sodium sulfide"]]),
+            ], answer="Na: 0.40 mol; 0.40/2 = 0.20. S: 0.25 mol; 0.25/1 = 0.25. Sodium is the limiting reactant and can produce at most 0.20 mol Na₂S."),
+        _open_question("chem9701_l10_q3",
+            "Why is comparing the masses 9.2 g Na and 8.0 g S not enough to identify the limiting reactant? State the correct method.",
+            "Molar masses and coefficient requirements differ. Convert each reactant to moles, divide each mole amount by its balanced-equation coefficient, and select the smallest result.",
+            "Limiting-reactant reasoning", 2, [
+                _point("why", "Explains that substances have different molar masses and/or coefficients", match_groups=[["molar mass", "molar masses"], ["different", "coefficient", "ratio"]]),
+                _point("method", "Says convert to moles then divide by coefficient and choose smallest", match_groups=[["moles"], ["divide", "divided"], ["coefficient"], ["smallest"]]),
+            ], answer="Mass alone ignores different molar masses and coefficient ratios. Convert to moles, divide by coefficients, choose the smallest."),
+    ],
+    11: [
+        _open_question("chem9701_l11_q2",
+            "For 2H₂(g) + O₂(g) → 2H₂O(g), calculate the oxygen volume required for 60 cm³ H₂ at the same temperature and pressure.",
+            "The H₂:O₂ volume ratio is 2:1, so 60 cm³ H₂ needs 30 cm³ O₂.",
+            "Gas-volume ratios", 2, [
+                _point("ratio", "Uses H₂:O₂ = 2:1", match_any=["2:1", "2 to 1"]),
+                _point("volume", "Calculates 30 cm³ oxygen", numeric_targets=[{"value":30,"tolerance":0.01}], match_any=["cm3", "cm³"]),
+            ], answer="30 cm³ O₂."),
+        _open_question("chem9701_l11_q3",
+            "A learner says the equation coefficient ratio is also the mass ratio. Explain why this is incorrect and state the conditions required for gas-volume ratios.",
+            "Coefficients give mole ratios. Gas volumes follow those ratios only for gases at the same temperature and pressure; masses depend on molar masses.",
+            "Gas-volume reasoning", 3, [
+                _point("coefficients", "States coefficients give mole ratios", match_groups=[["coefficient"], ["mole ratio", "moles"]]),
+                _point("conditions", "States gases must be at the same temperature and pressure", match_groups=[["gas"], ["same"], ["temperature"], ["pressure"]]),
+                _point("mass", "Explains mass depends on molar mass", match_groups=[["mass"], ["molar mass"]]),
+            ], answer="Coefficient ratios are mole ratios; gas volumes follow at same temperature and pressure; mass depends on molar mass."),
+    ],
+    12: [
+        _open_question("chem9701_l12_q2",
+            "Give the full workflow for a word-equation question that asks for a balanced net ionic equation with state symbols.",
+            "Identify reactants/products; write correct formulae; balance coefficients; add states; split soluble aqueous strong electrolytes; keep solids/liquids/gases/water intact; cancel identical spectator ions; check atoms and charge.",
+            "Exam workflow", 4, [
+                _point("identity", "Writes correct formulae before balancing", match_groups=[["formula"], ["before", "first"], ["balance"]]),
+                _point("balance_states", "Balances with coefficients and adds state symbols", match_groups=[["coefficient", "balance"], ["state symbol", "states"]]),
+                _point("ions", "Splits only soluble aqueous strong electrolytes and retains other states intact", match_groups=[["aqueous", "aq"], ["split", "ions"], ["solid", "liquid", "gas", "water"]]),
+                _point("audit", "Cancels identical spectator ions then checks atoms and charge", match_groups=[["spectator"], ["cancel"], ["atom"], ["charge"]]),
+            ], answer="Write correct formulae first, then balance with coefficients; add state symbols, split eligible aqueous electrolytes, keep solids, liquids, gases and water intact, cancel spectators, then check atoms and charge."),
+        _open_question("chem9701_l12_q3",
+            "A learner cancels SO₄²⁻(aq) on the left against SO₄²⁻(s) on the right. Explain why this is invalid and state the spectator-ion test.",
+            "They differ in state, so they are not identical species. A spectator ion must have the same formula, charge, and state on both sides and remain unchanged.",
+            "Spectator-ion error diagnosis", 3, [
+                _point("state", "Explains aqueous and solid sulfate are different states", match_groups=[["aq", "aqueous"], ["solid", "(s)"], ["different", "not identical"]]),
+                _point("formula_charge_state", "Requires same formula, charge and state on both sides", match_groups=[["formula"], ["charge"], ["state"], ["both sides"]]),
+                _point("unchanged", "States a spectator ion is unchanged", match_any=["unchanged", "does not change", "no change"]),
+            ], answer="Invalid because aqueous and solid sulfate differ in state. A spectator ion must have the same formula, charge and state on both sides and remains unchanged."),
+    ],
+}
+
+for _lesson_record in LESSONS:
+    _bank = [_lesson_record["interactive_question"]] + _EXTRA_PRACTICE[int(_lesson_record["id"].split("l")[-1])]
+    _lesson_record["practice_questions"] = _bank
+    _lesson_record["questions"] = _bank
 
 
 CHEMISTRY_COURSE = {

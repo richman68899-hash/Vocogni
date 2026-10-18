@@ -42,6 +42,7 @@ import streamlit as st
 
 import data
 import diagnostics
+import chemistry_grading
 import logic
 import state
 
@@ -115,6 +116,13 @@ def render_course_detail() -> None:
     st.markdown(
         f"<p class='vc-muted'>{course['short_description']}</p>",
         unsafe_allow_html=True,
+    )
+    st.caption(
+        f"{course.get('category_label', 'Other')} · "
+        f"{course.get('subject_label', 'Other')} · "
+        f"{course.get('lesson_count', len(course['lessons']))} lessons · "
+        f"{course.get('level', 'Level not specified')} · "
+        f"{course.get('curriculum', 'General')}"
     )
 
     st.progress(pct)
@@ -541,21 +549,30 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
             st.rerun()
 
 
-def _select_structured_question(lesson, diagnostic_result):
-    """Choose Screen 3's question and route, using placement when a diagnostic exists."""
-    authored = lesson.get("interactive_question")
+def _select_structured_questions(lesson, diagnostic_result):
+    """Select a short open-response practice set and optional diagnostic pathway item."""
+    authored = lesson.get("practice_questions") or []
+    if not authored and lesson.get("interactive_question"):
+        authored = [lesson["interactive_question"]]
+    candidates = [item for item in authored if isinstance(item, dict)]
     route = "standard"
-    candidates = [authored] if authored else []
     if lesson.get("diagnostic") and diagnostic_result:
         route = diagnostic_result.get("outcome_key", "level_1")
-        if route in ("prerequisite", "level_1"):
+        if route == "prerequisite":
             route = "level_1"
-            candidates = [authored] if authored else []
-        else:
-            candidates = diagnostics.get_pathway_questions(lesson, route)
-        if not candidates:
-            candidates = [authored] if authored else []
-    candidates = [item for item in candidates if isinstance(item, dict)]
+        if route not in ("level_1", "standard"):
+            pathway_questions = diagnostics.get_pathway_questions(lesson, route)
+            known_ids = {item.get("id") for item in candidates}
+            candidates.extend(
+                item for item in pathway_questions
+                if isinstance(item, dict) and item.get("id") not in known_ids
+            )
+    return candidates, route
+
+
+def _select_structured_question(lesson, diagnostic_result):
+    """Backward-compatible helper returning the first question in a practice set."""
+    candidates, route = _select_structured_questions(lesson, diagnostic_result)
     return (candidates[0] if candidates else None), route
 
 
@@ -567,6 +584,7 @@ def _find_lesson_question_by_id(lesson, question_id):
     authored = lesson.get("interactive_question")
     if isinstance(authored, dict):
         candidates.append(authored)
+    candidates.extend(lesson.get("practice_questions", []))
     candidates.extend(lesson.get("questions", []))
     diagnostic = lesson.get("diagnostic", {})
     if isinstance(diagnostic, dict):
@@ -615,9 +633,10 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
             "attempt_number": attempt_number,
             "selected_pathway": route,
             "q_index": 0,
-            "results": [],
+            "results": list(checkpoint.get("results", [])),
             "last_correct": None,
             "last_user_answer": None,
+            "last_marking": None,
         }
         if screen in (1, 2):
             base.update({
@@ -626,24 +645,43 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
                 "active_questions": [],
             })
         else:
-            question = _find_lesson_question_by_id(lesson, checkpoint.get("question_id"))
-            if question is None:
-                question, route = _select_structured_question(lesson, diagnostic_result)
-                base["selected_pathway"] = route
-            if question is not None:
+            questions, route = _select_structured_questions(lesson, diagnostic_result)
+            question_id = checkpoint.get("question_id")
+            question_index = next(
+                (i for i, item in enumerate(questions) if item.get("id") == question_id),
+                0,
+            )
+            if not questions:
+                base.update({
+                    "view": "structured_lesson",
+                    "stage": "worked_example",
+                    "active_questions": [],
+                })
+            else:
                 submitted = bool(checkpoint.get("screen_3_submitted"))
+                current_question = questions[question_index]
                 base.update({
                     "view": "practice",
                     "stage": "feedback" if submitted else "question",
-                    "active_questions": [question],
+                    "active_questions": questions,
+                    "q_index": question_index,
                     "last_correct": checkpoint.get("last_correct") if submitted else None,
                     "last_user_answer": checkpoint.get("last_answer") if submitted else None,
+                    "last_marking": checkpoint.get("last_marking") if submitted else None,
                 })
-                if submitted:
+                if submitted and not checkpoint.get("results"):
                     base["results"] = [{
+                        "question_id": current_question.get("id"),
                         "correct": bool(checkpoint.get("last_correct")),
-                        "explanation": question.get("explanation", ""),
+                        "user_answer": checkpoint.get("last_answer"),
+                        "explanation": current_question.get("explanation", ""),
+                        "score": (checkpoint.get("last_marking") or {}).get("score", int(bool(checkpoint.get("last_correct")))),
+                        "max_marks": (checkpoint.get("last_marking") or {}).get("max_marks", 1),
+                        "marking": checkpoint.get("last_marking"),
+                        "typo_warning": (checkpoint.get("last_marking") or {}).get("typo_warning"),
                     }]
+            if questions:
+                base["selected_pathway"] = route
             else:
                 base.update({
                     "view": "structured_lesson",
@@ -671,8 +709,12 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
 def _render_course_diagnostic_result(lesson, result) -> None:
     """Show the saved one-time course diagnostic without opening a practice route."""
     st.markdown("### Diagnostic results")
-    st.metric("Baseline score", f"{result.get('score', 0)} / {result.get('total', 5)}",
+    st.metric("Fully correct items", f"{result.get('score', 0)} / {result.get('total', 5)}",
               f"{result.get('percent', 0)}%")
+    if result.get("max_marks"):
+        st.metric("Open-response marks", f"{result.get('marks_awarded', 0)} / {result.get('max_marks')}",
+                  f"{result.get('mark_percent', 0)}%")
+        st.caption("The initial placement uses fully correct items; partial marks are displayed separately.")
     st.subheader(result.get("outcome_label", "Diagnostic completed"))
     st.write(result.get("outcome_summary", "Your baseline result has been saved."))
     st.caption(result.get("next_action", "Continue to the first learning lesson."))
@@ -695,11 +737,20 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.caption(item.get("prompt", ""))
             st.write(f"Your answer: {item.get('user_answer')}")
             st.write(f"Expected answer: {item.get('expected_answer')}")
+            if item.get("marks_awarded") is not None:
+                st.write(f"Marks: {item.get('marks_awarded')} / {item.get('max_marks', 0)}")
+                if item.get("typo_warning"):
+                    st.warning(item["typo_warning"])
+                for point in item.get("marking_points", []):
+                    st.write(
+                        f"{'✓' if point.get('met') else '•'} "
+                        f"{point.get('criteria')}: "
+                        f"{point.get('marks_awarded', 0)}/{point.get('marks_available', 0)}"
+                    )
             st.write(item.get("explanation", ""))
 
     st.caption(
-        "This is a one-time baseline diagnostic. It is the first course item, "
-        "not a replacement for the four learning lessons."
+        "This is a one-time baseline diagnostic. It is separate from the course's learning lessons."
     )
 
 
@@ -775,10 +826,11 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 st.error("Screen progress is pending save. Keep the app open and retry saving before leaving.")
 
         if st.button("Next: Interactive question", type="primary", key=f"screen2_next_{lesson['id']}"):
-            question, route = _select_structured_question(lesson, diagnostic_result)
-            if question is None:
-                st.error("This lesson needs one interactive question before it can continue.")
+            questions, route = _select_structured_questions(lesson, diagnostic_result)
+            if not questions:
+                st.error("This lesson needs at least one practice question before it can continue.")
                 return
+            question = questions[0]
 
             checkpoint = logic.get_lesson_screen_checkpoint(
                 st.session_state.progress, course_id, lesson["id"]
@@ -797,6 +849,9 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 "question_id": question.get("id"),
                 "last_answer": None,
                 "last_correct": None,
+                "last_marking": None,
+                "results": [],
+                "current_question_index": 0,
                 "attempt_number": attempt_number,
                 "selected_pathway": route,
             })
@@ -805,7 +860,7 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 "stage": "question",
                 "q_index": 0,
                 "results": [],
-                "active_questions": [question],
+                "active_questions": questions,
                 "attempt_number": attempt_number,
                 "selected_pathway": route,
                 "structured_lesson": True,
@@ -844,13 +899,21 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     existing = next((x for x in history if x.get("attempt_number") == attempt_number), None)
     results = flow.get("results", [])
     correct = sum(bool(x.get("correct")) for x in results)
+    awarded_marks = sum(int(x.get("score", int(bool(x.get("correct"))))) for x in results)
+    maximum_marks = sum(int(x.get("max_marks", 1)) for x in results)
+    mark_percent = round(awarded_marks / maximum_marks * 100) if maximum_marks else 0
+    accuracy_percent = round(correct / len(results) * 100) if results else 0
+    has_marked_responses = any("max_marks" in x for x in results)
     if existing is None:
         route = flow.get("selected_pathway", "standard")
         label = diagnostics.PATHWAY_META.get(route, {}).get("label", "Standard practice")
         history.append({
             "attempt_number": attempt_number, "pathway": route, "pathway_label": label,
             "correct": correct, "total": len(results),
-            "percent": round(correct / len(results) * 100) if results else 0,
+            "percent": mark_percent if has_marked_responses else accuracy_percent,
+            "accuracy_percent": accuracy_percent,
+            "marks_awarded": awarded_marks if has_marked_responses else None,
+            "max_marks": maximum_marks if has_marked_responses else None,
             "completed_at": datetime.now(timezone.utc).isoformat(),
             "results": list(results),
         })
@@ -862,17 +925,26 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     if diagnostic_result and not prog.setdefault("lesson_assessments", {}).get(lesson["id"]) and results:
         baseline = diagnostic_result
         prog["lesson_assessments"][lesson["id"]] = {
-            "baseline_score": baseline.get("score", 0), "baseline_total": baseline.get("total", 5),
-            "baseline_percent": baseline.get("percent", 0), "post_correct": correct,
-            "post_total": len(results), "post_practice_percent": round(correct / len(results) * 100),
-            "percentage_point_difference": round(correct / len(results) * 100) - baseline.get("percent", 0),
+            "baseline_score": baseline.get("marks_awarded", baseline.get("score", 0)),
+            "baseline_total": baseline.get("max_marks", baseline.get("total", 5)),
+            "baseline_percent": baseline.get("mark_percent", baseline.get("percent", 0)),
+            "post_correct": correct,
+            "post_total": len(results),
+            "post_practice_percent": mark_percent if has_marked_responses else accuracy_percent,
+            "percentage_point_difference": (mark_percent if has_marked_responses else accuracy_percent) - baseline.get("mark_percent", baseline.get("percent", 0)),
+            "marks_awarded": awarded_marks if has_marked_responses else None,
+            "max_marks": maximum_marks if has_marked_responses else None,
             "pathway": flow.get("selected_pathway", "unknown"),
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
         state.mark_persistent_dirty()
     if flow.get("structured_lesson"):
         active_questions = flow.get("active_questions", [])
-        current_question = active_questions[0] if active_questions else {}
+        current_index = min(
+            max(int(flow.get("q_index", 0) or 0), 0),
+            max(len(active_questions) - 1, 0),
+        )
+        current_question = active_questions[current_index] if active_questions else {}
         logic.update_lesson_screen_checkpoint(
             st.session_state.progress, course_id, lesson["id"], {
                 "current_screen": 3,
@@ -882,6 +954,9 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
                 "question_id": current_question.get("id"),
                 "last_answer": flow.get("last_user_answer"),
                 "last_correct": flow.get("last_correct"),
+                "last_marking": flow.get("last_marking"),
+                "results": list(results),
+                "current_question_index": flow.get("q_index", 0),
                 "attempt_number": attempt_number,
                 "selected_pathway": flow.get("selected_pathway", "standard"),
             }
@@ -901,12 +976,23 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
         results = flow.get("results", [])
         correct = sum(bool(item.get("correct")) for item in results)
         total = len(results)
-        st.markdown("### Lesson checkpoint")
-        st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
+        has_marked_responses = any("max_marks" in item for item in results)
+        if has_marked_responses:
+            marks = sum(int(item.get("score", int(bool(item.get("correct"))))) for item in results)
+            max_marks = sum(int(item.get("max_marks", 1)) for item in results)
+            percent = round(marks / max_marks * 100) if max_marks else 0
+            st.markdown("### Lesson checkpoint")
+            st.metric("Open-response marks", f"{marks} / {max_marks}", f"{percent}%")
+            st.caption("Marks follow this question's configured practice rubric; they are not an official Cambridge grade.")
+            if marks < max_marks:
+                st.info("Review the mark-by-mark feedback before retrying the question.")
+        else:
+            st.markdown("### Lesson checkpoint")
+            st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
         st.markdown(
             "<div class='vc-card'>"
-            "The concept, worked example, and interactive question are complete. "
-            "Your answer and feedback have been recorded."
+            "The concept, worked example, and open-ended practice set are complete. "
+            "Your responses, marking breakdowns, and feedback have been recorded."
             "</div>",
             unsafe_allow_html=True,
         )
@@ -1087,6 +1173,10 @@ def _render_diagnostic(lesson, course_id) -> None:
                     "Choose one answer", question.get("options", []),
                     index=None, key=key,
                 )
+            elif question["type"] == "open_ended":
+                answers[question["id"]] = st.text_area(
+                    "Write your answer and working", key=key, height=110
+                )
             else:
                 raw = st.text_input("Your answer", key=key)
                 if raw.strip():
@@ -1260,7 +1350,7 @@ def _render_question(
     # -----------------------------------------------------------------------
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Interactive question")
+        st.markdown("### Screen 3 of 3 — Practice set")
 
     st.markdown(
         f"<span class='vc-muted'>"
@@ -1293,6 +1383,21 @@ def _render_question(
         user_answer = choice
 
         can_submit = choice is not None
+
+    elif question["type"] == "open_ended":
+
+        st.caption(
+            f"Mark allocation: {question.get('max_marks', 1)} marks. "
+            "Show the relevant formula, reasoning, equation, or calculation. "
+            "A terminology warning will not change your answer automatically."
+        )
+        user_answer = st.text_area(
+            "Your answer and working:",
+            key=answer_key,
+            height=160,
+            placeholder="Write your answer, including reasoning and units where relevant.",
+        )
+        can_submit = bool(user_answer and user_answer.strip())
 
     else:
 
@@ -1342,10 +1447,12 @@ def _render_question(
         # Calculate correctness
         # ---------------------------------------------------------------
 
-        is_correct = logic.check_answer(
-            question,
-            user_answer,
-        )
+        marking_result = None
+        if question.get("type") == "open_ended":
+            marking_result = chemistry_grading.evaluate_open_response(question, user_answer)
+            is_correct = bool(marking_result["full_credit"])
+        else:
+            is_correct = logic.check_answer(question, user_answer)
 
         # ---------------------------------------------------------------
         # Update durable learner progress
@@ -1380,6 +1487,7 @@ def _render_question(
                     "question_id": question.get("id"),
                     "last_answer": user_answer,
                     "last_correct": is_correct,
+                    "last_marking": marking_result,
                     "attempt_number": flow.get("attempt_number", 1),
                     "selected_pathway": flow.get("selected_pathway", "standard"),
                 }
@@ -1392,15 +1500,40 @@ def _render_question(
         # ---------------------------------------------------------------
 
         flow["last_correct"] = is_correct
-
         flow["last_user_answer"] = user_answer
+        flow["last_marking"] = marking_result
 
-        flow["results"].append(
-            {
-                "correct": is_correct,
-                "explanation": question["explanation"],
-            }
-        )
+        result_record = {
+            "question_id": question.get("id"),
+            "user_answer": user_answer,
+            "correct": is_correct,
+            "explanation": question["explanation"],
+        }
+        if marking_result is not None:
+            result_record.update({
+                "score": marking_result["score"],
+                "max_marks": marking_result["max_marks"],
+                "marking": marking_result,
+                "typo_warning": marking_result.get("typo_warning"),
+            })
+        flow["results"].append(result_record)
+        if flow.get("structured_lesson"):
+            logic.update_lesson_screen_checkpoint(
+                st.session_state.progress, course_id, lesson["id"], {
+                    "current_screen": 3,
+                    "completed_screens": [1, 2, 3],
+                    "completed": False,
+                    "screen_3_submitted": True,
+                    "question_id": question.get("id"),
+                    "last_answer": user_answer,
+                    "last_correct": is_correct,
+                    "last_marking": marking_result,
+                    "results": list(flow["results"]),
+                    "current_question_index": idx,
+                    "attempt_number": flow.get("attempt_number", 1),
+                    "selected_pathway": flow.get("selected_pathway", "standard"),
+                }
+            )
 
         # ---------------------------------------------------------------
         # Determine next stage
@@ -1465,11 +1598,13 @@ def _render_feedback(
     question = questions[idx]
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Interactive question")
+        st.markdown("### Screen 3 of 3 — Practice set")
+        st.caption(f"Practice question {idx + 1} of {len(questions)}")
         st.markdown(f"#### {question['prompt']}")
         st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
     is_correct = flow["last_correct"]
+    marking = flow.get("last_marking") if question.get("type") == "open_ended" else None
 
     feedback_class = (
         "vc-feedback--correct"
@@ -1478,9 +1613,13 @@ def _render_feedback(
     )
 
     headline = (
-        "Correct."
-        if is_correct
-        else "Not quite."
+        f"Full marks — {marking.get('score', 0)}/{marking.get('max_marks', 0)}."
+        if marking and is_correct
+        else (
+            f"Partial credit — {marking.get('score', 0)}/{marking.get('max_marks', 0)} marks."
+            if marking and marking.get("score", 0) > 0
+            else ("Correct." if is_correct else "Not quite.")
+        )
     )
 
     st.markdown(
@@ -1490,6 +1629,22 @@ def _render_feedback(
         f"</div>",
         unsafe_allow_html=True,
     )
+
+    if marking:
+        st.markdown(f"**Marking summary:** {marking.get('feedback', '')}")
+        if marking.get("typo_warning"):
+            st.warning(marking["typo_warning"])
+        with st.expander("Mark-by-mark feedback", expanded=bool(marking.get("typo_warning"))):
+            for point in marking.get("marking_points", []):
+                icon = "✓" if point.get("met") else "•"
+                st.markdown(
+                    f"{icon} **{point.get('criteria', 'Marking point')}** — "
+                    f"{point.get('marks_awarded', 0)}/{point.get('marks_available', 0)} marks"
+                )
+                if point.get("feedback"):
+                    st.caption(point["feedback"])
+        st.markdown("**Model explanation**")
+        st.write(question.get("explanation", ""))
 
     # -----------------------------------------------------------------------
     # Correct-answer sound
@@ -1527,16 +1682,33 @@ def _render_feedback(
     ):
 
         if is_last:
-
-            # Transient state only.
             flow["stage"] = "complete"
-
+            st.rerun()
         else:
-
-            flow["q_index"] = idx + 1
+            next_index = idx + 1
+            if flow.get("structured_lesson"):
+                saved = _save_lesson_screen_checkpoint(
+                    flow["course_id"], lesson["id"], {
+                        "current_screen": 3,
+                        "completed_screens": [1, 2, 3],
+                        "completed": False,
+                        "screen_3_submitted": False,
+                        "question_id": questions[next_index].get("id"),
+                        "last_answer": None,
+                        "last_correct": None,
+                        "last_marking": None,
+                        "results": list(flow.get("results", [])),
+                        "current_question_index": next_index,
+                        "attempt_number": flow.get("attempt_number", 1),
+                        "selected_pathway": flow.get("selected_pathway", "standard"),
+                    }
+                )
+                if not saved:
+                    st.error("The next question is open, but its checkpoint could not be saved. Retry save before leaving.")
+                    return
+            flow["q_index"] = next_index
             flow["stage"] = "question"
-
-        st.rerun()
+            st.rerun()
 
 
 # ===========================================================================

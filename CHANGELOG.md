@@ -10,6 +10,11 @@
 
 
 ## Unreleased
+- Add the complete 12-lesson Chemistry 9701 nomenclature, equations, ionic-reactions, and stoichiometry course based on the supplied master note.
+- Add deterministic open-ended marking rubrics, criterion-level partial credit, persisted mark breakdowns, and non-destructive probable-typo warnings.
+- Add shared category/subject taxonomy and derived published lesson counts across all course cards and detail views.
+- Add course-category and subject filters to Browse.
+- Add automated regression tests for chemistry content structure, metadata consistency, open-response grading, and typo warnings.
 - Add a separate first-item diagnostic to the Word Problems course while retaining the four learning lessons.
 - Give each Word Problems lesson a three-screen concept → worked example → interactive question flow.
 - Count the course diagnostic in Word Problems progress and add structural regression tests.
