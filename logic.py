@@ -342,6 +342,94 @@ def generate_recommendations(progress, limit=4):
 
 
 # ---------------------------------------------------------------------------
+# Mistake-to-Mastery Coach
+#
+# Turns accumulated error evidence into one concrete next action. This is
+# deliberately deterministic: the recommendation is explainable and works
+# without an LLM. Its long-term value comes from learner-specific evidence
+# and measured improvement, not from the rule table alone.
+# ---------------------------------------------------------------------------
+
+_MISTAKE_COACH_RULES = (
+    {
+        "patterns": ("denominator", "equivalent fractions", "comparing fractions",
+                     "adding fractions", "subtracting unlike fractions", "simplification"),
+        "skill": "Fraction structure",
+        "why": "Your recorded errors point to fraction structure, not just arithmetic.",
+        "action": "Review equivalent fractions, then solve three unlike-denominator questions.",
+        "course_ids": ("fractions",),
+    },
+    {
+        "patterns": ("variable", "inverse operation", "equations with brackets",
+                     "equations on both sides", "two-step equations", "sign errors"),
+        "skill": "Equation transformations",
+        "why": "Your recorded errors suggest one or more equation steps are not yet reliable.",
+        "action": "Write one inverse operation per line and check the result by substitution.",
+        "course_ids": ("algebra",),
+    },
+    {
+        "patterns": ("translating", "key words", "relevant information",
+                     "forming an equation", "multi-step setup", "misidentifying the operation"),
+        "skill": "Word-problem modelling",
+        "why": "The difficulty appears to be translating a situation into mathematics before calculating.",
+        "action": "Define the unknown, write the relationship, and only then calculate.",
+        "course_ids": ("word_problems",),
+    },
+    {
+        "patterns": ("budget", "pricing", "cost model", "break-even", "sharing a multi-step cost"),
+        "skill": "Applied modelling",
+        "why": "Your errors cluster around choosing and building a model for a real situation.",
+        "action": "List known values and constraints, define the unknown, then test whether the answer fits the context.",
+        "course_ids": ("word_problems", "algebra"),
+    },
+)
+
+
+def get_mistake_coach(progress):
+    """Return one explainable intervention from durable mistake counts, or None.
+
+    Counts are evidence of repeated errors, not proof of a misconception.
+    Only use known course IDs when suggesting a course destination.
+    """
+    candidates = []
+    for course_id in data.COURSE_ORDER:
+        course = data.get_course(course_id)
+        prog = progress.get(course_id, {})
+        mistakes = prog.get("mistakes", {})
+        for tag, count in mistakes.items():
+            if not isinstance(count, (int, float)) or count <= 0:
+                continue
+            tag_text = str(tag).casefold()
+            for rule in _MISTAKE_COACH_RULES:
+                if any(pattern in tag_text for pattern in rule["patterns"]):
+                    candidates.append({
+                        "source_course_id": course_id,
+                        "source_course_title": course["title"],
+                        "mistake_tag": str(tag),
+                        "count": int(count),
+                        "skill": rule["skill"],
+                        "why": rule["why"],
+                        "action": rule["action"],
+                        "course_ids": rule["course_ids"],
+                    })
+                    break
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: (-item["count"], item["skill"], item["mistake_tag"]))
+    chosen = candidates[0]
+    destinations = []
+    for course_id in chosen["course_ids"]:
+        if course_id in data.COURSES and course_id not in destinations:
+            destinations.append(course_id)
+    chosen["available_course_ids"] = destinations
+    chosen["evidence_label"] = (
+        f"{chosen['count']} recorded error{'s' if chosen['count'] != 1 else ''}: "
+        f"{chosen['mistake_tag']}"
+    )
+    return chosen
+
+
+# ---------------------------------------------------------------------------
 # Simulated AI progress summary
 #
 # TO REPLACE WITH A REAL LLM LATER:
