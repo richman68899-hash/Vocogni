@@ -218,7 +218,7 @@ LESSONS = [
                 _point("s", "States S = 3", match_groups=[["sulfur", "sulphur", "s"], ["3"]]),
                 _point("o", "States O = 12", match_groups=[["oxygen", "o"], ["12"]]),
                 _point("bracket", "Explains the 3 multiplies the entire SO₄ group", match_groups=[["3", "three"], ["bracket", "so4", "group"], ["multiply", "times", "each"]]),
-                _point("coefficient", "Distinguishes coefficient from subscript", match_groups=[["coefficient"], ["whole formula", "entire formula", "number of units", "number of molecules"], ["subscript"], ["atoms", "composition", "identity"]]),
+                _point("coefficient", "Distinguishes coefficient from subscript", match_groups=[["coefficient"], ["whole formula", "entire formula", "number of units", "number of molecules"], ["subscript"], ["atoms", "atom ratio", "atom ratios", "atom count", "composition", "identity"]]),
             ],
             answer="Al = 2; S = 3; O = 12. The bracket subscript multiplies SO₄; a coefficient multiplies the whole formula, while subscripts define atom ratios.",
         ),
