@@ -1230,7 +1230,39 @@ COURSES = {
 }
 
 
-COURSE_ORDER = ["fractions", "algebra", "word_problems"]
+# Chemistry content lives in a separate data module so authored science content
+# remains testable without importing Streamlit.
+from chemistry_course import CHEMISTRY_COURSE
+
+COURSES[CHEMISTRY_COURSE["id"]] = CHEMISTRY_COURSE
+COURSE_ORDER = ["fractions", "algebra", "word_problems", "chemistry_9701"]
+
+# Shared course-catalogue taxonomy. This metadata applies to every course card,
+# filter, and detail page; lesson_count is derived from published lesson data.
+COURSE_CATEGORIES = {
+    "academics": {"id": "academics", "label": "Academics"},
+}
+COURSE_SUBJECTS = {
+    "mathematics": {"id": "mathematics", "label": "Mathematics", "category_id": "academics"},
+    "chemistry": {"id": "chemistry", "label": "Chemistry", "category_id": "academics"},
+}
+
+_SUBJECT_BY_COURSE = {
+    "fractions": "mathematics",
+    "algebra": "mathematics",
+    "word_problems": "mathematics",
+    "chemistry_9701": "chemistry",
+}
+for _course in COURSES.values():
+    _course.setdefault("category_id", "academics")
+    _course.setdefault("category", COURSE_CATEGORIES[_course["category_id"]]["label"])
+    _subject_id = _course.get("subject_id") or _SUBJECT_BY_COURSE.get(_course["id"], "mathematics")
+    _course.setdefault("subject_id", _subject_id)
+    _course.setdefault("subject", COURSE_SUBJECTS.get(_subject_id, {"label": _subject_id.title()})["label"])
+    _course["lesson_count"] = len(_course.get("lessons", []))
+    _course.setdefault("level", "Not specified")
+    _course.setdefault("curriculum", "Not specified")
+
 
 SUBJECT_OPTIONS = [
     "Math", "Science", "Language Arts", "History", "Art", "Music",
