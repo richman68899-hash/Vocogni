@@ -30,17 +30,28 @@ APPLICATION_TAG = data.APPLICATION_MISTAKE_TAG
 # ---------------------------------------------------------------------------
 
 def check_answer(question, user_answer):
-    """Return True if user_answer is correct for the given question dict."""
-    if question["type"] == "mc":
-        return user_answer == question["answer"]
+    """Return True only for a fully correct answer in the question's schema."""
+    question_type = question.get("type")
+    if question_type == "mc":
+        return user_answer == question.get("answer")
 
-    # numeric
+    if question_type == "open_ended":
+        # Lazy import keeps the base progress engine framework-free and lets
+        # chemistry use criterion-level marks without changing old course types.
+        import chemistry_grading
+        result = chemistry_grading.evaluate_open_response(question, user_answer)
+        return bool(result["full_credit"])
+
+    if question_type != "numeric":
+        return False
+
     try:
         user_val = float(user_answer)
-    except (TypeError, ValueError):
+        expected = float(question["answer"])
+    except (TypeError, ValueError, KeyError):
         return False
     tolerance = question.get("tolerance", 0.01)
-    return abs(user_val - float(question["answer"])) <= tolerance
+    return abs(user_val - expected) <= tolerance
 
 
 # ---------------------------------------------------------------------------
