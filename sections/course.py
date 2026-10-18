@@ -716,12 +716,19 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.markdown(f"**{index}. {label} — {item.get('skill_tag', 'Skill')}**")
             st.caption(item.get("prompt", ""))
             st.write(f"Your answer: {item.get('user_answer')}")
-            st.write(f"Expected answer: {item.get('expected_answer')}")
+            st.write(f"Expected answer / model response: {item.get('expected_answer')}")
             st.write(item.get("explanation", ""))
+            if item.get("max_marks"):
+                st.caption(f"Rubric score: {item.get('marks_awarded', 0)} / {item.get('max_marks')} marks")
+            for warning in item.get("warnings", []):
+                st.warning(warning)
+            for note in item.get("marking_feedback", []):
+                st.write(f"• {note}")
 
+    course = data.get_course(st.session_state.get("current_course"))
+    lesson_count = len(course.get("lessons", [])) if course else "the"
     st.caption(
-        "This is a one-time baseline diagnostic. It is the first course item, "
-        "not a replacement for the four learning lessons."
+        f"This is a one-time course-entry diagnostic, separate from the {lesson_count} learning lessons."
     )
 
 
@@ -1202,8 +1209,14 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
             st.markdown(f"**{index}. {label} — {item['skill_tag']}**")
             st.caption(item["prompt"])
             st.write(f"Your answer: {item.get('user_answer')}")
-            st.write(f"Expected answer: {item.get('expected_answer')}")
+            st.write(f"Expected answer / model response: {item.get('expected_answer')}")
             st.write(item["explanation"])
+            if item.get("max_marks"):
+                st.caption(f"Rubric score: {item.get('marks_awarded', 0)} / {item.get('max_marks')} marks")
+            for warning in item.get("warnings", []):
+                st.warning(warning)
+            for note in item.get("marking_feedback", []):
+                st.write(f"• {note}")
 
     if result.get("outcome_key") == "prerequisite":
         st.markdown("#### Prerequisite review")
