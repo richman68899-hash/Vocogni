@@ -549,21 +549,30 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
             st.rerun()
 
 
-def _select_structured_question(lesson, diagnostic_result):
-    """Choose Screen 3's question and route, using placement when a diagnostic exists."""
-    authored = lesson.get("interactive_question")
+def _select_structured_questions(lesson, diagnostic_result):
+    """Select a short open-response practice set and optional diagnostic pathway item."""
+    authored = lesson.get("practice_questions") or lesson.get("questions") or []
+    if not authored and lesson.get("interactive_question"):
+        authored = [lesson["interactive_question"]]
+    candidates = [item for item in authored if isinstance(item, dict)]
     route = "standard"
-    candidates = [authored] if authored else []
     if lesson.get("diagnostic") and diagnostic_result:
         route = diagnostic_result.get("outcome_key", "level_1")
-        if route in ("prerequisite", "level_1"):
+        if route == "prerequisite":
             route = "level_1"
-            candidates = [authored] if authored else []
-        else:
-            candidates = diagnostics.get_pathway_questions(lesson, route)
-        if not candidates:
-            candidates = [authored] if authored else []
-    candidates = [item for item in candidates if isinstance(item, dict)]
+        if route not in ("level_1", "standard"):
+            pathway_questions = diagnostics.get_pathway_questions(lesson, route)
+            known_ids = {item.get("id") for item in candidates}
+            candidates.extend(
+                item for item in pathway_questions
+                if isinstance(item, dict) and item.get("id") not in known_ids
+            )
+    return candidates, route
+
+
+def _select_structured_question(lesson, diagnostic_result):
+    """Backward-compatible helper returning the first question in a practice set."""
+    candidates, route = _select_structured_questions(lesson, diagnostic_result)
     return (candidates[0] if candidates else None), route
 
 
@@ -575,6 +584,7 @@ def _find_lesson_question_by_id(lesson, question_id):
     authored = lesson.get("interactive_question")
     if isinstance(authored, dict):
         candidates.append(authored)
+    candidates.extend(lesson.get("practice_questions", []))
     candidates.extend(lesson.get("questions", []))
     diagnostic = lesson.get("diagnostic", {})
     if isinstance(diagnostic, dict):
@@ -623,9 +633,10 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
             "attempt_number": attempt_number,
             "selected_pathway": route,
             "q_index": 0,
-            "results": [],
+            "results": list(checkpoint.get("results", [])),
             "last_correct": None,
             "last_user_answer": None,
+            "last_marking": None,
         }
         if screen in (1, 2):
             base.update({
@@ -634,29 +645,43 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
                 "active_questions": [],
             })
         else:
-            question = _find_lesson_question_by_id(lesson, checkpoint.get("question_id"))
-            if question is None:
-                question, route = _select_structured_question(lesson, diagnostic_result)
-                base["selected_pathway"] = route
-            if question is not None:
+            questions, route = _select_structured_questions(lesson, diagnostic_result)
+            question_id = checkpoint.get("question_id")
+            question_index = next(
+                (i for i, item in enumerate(questions) if item.get("id") == question_id),
+                0,
+            )
+            if not questions:
+                base.update({
+                    "view": "structured_lesson",
+                    "stage": "worked_example",
+                    "active_questions": [],
+                })
+            else:
                 submitted = bool(checkpoint.get("screen_3_submitted"))
+                current_question = questions[question_index]
                 base.update({
                     "view": "practice",
                     "stage": "feedback" if submitted else "question",
-                    "active_questions": [question],
+                    "active_questions": questions,
+                    "q_index": question_index,
                     "last_correct": checkpoint.get("last_correct") if submitted else None,
                     "last_user_answer": checkpoint.get("last_answer") if submitted else None,
+                    "last_marking": checkpoint.get("last_marking") if submitted else None,
                 })
-                if submitted:
+                if submitted and not checkpoint.get("results"):
                     base["results"] = [{
+                        "question_id": current_question.get("id"),
                         "correct": bool(checkpoint.get("last_correct")),
-                        "explanation": question.get("explanation", ""),
+                        "user_answer": checkpoint.get("last_answer"),
+                        "explanation": current_question.get("explanation", ""),
                         "score": (checkpoint.get("last_marking") or {}).get("score", int(bool(checkpoint.get("last_correct")))),
                         "max_marks": (checkpoint.get("last_marking") or {}).get("max_marks", 1),
                         "marking": checkpoint.get("last_marking"),
                         "typo_warning": (checkpoint.get("last_marking") or {}).get("typo_warning"),
                     }]
-                    base["last_marking"] = checkpoint.get("last_marking")
+            if questions:
+                base["selected_pathway"] = route
             else:
                 base.update({
                     "view": "structured_lesson",
@@ -801,10 +826,11 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 st.error("Screen progress is pending save. Keep the app open and retry saving before leaving.")
 
         if st.button("Next: Interactive question", type="primary", key=f"screen2_next_{lesson['id']}"):
-            question, route = _select_structured_question(lesson, diagnostic_result)
-            if question is None:
-                st.error("This lesson needs one interactive question before it can continue.")
+            questions, route = _select_structured_questions(lesson, diagnostic_result)
+            if not questions:
+                st.error("This lesson needs at least one practice question before it can continue.")
                 return
+            question = questions[0]
 
             checkpoint = logic.get_lesson_screen_checkpoint(
                 st.session_state.progress, course_id, lesson["id"]
@@ -823,6 +849,9 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 "question_id": question.get("id"),
                 "last_answer": None,
                 "last_correct": None,
+                "last_marking": None,
+                "results": [],
+                "current_question_index": 0,
                 "attempt_number": attempt_number,
                 "selected_pathway": route,
             })
@@ -831,7 +860,7 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 "stage": "question",
                 "q_index": 0,
                 "results": [],
-                "active_questions": [question],
+                "active_questions": questions,
                 "attempt_number": attempt_number,
                 "selected_pathway": route,
                 "structured_lesson": True,
@@ -921,6 +950,9 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
                 "question_id": current_question.get("id"),
                 "last_answer": flow.get("last_user_answer"),
                 "last_correct": flow.get("last_correct"),
+                "last_marking": flow.get("last_marking"),
+                "results": list(results),
+                "current_question_index": flow.get("q_index", 0),
                 "attempt_number": attempt_number,
                 "selected_pathway": flow.get("selected_pathway", "standard"),
             }
@@ -1468,6 +1500,8 @@ def _render_question(
         flow["last_marking"] = marking_result
 
         result_record = {
+            "question_id": question.get("id"),
+            "user_answer": user_answer,
             "correct": is_correct,
             "explanation": question["explanation"],
         }
@@ -1479,6 +1513,23 @@ def _render_question(
                 "typo_warning": marking_result.get("typo_warning"),
             })
         flow["results"].append(result_record)
+        if flow.get("structured_lesson"):
+            logic.update_lesson_screen_checkpoint(
+                st.session_state.progress, course_id, lesson["id"], {
+                    "current_screen": 3,
+                    "completed_screens": [1, 2, 3],
+                    "completed": False,
+                    "screen_3_submitted": True,
+                    "question_id": question.get("id"),
+                    "last_answer": user_answer,
+                    "last_correct": is_correct,
+                    "last_marking": marking_result,
+                    "results": list(flow["results"]),
+                    "current_question_index": idx,
+                    "attempt_number": flow.get("attempt_number", 1),
+                    "selected_pathway": flow.get("selected_pathway", "standard"),
+                }
+            )
 
         # ---------------------------------------------------------------
         # Determine next stage
@@ -1626,16 +1677,33 @@ def _render_feedback(
     ):
 
         if is_last:
-
-            # Transient state only.
             flow["stage"] = "complete"
-
+            st.rerun()
         else:
-
-            flow["q_index"] = idx + 1
+            next_index = idx + 1
+            if flow.get("structured_lesson"):
+                saved = _save_lesson_screen_checkpoint(
+                    flow["course_id"], lesson["id"], {
+                        "current_screen": 3,
+                        "completed_screens": [1, 2, 3],
+                        "completed": False,
+                        "screen_3_submitted": False,
+                        "question_id": questions[next_index].get("id"),
+                        "last_answer": None,
+                        "last_correct": None,
+                        "last_marking": None,
+                        "results": list(flow.get("results", [])),
+                        "current_question_index": next_index,
+                        "attempt_number": flow.get("attempt_number", 1),
+                        "selected_pathway": flow.get("selected_pathway", "standard"),
+                    }
+                )
+                if not saved:
+                    st.error("The next question is open, but its checkpoint could not be saved. Retry save before leaving.")
+                    return
+            flow["q_index"] = next_index
             flow["stage"] = "question"
-
-        st.rerun()
+            st.rerun()
 
 
 # ===========================================================================
