@@ -1249,15 +1249,19 @@ COURSE_SUBJECTS = [
 # Chemistry content is authored separately from UI and registered here so
 # every existing data.get_course / logic / progress consumer sees it.
 from chemistry_course import CHEMISTRY_COURSE
+from quadratics_course import QUADRATICS_COURSE
 
 COURSES[CHEMISTRY_COURSE["id"]] = CHEMISTRY_COURSE
 COURSE_ORDER.append(CHEMISTRY_COURSE["id"])
+COURSES[QUADRATICS_COURSE["id"]] = QUADRATICS_COURSE
+COURSE_ORDER.append(QUADRATICS_COURSE["id"])
 
 _SUBJECT_BY_COURSE = {
     "fractions": "mathematics",
     "algebra": "mathematics",
     "word_problems": "mathematics",
     "chemistry_9701": "chemistry",
+    "quadratics_graphs": "mathematics",
 }
 _CATEGORY_LABELS = {item["id"]: item["label"] for item in COURSE_CATEGORIES}
 _SUBJECT_LABELS = {item["id"]: item["label"] for item in COURSE_SUBJECTS}
