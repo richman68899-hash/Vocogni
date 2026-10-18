@@ -117,7 +117,13 @@ def evaluate_open_response(question: dict[str, Any], answer: Any) -> dict[str, A
     text = str(answer or "").strip()
     points = question.get("marking_points", [])
     declared_max = int(question.get("max_marks", sum(int(p.get("marks", 1)) for p in points)))
-    accepted = [normalize_answer(item) for item in question.get("accepted_answers", [])]
+    # The configured model answer is a known-complete reference response.
+    # Exact matching is only one route to full credit; other responses still
+    # earn criterion-level marks through the rubric below.
+    accepted = [
+        normalize_answer(item)
+        for item in list(question.get("accepted_answers", [])) + [question.get("answer", "")]
+    ]
     normalized = normalize_answer(text)
     exact_match = bool(normalized and normalized in accepted)
 
