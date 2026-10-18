@@ -44,7 +44,7 @@ def _lesson(number, title, explanation, worked_example, question, *,
         "explanation": explanation,
         "worked_example": worked_example,
         "interactive_question": question,
-        "questions": [questionundefined
+        "questions": [question],
         "skill_ids": [question["skill_tag"]],
     }
     if diagnostic:
