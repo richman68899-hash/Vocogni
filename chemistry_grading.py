@@ -175,8 +175,8 @@ def validate_open_response_question(question: dict[str, Any]) -> list[str]:
         return errors
     if any(not isinstance(point, dict) or int(point.get("marks", 0)) < 1 for point in points):
         errors.append("each marking point needs positive integer marks")
-    elif sum(int(point.get("marks", 0)) for point in points) < int(max_marks or 0):
-        errors.append("marking-point total is less than max_marks")
+    elif sum(int(point.get("marks", 0)) for point in points) != int(max_marks or 0):
+        errors.append("marking-point total must equal max_marks exactly")
     for index, point in enumerate(points, start=1):
         if not any(point.get(key) for key in ("match_all", "match_any", "match_groups", "regex_any", "numeric_targets")):
             errors.append(f"marking point {index} has no matching rule")
