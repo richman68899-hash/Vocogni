@@ -6,6 +6,7 @@ import streamlit as st
 
 import data
 import logic
+import learning_memory
 
 
 def render():
@@ -143,6 +144,9 @@ def _render_topic_detail(progress):
         st.markdown("<h4 style='margin-top:1rem;'>Common mistakes</h4>", unsafe_allow_html=True)
         for tag, count in mistakes:
             st.markdown(f"- {tag} ({count})")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    learning_memory.render_course_fingerprint(st, progress, course_id)
 
     # Lesson-level diagnostic results and the later practice checkpoint.
     st.markdown("<h4 style='margin-top:1rem;'>Lesson diagnostics</h4>", unsafe_allow_html=True)

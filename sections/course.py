@@ -45,6 +45,7 @@ import diagnostics
 import chemistry_grading
 import math_grading
 import quadratics_visuals
+import learning_memory
 import logic
 import state
 
@@ -464,7 +465,7 @@ def render_lesson_flow() -> None:
         elif stage == "question":
             _render_question(lesson, flow, course_id)
         elif stage == "feedback":
-            _render_feedback(lesson, flow)
+            _render_feedback(lesson, flow, course_id)
         elif stage == "complete":
             _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
         else:
@@ -502,7 +503,7 @@ def render_lesson_flow() -> None:
         elif stage == "question":
             _render_question(lesson, flow, course_id)
         elif stage == "feedback":
-            _render_feedback(lesson, flow)
+            _render_feedback(lesson, flow, course_id)
         elif stage == "complete":
             _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
         else:
@@ -1223,6 +1224,29 @@ def _render_diagnostic(lesson, course_id) -> None:
         st.error(f"Diagnostic could not be scored: {exc}")
         return
 
+    questions_by_id = {question["id"]: question for question in config["questions"]}
+    for item in result.get("answer_review", []):
+        question = questions_by_id.get(item.get("question_id"))
+        if not question:
+            continue
+        marking = None
+        if "marks_awarded" in item:
+            marking = {
+                "score": item.get("marks_awarded", 0),
+                "max_marks": item.get("max_marks", 1),
+                "marking_points": item.get("marking_points", []),
+            }
+        learning_memory.record_attempt(
+            st.session_state.progress,
+            course_id,
+            lesson["id"],
+            lesson.get("title", lesson["id"]),
+            question,
+            bool(item.get("correct")),
+            marking,
+            source="diagnostic",
+        )
+
     records[lesson["id"]] = result
     prog["started"] = True
     state.mark_persistent_dirty()
@@ -1474,6 +1498,16 @@ def _render_question(
             question,
             is_correct,
         )
+        learning_memory.record_attempt(
+            st.session_state.progress,
+            course_id,
+            lesson["id"],
+            lesson.get("title", lesson["id"]),
+            question,
+            is_correct,
+            marking_result,
+            source="practice",
+        )
 
         # ---------------------------------------------------------------
         # IMPORTANT V1.2 AUTOSAVE HOOK
@@ -1596,6 +1630,7 @@ def _render_question(
 def _render_feedback(
     lesson,
     flow,
+    course_id=None,
 ) -> None:
     """
     Render immediate feedback for the current question.
@@ -1655,6 +1690,20 @@ def _render_feedback(
                     st.caption(point["feedback"])
         st.markdown("**Model explanation**")
         st.write(question.get("explanation", ""))
+
+    if course_id and not is_correct:
+        nudge = learning_memory.feedback_nudge(
+            st.session_state.progress,
+            course_id,
+            question,
+            marking,
+        )
+        if nudge:
+            st.info(
+                f"Learning Fingerprint noticed a repeated snag: {nudge['criterion']} "
+                f"has been missed {nudge['misses']} times across {nudge['seen']} attempts."
+            )
+            st.markdown(f"**Targeted repair:** {nudge['repair']}")
 
     # -----------------------------------------------------------------------
     # Correct-answer sound
