@@ -6,6 +6,7 @@ import streamlit as st
 
 import data
 import logic
+import coach
 
 
 def render():
@@ -19,6 +20,8 @@ def render():
     _render_topic_detail(progress)
     st.markdown("<hr>", unsafe_allow_html=True)
     _render_recommendations(progress)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    coach.render(progress)
     st.markdown("<hr>", unsafe_allow_html=True)
     _render_ai_summary(profile, progress)
 
