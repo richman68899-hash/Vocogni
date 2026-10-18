@@ -25,30 +25,31 @@ class ChemistryCourseStructureTests(unittest.TestCase):
                 self.assertTrue(course.get("subject_label"))
                 self.assertEqual(course["lesson_count"], len(course["lessons"]))
 
-    def test_all_twelve_chemistry_lessons_have_three_screens(self):
+    def test_all_twelve_chemistry_lessons_have_three_screens_and_question_sets(self):
         course = data.get_course("chemistry_9701")
         self.assertEqual(len(course["lessons"]), 12)
         for lesson in course["lessons"]:
             with self.subTest(lesson=lesson["id"]):
                 self.assertTrue(lesson.get("explanation", "").strip())
                 self.assertTrue(lesson.get("worked_example", "").strip())
-                question = lesson.get("interactive_question")
-                self.assertIsInstance(question, dict)
-                self.assertEqual(question["type"], "open_ended")
-                self.assertTrue(question.get("prompt"))
-                self.assertGreater(question.get("max_marks", 0), 0)
-                errors = chemistry_grading.validate_open_response_question(question)
-                self.assertEqual(errors, [])
-                self.assertEqual(
-                    sum(point["marks"] for point in question["marking_points"]),
-                    question["max_marks"],
-                )
+                questions = lesson.get("practice_questions", [])
+                self.assertGreaterEqual(len(questions), 3)
+                self.assertEqual(lesson.get("interactive_question"), questions[0])
+                for question in questions:
+                    self.assertEqual(question["type"], "open_ended")
+                    self.assertTrue(question.get("prompt"))
+                    self.assertGreater(question.get("max_marks", 0), 0)
+                    errors = chemistry_grading.validate_open_response_question(question)
+                    self.assertEqual(errors, [])
+                    self.assertEqual(
+                        sum(point["marks"] for point in question["marking_points"]),
+                        question["max_marks"],
+                    )
 
     def test_question_ids_are_unique_within_course(self):
         ids = []
         for lesson in chemistry_course.LESSONS:
-            question = lesson["interactive_question"]
-            ids.append(question["id"])
+            ids.extend(question["id"] for question in lesson["practice_questions"])
         self.assertEqual(len(ids), len(set(ids)))
 
     def test_diagnostic_pathway_rubrics_are_valid(self):
