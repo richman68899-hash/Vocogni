@@ -117,6 +117,13 @@ def render_course_detail() -> None:
         f"<p class='vc-muted'>{course['short_description']}</p>",
         unsafe_allow_html=True,
     )
+    st.caption(
+        f"{course.get('category_label', 'Other')} · "
+        f"{course.get('subject_label', 'Other')} · "
+        f"{course.get('lesson_count', len(course['lessons']))} lessons · "
+        f"{course.get('level', 'Level not specified')} · "
+        f"{course.get('curriculum', 'General')}"
+    )
 
     st.progress(pct)
 
@@ -718,8 +725,7 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.write(item.get("explanation", ""))
 
     st.caption(
-        "This is a one-time baseline diagnostic. It is the first course item, "
-        "not a replacement for the four learning lessons."
+        "This is a one-time baseline diagnostic. It is separate from the course's learning lessons."
     )
 
 
