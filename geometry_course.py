@@ -397,9 +397,9 @@ LESSONS = [
 COURSE_ENTRY_DIAGNOSTIC = {
     "version": 1,
     "prerequisite_review": (
-        "Review the meaning of angles, basic arithmetic, the difference between "
-        "perimeter and area, and the need to use square units for area. "
-        "Then work through the relevant lesson explanation before retaking practice."
+        "Review angle facts: a straight angle is 180°, angles around a point total "
+        "360°, vertically opposite angles are equal, and triangle angles total "
+        "180°. Then work through the Angles lesson explanation before retrying practice."
     ),
     "questions": [
         {
@@ -417,45 +417,45 @@ COURSE_ENTRY_DIAGNOSTIC = {
             "id": "geometry_entry_d2",
             "type": "mc",
             "stage": "level_1",
-            "skill_tag": "Rectangle perimeter",
-            "prompt": "A rectangle is 5 cm by 3 cm. What is its perimeter?",
-            "options": ["8 cm", "15 cm", "16 cm", "30 cm"],
-            "answer": "16 cm",
-            "explanation": "P = 2(5 + 3) = 16 cm.",
-            "mistake_tag": "Rectangle perimeter",
+            "skill_tag": "Angles on a straight line",
+            "prompt": "One of two angles on a straight line is 67°. What is the other angle?",
+            "options": ["23°", "67°", "113°", "293°"],
+            "answer": "113°",
+            "explanation": "180° − 67° = 113° because angles on a straight line total 180°.",
+            "mistake_tag": "Angles on a straight line",
         },
         {
             "id": "geometry_entry_d3",
             "type": "mc",
             "stage": "level_2",
-            "skill_tag": "Triangle area",
-            "prompt": "A triangle has base 8 cm and perpendicular height 5 cm. What is its area?",
-            "options": ["13 cm²", "20 cm²", "40 cm²", "80 cm²"],
-            "answer": "20 cm²",
-            "explanation": "A = ½ × 8 × 5 = 20 cm².",
-            "mistake_tag": "Triangle area",
+            "skill_tag": "Angles in a triangle",
+            "prompt": "Two angles in a triangle are 52° and 68°. Find the third angle.",
+            "options": ["50°", "60°", "70°", "80°"],
+            "answer": "60°",
+            "explanation": "180° − 52° − 68° = 60°.",
+            "mistake_tag": "Angles in a triangle",
         },
         {
             "id": "geometry_entry_d4",
             "type": "mc",
             "stage": "level_3",
-            "skill_tag": "Composite area",
-            "prompt": "A 10 m by 6 m rectangle has a 2 m by 3 m section removed. What area remains?",
-            "options": ["54 m²", "60 m²", "66 m²", "72 m²"],
-            "answer": "54 m²",
-            "explanation": "The original area is 60 m² and the removed section is 6 m², leaving 54 m².",
-            "mistake_tag": "Composite area",
+            "skill_tag": "Angles around a point",
+            "prompt": "Three angles around a point are 85°, 120°, and 95°. Find the fourth angle.",
+            "options": ["50°", "60°", "70°", "80°"],
+            "answer": "60°",
+            "explanation": "360° − (85° + 120° + 95°) = 60°.",
+            "mistake_tag": "Angles around a point",
         },
         {
             "id": "geometry_entry_d5",
             "type": "mc",
             "stage": "project",
-            "skill_tag": "Geometry in context",
-            "prompt": "An L-shaped courtyard is made by removing a 4 m by 3 m corner from a 12 m by 8 m rectangle. What is its remaining area?",
-            "options": ["72 m²", "84 m²", "88 m²", "96 m²"],
-            "answer": "84 m²",
-            "explanation": "12 × 8 − 4 × 3 = 96 − 12 = 84 m².",
-            "mistake_tag": "Geometry in context",
+            "skill_tag": "Forming angle equations",
+            "prompt": "Two angles on a straight line are 2x and x + 30°. Find x.",
+            "options": ["30°", "40°", "50°", "60°"],
+            "answer": "50°",
+            "explanation": "2x + (x + 30°) = 180°, so 3x = 150° and x = 50°.",
+            "mistake_tag": "Forming angle equations",
         },
     ],
     # Reuse authored lesson questions by ID so the placement route does not
