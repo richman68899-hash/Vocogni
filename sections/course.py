@@ -443,7 +443,7 @@ def render_lesson_flow() -> None:
         return
 
     # Structured lessons across every course share the same three-screen flow.
-    if lesson.get("worked_example") and lesson.get("interactive_question"):
+    if lesson.get("worked_example") and (lesson.get("interactive_question") or lesson.get("practice_questions")):
         if diagnostic_config and diagnostic_result is None:
             st.info("Complete the course-entry diagnostic before starting this lesson.")
             _render_diagnostic(lesson, course_id)
@@ -780,7 +780,11 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
                 if review:
                     st.caption(f"Prerequisite to review: {review}")
 
-        if st.button("Next: Worked example", type="primary", key=f"screen1_next_{lesson['id']}"):
+        next_example_label = (
+            "Next: Post-test instructions" if lesson.get("kind") == "assessment"
+            else "Next: Worked example"
+        )
+        if st.button(next_example_label, type="primary", key=f"screen1_next_{lesson['id']}"):
             history = (
                 st.session_state.progress.get(course_id, {})
                 .get("practice_attempts", {})
@@ -806,12 +810,14 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
         return
 
     if stage == "worked_example":
-        st.markdown("### Screen 2 of 3 — Worked example")
+        screen2_label = "Post-test instructions" if lesson.get("kind") == "assessment" else "Worked example"
+        st.markdown(f"### Screen 2 of 3 — {screen2_label}")
         st.markdown(
             f"<div class='{_box_class(lesson)}'>{lesson.get('worked_example', '')}</div>",
             unsafe_allow_html=True,
         )
-        if st.button("← Back to concept", key=f"screen2_back_{lesson['id']}"):
+        back_to_concept_label = "← Back to overview" if lesson.get("kind") == "assessment" else "← Back to concept"
+        if st.button(back_to_concept_label, key=f"screen2_back_{lesson['id']}"):
             checkpoint = logic.get_lesson_screen_checkpoint(
                 st.session_state.progress, course_id, lesson["id"]
             )
@@ -831,7 +837,8 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
             else:
                 st.error("Screen progress is pending save. Keep the app open and retry saving before leaving.")
 
-        if st.button("Next: Interactive question", type="primary", key=f"screen2_next_{lesson['id']}"):
+        next_practice_label = "Begin post-test" if lesson.get("kind") == "assessment" else "Next: Practice questions"
+        if st.button(next_practice_label, type="primary", key=f"screen2_next_{lesson['id']}"):
             questions, route = _select_structured_questions(lesson, diagnostic_result)
             if not questions:
                 st.error("This lesson needs at least one practice question before it can continue.")
@@ -987,18 +994,23 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             marks = sum(int(item.get("score", int(bool(item.get("correct"))))) for item in results)
             max_marks = sum(int(item.get("max_marks", 1)) for item in results)
             percent = round(marks / max_marks * 100) if max_marks else 0
-            st.markdown("### Lesson checkpoint")
-            st.metric("Open-response marks", f"{marks} / {max_marks}", f"{percent}%")
+            checkpoint_title = "Final Check result" if lesson.get("kind") == "assessment" else "Lesson checkpoint"
+            st.markdown(f"### {checkpoint_title}")
+            marks_label = "Post-test marks" if lesson.get("kind") == "assessment" else "Open-response marks"
+            st.metric(marks_label, f"{marks} / {max_marks}", f"{percent}%")
             st.caption("Marks follow this question's configured practice rubric; they are not an official Cambridge grade.")
             if marks < max_marks:
                 st.info("Review the mark-by-mark feedback before retrying the question.")
         else:
-            st.markdown("### Lesson checkpoint")
-            st.metric("Interactive question", f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
+            checkpoint_title = "Final Check result" if lesson.get("kind") == "assessment" else "Lesson checkpoint"
+            st.markdown(f"### {checkpoint_title}")
+            score_label = "Post-test score" if lesson.get("kind") == "assessment" else "Practice questions"
+            st.metric(score_label, f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
         st.markdown(
             "<div class='vc-card'>"
-            "The concept, worked example, and open-ended practice set are complete. "
-            "Your responses, marking breakdowns, and feedback have been recorded."
+            ("Your post-test responses and feedback have been recorded."
+             if lesson.get("kind") == "assessment" else
+             "The concept, worked example, and practice set are complete. Your responses, marking breakdowns, and feedback have been recorded.")
             "</div>",
             unsafe_allow_html=True,
         )
@@ -1356,7 +1368,8 @@ def _render_question(
     # -----------------------------------------------------------------------
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Practice set")
+        practice_heading = "Post-test questions" if lesson.get("kind") == "assessment" else "Practice set"
+        st.markdown(f"### Screen 3 of 3 — {practice_heading}")
 
     st.markdown(
         f"<span class='vc-muted'>"
@@ -1608,8 +1621,10 @@ def _render_feedback(
     question = questions[idx]
 
     if flow.get("structured_lesson"):
-        st.markdown("### Screen 3 of 3 — Practice set")
-        st.caption(f"Practice question {idx + 1} of {len(questions)}")
+        practice_heading = "Post-test questions" if lesson.get("kind") == "assessment" else "Practice set"
+        st.markdown(f"### Screen 3 of 3 — {practice_heading}")
+        question_label = "Post-test question" if lesson.get("kind") == "assessment" else "Practice question"
+        st.caption(f"{question_label} {idx + 1} of {len(questions)}")
         st.markdown(f"#### {question['prompt']}")
         st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
