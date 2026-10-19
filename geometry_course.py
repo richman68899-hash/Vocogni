@@ -59,7 +59,7 @@ def _open_question(qid, prompt, answer, explanation, skill, points):
 
 
 def _lesson(number, title, explanation, worked_example, questions, *, kind="standard"):
-    return {
+    lesson = {
         "id": f"geometry_l{number}",
         "title": title,
         "kind": kind,
@@ -67,6 +67,12 @@ def _lesson(number, title, explanation, worked_example, questions, *, kind="stan
         "worked_example": worked_example,
         "practice_questions": questions,
     }
+    # Keep the existing single-question lesson schema available for compatibility;
+    # the current structured UI uses practice_questions when that list is present.
+    fallback_question = dict(questions[0])
+    fallback_question["id"] = f"geometry_l{number}_screen3"
+    lesson["interactive_question"] = fallback_question
+    return lesson
 
 
 LESSONS = [
@@ -385,6 +391,86 @@ LESSONS = [
         kind="assessment",
     ),
 ]
+
+
+
+COURSE_ENTRY_DIAGNOSTIC = {
+    "version": 1,
+    "prerequisite_review": (
+        "Review the meaning of angles, basic arithmetic, the difference between "
+        "perimeter and area, and the need to use square units for area. "
+        "Then work through the relevant lesson explanation before retaking practice."
+    ),
+    "questions": [
+        {
+            "id": "geometry_entry_d1",
+            "type": "mc",
+            "stage": "prerequisite",
+            "skill_tag": "Angle arithmetic",
+            "prompt": "Angles on a straight line add to:",
+            "options": ["90°", "180°", "270°", "360°"],
+            "answer": "180°",
+            "explanation": "A straight angle measures 180°.",
+            "mistake_tag": "Angle arithmetic",
+        },
+        {
+            "id": "geometry_entry_d2",
+            "type": "mc",
+            "stage": "level_1",
+            "skill_tag": "Rectangle perimeter",
+            "prompt": "A rectangle is 5 cm by 3 cm. What is its perimeter?",
+            "options": ["8 cm", "15 cm", "16 cm", "30 cm"],
+            "answer": "16 cm",
+            "explanation": "P = 2(5 + 3) = 16 cm.",
+            "mistake_tag": "Rectangle perimeter",
+        },
+        {
+            "id": "geometry_entry_d3",
+            "type": "mc",
+            "stage": "level_2",
+            "skill_tag": "Triangle area",
+            "prompt": "A triangle has base 8 cm and perpendicular height 5 cm. What is its area?",
+            "options": ["13 cm²", "20 cm²", "40 cm²", "80 cm²"],
+            "answer": "20 cm²",
+            "explanation": "A = ½ × 8 × 5 = 20 cm².",
+            "mistake_tag": "Triangle area",
+        },
+        {
+            "id": "geometry_entry_d4",
+            "type": "mc",
+            "stage": "level_3",
+            "skill_tag": "Composite area",
+            "prompt": "A 10 m by 6 m rectangle has a 2 m by 3 m section removed. What area remains?",
+            "options": ["54 m²", "60 m²", "66 m²", "72 m²"],
+            "answer": "54 m²",
+            "explanation": "The original area is 60 m² and the removed section is 6 m², leaving 54 m².",
+            "mistake_tag": "Composite area",
+        },
+        {
+            "id": "geometry_entry_d5",
+            "type": "mc",
+            "stage": "project",
+            "skill_tag": "Geometry in context",
+            "prompt": "An L-shaped courtyard is made by removing a 4 m by 3 m corner from a 12 m by 8 m rectangle. What is its remaining area?",
+            "options": ["72 m²", "84 m²", "88 m²", "96 m²"],
+            "answer": "84 m²",
+            "explanation": "12 × 8 − 4 × 3 = 96 − 12 = 84 m².",
+            "mistake_tag": "Geometry in context",
+        },
+    ],
+    # Reuse authored lesson questions by ID so the placement route does not
+    # silently expand any requested five-question lesson into a longer set.
+    "pathways": {
+        "level_2": {"questions": [dict(LESSONS[0]["practice_questions"][3])]},
+        "level_3": {"questions": [dict(LESSONS[0]["practice_questions"][4])]},
+        "project": {
+            "intro": "Apply angle rules in context, then calculate perimeter and area with appropriate units.",
+            "questions": [dict(LESSONS[0]["practice_questions"][4])],
+        },
+    },
+}
+
+LESSONS[0]["diagnostic"] = COURSE_ENTRY_DIAGNOSTIC
 
 
 GEOMETRY_COURSE = {
