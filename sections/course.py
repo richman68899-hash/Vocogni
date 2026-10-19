@@ -1006,12 +1006,13 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             st.markdown(f"### {checkpoint_title}")
             score_label = "Post-test score" if lesson.get("kind") == "assessment" else "Practice questions"
             st.metric(score_label, f"{correct} / {total}", f"{round(correct / total * 100) if total else 0}%")
+        completion_message = (
+            "Your post-test responses and feedback have been recorded."
+            if lesson.get("kind") == "assessment"
+            else "The concept, worked example, and practice set are complete. Your responses, marking breakdowns, and feedback have been recorded."
+        )
         st.markdown(
-            "<div class='vc-card'>"
-            ("Your post-test responses and feedback have been recorded."
-             if lesson.get("kind") == "assessment" else
-             "The concept, worked example, and practice set are complete. Your responses, marking breakdowns, and feedback have been recorded.")
-            "</div>",
+            f"<div class='vc-card'>{completion_message}</div>",
             unsafe_allow_html=True,
         )
         review_col, back_col = st.columns(2)
