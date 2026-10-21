@@ -19,6 +19,8 @@ def render():
     st.markdown("<hr>", unsafe_allow_html=True)
     _render_topic_detail(progress)
     st.markdown("<hr>", unsafe_allow_html=True)
+    _render_mastery_receipt(progress)
+    st.markdown("<hr>", unsafe_allow_html=True)
     _render_recommendations(progress)
     st.markdown("<hr>", unsafe_allow_html=True)
     coach.render(progress)
@@ -150,6 +152,108 @@ def _render_topic_detail(progress):
             st.markdown(f"- {tag} ({count})")
 
 
+
+
+def _render_mastery_receipt(progress):
+    """Render question-level learning evidence for the selected course."""
+    courses = data.all_courses_in_order()
+    if not courses:
+        return
+
+    labels = [course.get("topic_label", course.get("title", course["id"])) for course in courses]
+    selected_label = st.session_state.get("progress_topic_select", labels[0])
+    course = next(
+        (
+            item for item in courses
+            if item.get("topic_label", item.get("title", item["id"])) == selected_label
+        ),
+        courses[0],
+    )
+    receipt = logic.mastery_receipt_for_course(progress, course["id"])
+
+    st.markdown("<h3>Mastery Receipt</h3>", unsafe_allow_html=True)
+    st.caption(
+        f"A course-specific summary built automatically from {course.get('title', course['id'])}'s "
+        "published questions, saved practice attempts, and diagnostic reviews. "
+        "No course-specific receipt configuration is required."
+    )
+
+    if not receipt or not receipt["skills"]:
+        st.info("This course does not yet expose question-level skills that can be tracked.")
+        return
+
+    counts = receipt["status_counts"]
+    columns = st.columns(4)
+    with columns[0]:
+        _stat_block("Skills tracked", receipt["skills_total"])
+    with columns[1]:
+        _stat_block("Need review", counts.get("Needs review", 0))
+    with columns[2]:
+        _stat_block("Developing", counts.get("Developing", 0))
+    with columns[3]:
+        _stat_block("Promising evidence", counts.get("Promising evidence", 0))
+
+    st.markdown("**Recommended next action**")
+    st.write(receipt["next_action"])
+
+    status_order = {
+        "Needs review": 0,
+        "Developing": 1,
+        "Not tested": 2,
+        "Promising evidence": 3,
+    }
+    skills = sorted(
+        receipt["skills"],
+        key=lambda item: status_order.get(item["status"], 4),
+    )
+    first_review_expanded = True
+
+    st.markdown("#### Skill-by-skill evidence")
+    for item in skills:
+        status = item["status"]
+        expanded = status == "Needs review" and first_review_expanded
+        if expanded:
+            first_review_expanded = False
+        with st.expander(f"{item['skill']} — {status}", expanded=expanded):
+            if item["lesson_titles"]:
+                st.caption("Course content: " + ", ".join(item["lesson_titles"]))
+
+            if item["practice_performance_percent"] is None:
+                st.write("Practice performance: no question-level practice answers recorded.")
+            else:
+                st.write(
+                    f"Practice performance: {item['practice_performance_percent']}% "
+                    f"across {item['practice_answers']} answered item(s), with "
+                    f"{item['distinct_practice_questions']} distinct question ID(s)."
+                )
+                latest = item["latest_practice_percent"]
+                if latest is not None:
+                    st.caption(f"Latest recorded item: {latest}% performance.")
+                st.caption(
+                    f"Full-credit answers: {item['full_credit_answers']} of "
+                    f"{item['practice_answers']} answered item(s)."
+                )
+
+            if item["diagnostic_performance_percent"] is not None:
+                st.caption(
+                    f"Entry diagnostic baseline: {item['diagnostic_performance_percent']}% "
+                    f"across {item['diagnostic_items']} item(s). A diagnostic is baseline "
+                    "evidence, not proof of current mastery."
+                )
+            if item["diagnostic_flagged"]:
+                st.warning(
+                    "The entry diagnostic flagged this skill. Current practice evidence "
+                    "takes priority once practice has been recorded."
+                )
+            if item["legacy_error_count"]:
+                st.caption(
+                    f"Older aggregate error counter: {item['legacy_error_count']} error(s). "
+                    "This counter has no item-level timeline."
+                )
+
+            st.write("**Next action:** " + item["next_action"])
+
+    st.caption(receipt["evidence_note"])
 
 def _render_lesson_diagnostics(progress):
     courses = data.all_courses_in_order()
