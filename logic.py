@@ -181,16 +181,17 @@ def _mastery_question_skill(question, lesson):
 
 
 def _mastery_result_ratio(result):
-    """Return an item's earned fraction, handling both marked and binary questions."""
+    """Return an item's earned fraction, handling marked and binary schemas."""
     if not isinstance(result, dict):
         return 0.0
-    try:
-        possible = float(result.get("max_marks"))
-        earned = float(result.get("score"))
-        if possible > 0:
-            return min(1.0, max(0.0, earned / possible))
-    except (TypeError, ValueError):
-        pass
+    for earned_field in ("score", "marks_awarded"):
+        try:
+            possible = float(result.get("max_marks"))
+            earned = float(result.get(earned_field))
+            if possible > 0:
+                return min(1.0, max(0.0, earned / possible))
+        except (TypeError, ValueError):
+            continue
     return 1.0 if bool(result.get("correct")) else 0.0
 
 
