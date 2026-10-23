@@ -7,6 +7,8 @@ import streamlit as st
 import data
 import logic
 import coach
+import learning_maintenance
+import state
 
 
 def render():
@@ -16,6 +18,8 @@ def render():
     profile = st.session_state.profile
 
     _render_overview(progress)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    _render_learning_maintenance(progress, profile)
     st.markdown("<hr>", unsafe_allow_html=True)
     _render_topic_detail(progress)
     st.markdown("<hr>", unsafe_allow_html=True)
@@ -90,6 +94,171 @@ def _render_overview(progress):
 
 
 _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge--warn", "Developing": ""}
+
+
+
+def _start_maintenance_lesson(course_id, lesson_id):
+    """Open an existing lesson as a fresh review attempt, without resetting history."""
+    if not data.get_course(course_id):
+        return
+    lesson, _ = data.get_lesson(course_id, lesson_id)
+    if not lesson:
+        return
+    st.session_state.nav = "Browse"
+    st.session_state.current_course = course_id
+    st.session_state.current_lesson = lesson_id
+    st.session_state.lesson_flow = state.new_lesson_flow(course_id, lesson_id)
+    st.rerun()
+
+
+def _render_learning_maintenance(progress, profile):
+    """Render meaningful learning consistency and the spaced-review queue."""
+    st.markdown("<h3>Learning Rhythm</h3>", unsafe_allow_html=True)
+    st.caption(
+        "Build a sustainable learning routine. Only a completed practice set or "
+        "diagnostic counts as a learning day; opening Vocogni alone does not."
+    )
+
+    settings = st.session_state.get("settings", {})
+    if not isinstance(settings, dict):
+        settings = {}
+        st.session_state.settings = settings
+    saved_target = settings.get(
+        "weekly_learning_goal_days",
+        learning_maintenance.DEFAULT_WEEKLY_TARGET,
+    )
+    try:
+        saved_target = int(saved_target)
+    except (TypeError, ValueError):
+        saved_target = learning_maintenance.DEFAULT_WEEKLY_TARGET
+    if saved_target not in learning_maintenance.WEEKLY_TARGET_OPTIONS:
+        saved_target = learning_maintenance.DEFAULT_WEEKLY_TARGET
+
+    selected_target = st.selectbox(
+        "Weekly learning target",
+        options=list(learning_maintenance.WEEKLY_TARGET_OPTIONS),
+        index=list(learning_maintenance.WEEKLY_TARGET_OPTIONS).index(saved_target),
+        format_func=lambda days: f"{days} learning days",
+        key="maintenance_weekly_target_select",
+        help="Choose a sustainable target. You do not need to study every day.",
+    )
+    if settings.get("weekly_learning_goal_days") != selected_target:
+        settings["weekly_learning_goal_days"] = selected_target
+        state.mark_persistent_dirty()
+
+    timezone_label = profile.get("timezone", "Prefer not to say") if isinstance(profile, dict) else "Prefer not to say"
+    summary = learning_maintenance.build_maintenance_summary(
+        progress,
+        timezone_label=timezone_label,
+        weekly_target=selected_target,
+    )
+
+    row = st.columns(4)
+    with row[0]:
+        _stat_block("Current streak", f"{summary['current_streak']} day(s)")
+    with row[1]:
+        _stat_block("Longest streak", f"{summary['longest_streak']} day(s)")
+    with row[2]:
+        _stat_block(
+            "This week",
+            f"{summary['active_days_this_week']} / {summary['weekly_target']} days",
+        )
+    with row[3]:
+        _stat_block("Learning today", "Complete" if summary["today_complete"] else "Not yet")
+
+    if summary["week_goal_met"]:
+        st.caption(
+            "Weekly target reached. Any further practice is optional; the aim is "
+            "consistent learning, not maximizing time spent in the app."
+        )
+    else:
+        remaining = max(0, summary["weekly_target"] - summary["active_days_this_week"])
+        st.caption(
+            f"{remaining} more learning day(s) to reach your weekly target. "
+            "A missed day does not erase your progress."
+        )
+
+    week_status = "   ·   ".join(
+        f"{day['label']} {'✓' if day['active'] else ('—' if not day['future'] else ' ')}"
+        for day in summary["week_day_cards"]
+    )
+    st.markdown(f"**This week's activity**")
+    st.write(week_status)
+
+    if summary["today_complete"]:
+        st.caption(
+            "A meaningful learning action is already saved for today. You can stop here "
+            "and return when it suits your schedule."
+        )
+    elif summary["current_streak"] > 0:
+        st.write(
+            f"Your {summary['current_streak']}-day streak is still in reach. Complete "
+            "one practice set or diagnostic today to continue it."
+        )
+    elif summary["last_active_day"]:
+        st.write(
+            "Welcome back. Your earlier learning history is still saved; a learning "
+            "session today starts a new streak without resetting that history."
+        )
+    else:
+        st.write(
+            "Start with one practice set or diagnostic. That creates your first "
+            "recorded learning day."
+        )
+
+    st.markdown("#### Spaced review")
+    st.caption(
+        "Reviews bring earlier learning back after a gap. Lower recent performance "
+        "is scheduled sooner; stronger practice is spaced farther apart."
+    )
+
+    if summary["due_reviews"]:
+        for item in summary["due_reviews"]:
+            left, right = st.columns([4, 1])
+            with left:
+                st.markdown(f"**{item['lesson_title']}**")
+                overdue = item["days_overdue"]
+                detail = f"{item['course_title']} · due {item['due_date'].strftime('%d %b')}"
+                if overdue:
+                    detail += f" · {overdue} day(s) overdue"
+                if item["latest_percent"] is not None:
+                    detail += f" · latest result {item['latest_percent']}%"
+                st.caption(detail)
+            with right:
+                if st.button(
+                    "Review",
+                    key=f"maintenance_review_{item['course_id']}_{item['lesson_id']}",
+                    use_container_width=True,
+                ):
+                    _start_maintenance_lesson(item["course_id"], item["lesson_id"])
+        if summary["total_due_reviews"] > len(summary["due_reviews"]):
+            st.caption(
+                f"{summary['total_due_reviews'] - len(summary['due_reviews'])} more review(s) "
+                "are due. VOCogni shows the first few so the queue stays manageable."
+            )
+    elif summary["upcoming_reviews"]:
+        item = summary["upcoming_reviews"][0]
+        st.caption(
+            f"No review is due yet. Next: {item['lesson_title']} "
+            f"({item['course_title']}) on {item['due_date'].strftime('%d %b')}."
+        )
+    else:
+        st.caption(
+            "No review is scheduled yet. Complete a practice set in a lesson to create "
+            "a follow-up review date."
+        )
+
+    st.caption(
+        summary["review_schedule_note"]
+        + " Days follow your Profile timezone; UTC is used when no UTC offset is selected."
+    )
+    if not summary["today_complete"] and not summary["due_reviews"]:
+        if st.button("Choose a course", key="maintenance_browse_courses"):
+            st.session_state.nav = "Browse"
+            st.session_state.current_course = None
+            st.session_state.current_lesson = None
+            st.session_state.lesson_flow = None
+            st.rerun()
 
 
 def _render_topic_detail(progress):
