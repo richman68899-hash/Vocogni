@@ -24,6 +24,7 @@ from typing import Any
 import streamlit as st
 
 import data
+import learning_rhythm
 import state
 
 
@@ -144,6 +145,9 @@ def render() -> None:
 
     else:
         _render_read_only(profile)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+    learning_rhythm.render(st.session_state.progress, profile)
 
 
 # ===========================================================================
