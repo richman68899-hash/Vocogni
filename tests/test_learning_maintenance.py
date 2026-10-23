@@ -278,5 +278,29 @@ class LearningMaintenanceTests(unittest.TestCase):
 
 
 
+    def test_activity_days_in_period_supports_a_one_day_weekly_goal(self):
+        active_dates = {date(2026, 10, 1), date(2026, 10, 21)}
+        self.assertEqual(
+            maintenance.activity_days_in_period(active_dates, "week", TODAY),
+            1,
+        )
+
+    def test_activity_days_in_period_counts_current_month_but_not_other_months(self):
+        active_dates = {
+            date(2026, 9, 30),
+            date(2026, 10, 1),
+            date(2026, 10, 21),
+            date(2026, 10, 24),
+        }
+        self.assertEqual(
+            maintenance.activity_days_in_period(active_dates, "month", TODAY),
+            2,
+        )
+
+    def test_activity_days_in_period_rejects_unknown_period(self):
+        with self.assertRaises(ValueError):
+            maintenance.activity_days_in_period({TODAY}, "year", TODAY)
+
+
 if __name__ == "__main__":
     unittest.main()
