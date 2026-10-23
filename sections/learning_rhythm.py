@@ -138,7 +138,7 @@ def _render_learning_maintenance(progress, profile):
             "consistent learning, not maximizing time spent in the app."
         )
     else:
-        remaining = max(0, summary["weekly_target"] - summary["active_days_this_week"])
+        remaining = max(0, selected_target - period_active_days)
         st.caption(
             f"{remaining} more learning {_plural_word(remaining, 'day')} to reach your {goal_period_label} target. "
             "A missed day does not erase your progress."
@@ -184,7 +184,7 @@ def _render_learning_maintenance(progress, profile):
                 overdue = item["days_overdue"]
                 detail = f"{item['course_title']} · due {item['due_date'].strftime('%d %b')}"
                 if overdue:
-                    detail += f" · {overdue} {_plural_word(overdue, 'day')} overdue
+                    detail += f" · {overdue} {_plural_word(overdue, 'day')} overdue"
                 if item["latest_percent"] is not None:
                     detail += f" · latest result {item['latest_percent']}%"
                 st.caption(detail)
