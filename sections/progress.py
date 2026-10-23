@@ -115,8 +115,9 @@ def _render_learning_maintenance(progress, profile):
     """Render meaningful learning consistency and the spaced-review queue."""
     st.markdown("<h3>Learning Rhythm</h3>", unsafe_allow_html=True)
     st.caption(
-        "Build a sustainable learning routine. Only a completed practice set or "
-        "diagnostic counts as a learning day; opening Vocogni alone does not."
+        "Build a sustainable learning routine. A saved answer with feedback, a "
+        "completed practice set, or a diagnostic counts as a learning day; simply "
+        "opening Vocogni or viewing a lesson does not."
     )
 
     settings = st.session_state.get("settings", {})
