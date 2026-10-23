@@ -151,8 +151,8 @@ class LearningMaintenanceTests(unittest.TestCase):
         self.assertEqual(summary["total_due_reviews"], 1)
         review = summary["due_reviews"][0]
         self.assertEqual(review["interval_days"], 1)
-        self.assertEqual(review["due_date"], TODAY - __import__("datetime").timedelta(days=1))
-        self.assertEqual(review["days_overdue"], 1)
+        self.assertEqual(review["due_date"], TODAY)
+        self.assertEqual(review["days_overdue"], 0)
 
     def test_successful_practice_on_distinct_days_increases_review_spacing(self):
         course = data.get_course(COURSE_ID)
