@@ -237,6 +237,46 @@ class LearningMaintenanceTests(unittest.TestCase):
         )
         self.assertEqual(maintenance.activity_dates(progress, "UTC+0"), set())
 
+    def test_saved_answer_counts_even_if_the_learner_leaves_before_finishing_the_set(self):
+        progress = _progress(
+            checkpoints={
+                "fractions_l1": {
+                    "updated_at": "2026-10-23T12:00:00+00:00",
+                    "completed": False,
+                    "screen_3_submitted": True,
+                    "results": [{"question_id": "q1", "correct": False}],
+                }
+            },
+        )
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 23)},
+        )
+        summary = maintenance.build_maintenance_summary(
+            progress, timezone_label="UTC+0", today=TODAY
+        )
+        self.assertTrue(summary["today_complete"])
+        # An unfinished attempt creates a learning day, not a spaced-review item.
+        self.assertEqual(summary["total_due_reviews"], 0)
+
+    def test_submitted_question_counts_even_when_an_older_completed_attempt_exists(self):
+        progress = _progress(
+            attempts=[_attempt("2026-10-20", question_id="q1")],
+            checkpoints={
+                "fractions_l1": {
+                    "updated_at": "2026-10-23T09:00:00+00:00",
+                    "completed": False,
+                    "screen_3_submitted": True,
+                    "results": [{"question_id": "q2", "correct": True}],
+                }
+            },
+        )
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 20), date(2026, 10, 23)},
+        )
+
+
 
 if __name__ == "__main__":
     unittest.main()
