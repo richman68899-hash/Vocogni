@@ -147,9 +147,9 @@ def _completed_attempt_events(course_progress, tz):
 def activity_dates(progress, timezone_label="Prefer not to say"):
     """Return unique local dates with meaningful completed learning activity.
 
-    A day counts when a learner completes a practice set with recorded answers,
-    submits a diagnostic, or has a completed screen checkpoint with results.
-    Merely opening the application or viewing content does not count.
+    A day counts when a learner submits an answer that is saved with feedback,
+    completes a practice set, or submits a diagnostic. Opening the app or merely
+    viewing content does not count.
     """
     tz = timezone_from_profile(timezone_label)
     active_dates = set()
@@ -157,6 +157,21 @@ def activity_dates(progress, timezone_label="Prefer not to say"):
         attempts = _completed_attempt_events(course_progress, tz)
         for lesson_attempts in attempts.values():
             active_dates.update(item["local_date"] for item in lesson_attempts)
+
+        # A saved answer with feedback is meaningful activity even if the
+        # learner leaves before finishing the entire practice set. Keep this
+        # separate from review scheduling: incomplete attempts count as
+        # activity, but do not create a spaced-review due date.
+        checkpoints = course_progress.get("lesson_screen_progress", {})
+        if isinstance(checkpoints, dict):
+            for checkpoint in checkpoints.values():
+                if not isinstance(checkpoint, dict):
+                    continue
+                if not checkpoint.get("screen_3_submitted") or not _valid_results(checkpoint):
+                    continue
+                active_day = _local_date(checkpoint.get("updated_at"), tz)
+                if active_day is not None:
+                    active_dates.add(active_day)
 
         diagnostics = course_progress.get("diagnostics", {})
         if isinstance(diagnostics, dict):
@@ -320,7 +335,7 @@ def build_maintenance_summary(
             "intervals are a practical starting heuristic, not a validated optimal schedule."
         ),
         "activity_definition": (
-            "A learning day requires a completed practice set with saved answers or a "
-            "completed diagnostic. Opening the app alone does not count."
+            "A learning day requires a saved answer with feedback, a completed practice "
+            "set, or a completed diagnostic. Opening the app alone does not count."
         ),
     }
