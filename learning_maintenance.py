@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import data
 
-WEEKLY_TARGET_OPTIONS = (2, 3, 4, 5)
+WEEKLY_TARGET_OPTIONS = tuple(range(1, 8))
 DEFAULT_WEEKLY_TARGET = 3
 REVIEW_INTERVALS_DAYS = (1, 3, 7)
 
@@ -181,6 +181,32 @@ def activity_dates(progress, timezone_label="Prefer not to say"):
     active_dates.discard(None)
     return active_dates
 
+
+
+def activity_days_in_period(active_dates, period="week", today=None):
+    """Count unique active dates in the current calendar week or month."""
+    if today is None:
+        today = date.today()
+    elif isinstance(today, datetime):
+        today = today.date()
+    if not isinstance(today, date):
+        raise TypeError("today must be a date or datetime")
+
+    if period == "week":
+        start = today - timedelta(days=today.weekday())
+        return len({
+            active_day for active_day in active_dates
+            if isinstance(active_day, date) and start <= active_day <= today
+        })
+    if period == "month":
+        return len({
+            active_day for active_day in active_dates
+            if isinstance(active_day, date)
+            and active_day.year == today.year
+            and active_day.month == today.month
+            and active_day <= today
+        })
+    raise ValueError("period must be 'week' or 'month'")
 
 def _longest_streak(sorted_dates):
     longest = run = 0
