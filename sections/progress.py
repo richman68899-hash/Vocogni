@@ -142,7 +142,7 @@ def _render_learning_maintenance(progress, profile):
         key="maintenance_weekly_target_select",
         help="Choose a sustainable target. You do not need to study every day.",
     )
-    if settings.get("weekly_learning_goal_days") != selected_target:
+    if saved_target != selected_target:
         settings["weekly_learning_goal_days"] = selected_target
         state.mark_persistent_dirty()
 
