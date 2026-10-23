@@ -1,4 +1,4 @@
-"""Basic Geometry course for VOCogni.
+"""Basic Geometry course for Vocogni.
 
 A compact learning path covering angles, perimeter, area, mixed application,
 and a cumulative post-test. Content stays data-only; sections/course.py owns UI.
