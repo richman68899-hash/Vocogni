@@ -47,6 +47,7 @@ import math_grading
 import quadratics_visuals
 import logic
 import state
+from . import revision_sprint as revision_sprint_section
 
 
 # ===========================================================================
@@ -206,6 +207,10 @@ def render_course_detail() -> None:
             )
         else:
             st.info("Complete the course-entry diagnostic to finish this course.")
+
+    # Revision Sprints reuse authored questions, existing grading rules, and
+    # the current durable practice-history schema.
+    revision_sprint_section.render(course, progress)
 
 
 def _render_course_diagnostic_row(course_id, progress) -> None:
