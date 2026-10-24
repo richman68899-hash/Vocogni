@@ -19,7 +19,7 @@ MAX_POINTS_PER_STROKE = 3000
 MAX_TEXT_LENGTH = 5000
 BACKGROUNDS = {"plain", "grid", "dots", "dark"}
 OBJECT_TYPES = {"stroke", "shape", "text", "sticky"}
-SHAPES = {"rect", "ellipse", "line", "arrow"}
+SHAPES = {"rect", "ellipse", "triangle", "line", "arrow"}
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
@@ -240,6 +240,10 @@ def page_to_svg(page_value: Any) -> str:
                 parts.append(f'<rect x="{left}" y="{top}" width="{rect_w}" height="{rect_h}" fill="none" stroke="{color}" stroke-width="{width}"/>')
             elif obj["shape"] == "ellipse":
                 parts.append(f'<ellipse cx="{x+w/2}" cy="{y+h/2}" rx="{abs(w)/2}" ry="{abs(h)/2}" fill="none" stroke="{color}" stroke-width="{width}"/>')
+            elif obj["shape"] == "triangle":
+                parts.append(f'<path d="M{x+w/2} {y} L{x+w} {y+h} L{x} {y+h} Z" fill="none" stroke="{color}" stroke-width="{width}"/>')
+            elif obj["shape"] == "arrow":
+                parts.append(f'<path d="M{x} {y} L{x+w} {y+h}" fill="none" stroke="{color}" stroke-width="{width}"/>')
             else:
                 parts.append(f'<path d="M{x} {y} L{x+w} {y+h}" fill="none" stroke="{color}" stroke-width="{width}"/>')
         elif obj["type"] == "sticky":
