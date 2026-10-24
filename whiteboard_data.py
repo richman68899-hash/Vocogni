@@ -236,7 +236,8 @@ def page_to_svg(page_value: Any) -> str:
         elif obj["type"] == "shape":
             x, y, w, h = (obj[k] for k in ("x", "y", "w", "h"))
             if obj["shape"] == "rect":
-                parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="none" stroke="{color}" stroke-width="{width}"/>')
+                left, top, rect_w, rect_h = min(x, x + w), min(y, y + h), abs(w), abs(h)
+                parts.append(f'<rect x="{left}" y="{top}" width="{rect_w}" height="{rect_h}" fill="none" stroke="{color}" stroke-width="{width}"/>')
             elif obj["shape"] == "ellipse":
                 parts.append(f'<ellipse cx="{x+w/2}" cy="{y+h/2}" rx="{abs(w)/2}" ry="{abs(h)/2}" fill="none" stroke="{color}" stroke-width="{width}"/>')
             else:
