@@ -83,6 +83,36 @@ class WhiteboardDataTests(unittest.TestCase):
         self.assertLessEqual(total_objects, whiteboard_data.MAX_OBJECTS_PER_BOARD)
         self.assertLessEqual(total_text, whiteboard_data.MAX_TEXT_CHARS_PER_BOARD)
 
+    def test_learner_wide_budgets_bound_multiple_boards(self):
+        boards = []
+        for board_index in range(6):
+            board = whiteboard_data.create_board(title=f"Board {board_index}")
+            board["pages"] = []
+            for page_index in range(5):
+                page = whiteboard_data.create_page(f"Page {page_index}", "plain")
+                page["objects"] = [
+                    {"id": f"{board_index}-{page_index}-{item}", "type": "text",
+                     "x": 0, "y": 20, "text": "x" * 400,
+                     "color": "#273142", "fontSize": 20}
+                    for item in range(200)
+                ]
+                board["pages"].append(page)
+
+            boards.append(board)
+
+        cleaned = whiteboard_data.sanitize_boards(boards)
+        objects = [obj for board in cleaned for page in board["pages"] for obj in page["objects"]]
+        text_objects = [obj for obj in objects if obj.get("type") in {"text", "sticky"}]
+        self.assertLessEqual(len(objects), whiteboard_data.MAX_OBJECTS_PER_LEARNER)
+        self.assertLessEqual(
+            sum(len(obj.get("text", "")) for obj in text_objects),
+            whiteboard_data.MAX_TEXT_CHARS_PER_LEARNER,
+        )
+        self.assertLessEqual(
+            sum(len(obj.get("points", [])) for obj in objects if obj.get("type") == "stroke"),
+            whiteboard_data.MAX_POINTS_PER_LEARNER,
+        )
+
     def test_limits_bound_large_inputs(self):
         raw = whiteboard_data.create_page()
         raw["objects"] = [
