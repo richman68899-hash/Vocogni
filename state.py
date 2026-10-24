@@ -189,6 +189,7 @@ def init_session_state() -> None:
         "milestones": [],
         "next_milestone_id": 1,
         "whiteboards": [],
+        "next_whiteboard_id": 1,
         "settings": _default_settings(),
 
         # ------------------------------------------------------------------
@@ -448,6 +449,9 @@ def _build_persistent_state() -> dict[str, Any]:
         ),
         "whiteboards": deepcopy(
             st.session_state.whiteboards
+        ),
+        "next_whiteboard_id": int(
+            st.session_state.next_whiteboard_id
         ),
         "settings": deepcopy(
             st.session_state.settings
@@ -788,9 +792,14 @@ def load_saved_learner_state() -> None:
         for board in st.session_state.whiteboards:
             if board.get("folder_id") not in valid_folder_ids_for_boards:
                 board["folder_id"] = None
+        saved_next_whiteboard_id = saved.get("next_whiteboard_id", 1)
         st.session_state.next_whiteboard_id = max(
+            saved_next_whiteboard_id
+            if isinstance(saved_next_whiteboard_id, int)
+            and not isinstance(saved_next_whiteboard_id, bool)
+            and saved_next_whiteboard_id >= 1
+            else 1,
             whiteboard_logic.next_whiteboard_id(st.session_state.whiteboards),
-            1,
         )
 
         # Notes referencing a deleted/unknown folder are returned to Unfiled.
