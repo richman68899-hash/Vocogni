@@ -73,6 +73,7 @@ from typing import Any
 import streamlit as st
 
 import data
+import milestones as milestone_logic
 import persistence
 
 
@@ -184,6 +185,8 @@ def init_session_state() -> None:
         "notes": [],
         "note_folders": [],
         "next_note_folder_id": 1,
+        "milestones": [],
+        "next_milestone_id": 1,
         "settings": _default_settings(),
 
         # ------------------------------------------------------------------
@@ -434,6 +437,12 @@ def _build_persistent_state() -> dict[str, Any]:
         ),
         "next_note_folder_id": int(
             st.session_state.next_note_folder_id
+        ),
+        "milestones": deepcopy(
+            st.session_state.milestones
+        ),
+        "next_milestone_id": int(
+            st.session_state.next_milestone_id
         ),
         "settings": deepcopy(
             st.session_state.settings
@@ -743,6 +752,21 @@ def load_saved_learner_state() -> None:
             and saved_next_folder_id >= 1
             else 1,
             max_folder_id + 1,
+        )
+
+        # Milestones are stored inside the existing learner JSON bundle.
+        # Missing values from older accounts safely migrate to an empty list.
+        st.session_state.milestones = milestone_logic.sanitize_milestones(
+            saved.get("milestones", [])
+        )
+        saved_next_milestone_id = saved.get("next_milestone_id", 1)
+        st.session_state.next_milestone_id = max(
+            saved_next_milestone_id
+            if isinstance(saved_next_milestone_id, int)
+            and not isinstance(saved_next_milestone_id, bool)
+            and saved_next_milestone_id >= 1
+            else 1,
+            milestone_logic.next_milestone_id(st.session_state.milestones),
         )
 
         # Notes referencing a deleted/unknown folder are returned to Unfiled.

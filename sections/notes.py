@@ -12,19 +12,9 @@ from typing import Any
 
 import streamlit as st
 import state
+import milestones as milestone_logic
 
-PALETTE = {
-    "Red": "#D94A4A",
-    "Orange": "#E58A32",
-    "Yellow": "#D9B52B",
-    "Green": "#399568",
-    "Cyan": "#2BA6B4",
-    "Blue": "#477ED1",
-    "Pink": "#D66D9B",
-    "Purple": "#8D6BC1",
-    "Grey": "#858B95",
-    "System": None,
-}
+PALETTE = milestone_logic.PALETTE
 
 
 def _now() -> str:
@@ -91,9 +81,21 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 
 def render() -> None:
     st.markdown("## Notes")
-    st.caption("Keep notes organized in simple, color-coded folders.")
+    st.caption("Organize notes in folders or turn your plans into trackable milestones.")
     if st.session_state.get("note_editor_open", False):
         _render_editor()
+        return
+
+    workspace = st.radio(
+        "Notes workspace",
+        ["Notes & folders", "Learning milestones"],
+        horizontal=True,
+        key="notes_workspace_view",
+        label_visibility="collapsed",
+    )
+    st.divider()
+    if workspace == "Learning milestones":
+        _render_milestones()
         return
 
     selected_folder_id = st.session_state.get("selected_note_folder_id")
@@ -342,3 +344,350 @@ def _render_editor() -> None:
         st.session_state.selected_note_id = None
         st.info("Note deleted. Saving changes…")
         st.rerun()
+
+
+# ===========================================================================
+# LEARNING MILESTONES
+# ===========================================================================
+
+def _find_milestone(milestone_id: Any) -> dict[str, Any] | None:
+    return next(
+        (
+            milestone for milestone in st.session_state.milestones
+            if isinstance(milestone, dict) and milestone.get("id") == milestone_id
+        ),
+        None,
+    )
+
+
+def _find_checklist_item(milestone: dict[str, Any], item_id: Any) -> dict[str, Any] | None:
+    return next(
+        (
+            item for item in milestone.get("checklist", [])
+            if isinstance(item, dict) and item.get("id") == item_id
+        ),
+        None,
+    )
+
+
+def _toggle_milestone_item(milestone_id: int, item_id: int, widget_key: str) -> None:
+    milestone = _find_milestone(milestone_id)
+    if milestone is None:
+        return
+    item = _find_checklist_item(milestone, item_id)
+    if item is None:
+        return
+    milestone_logic.set_checklist_item_done(
+        milestone, item_id, bool(st.session_state.get(widget_key, False))
+    )
+    milestone["updated_at"] = _now()
+    _mark_changed()
+
+
+def _render_milestones() -> None:
+    """Render goal categories and the milestone cards in the Notes workspace."""
+    milestones = st.session_state.milestones
+    st.markdown("### Learning milestones")
+    st.caption(
+        "Turn larger goals into dated checklists. Milestones and checklist changes "
+        "are saved with your existing Vocogni learner data."
+    )
+
+    with st.expander("＋ Create a milestone", expanded=not milestones):
+        with st.form("create_learning_milestone", clear_on_submit=True):
+            title = st.text_input(
+                "Milestone title",
+                placeholder="e.g. Master quadratic equations",
+            )
+            end_date = st.date_input(
+                "End date",
+                value=datetime.date.today() + datetime.timedelta(days=7),
+                help="Choose the date by which you want to finish this milestone.",
+            )
+            section = st.selectbox(
+                "Goal section",
+                options=list(milestone_logic.MILESTONE_SECTIONS),
+            )
+            icon_col, color_col = st.columns(2)
+            with icon_col:
+                emoji = st.selectbox(
+                    "Icon",
+                    options=list(milestone_logic.MILESTONE_EMOJIS),
+                )
+            with color_col:
+                color_name = st.selectbox(
+                    "Milestone color",
+                    options=list(PALETTE),
+                    index=list(PALETTE).index("Blue"),
+                )
+            create = st.form_submit_button("Create milestone", type="primary")
+
+        if create:
+            try:
+                milestone = milestone_logic.create_milestone(
+                    milestone_id=st.session_state.next_milestone_id,
+                    title=title,
+                    end_date=end_date,
+                    section=section,
+                    color=color_name,
+                    emoji=emoji,
+                    now=_now(),
+                )
+            except ValueError as exc:
+                st.warning(str(exc))
+            else:
+                st.session_state.milestones.append(milestone)
+                st.session_state.next_milestone_id += 1
+                _mark_changed()
+                st.rerun()
+
+    section_labels = ["All sections", *milestone_logic.MILESTONE_SECTIONS]
+    selected_section = st.selectbox(
+        "Show goal section",
+        options=section_labels,
+        key="milestone_section_filter",
+    )
+    visible = [
+        milestone for milestone in milestones
+        if selected_section == "All sections" or milestone.get("section") == selected_section
+    ]
+    visible.sort(key=lambda row: (str(row.get("end_date", "9999-12-31")), str(row.get("title", "")).casefold()))
+
+    if not visible:
+        st.info(
+            "No milestones in this section yet. Create one above and add checklist steps "
+            "to make the goal actionable."
+        )
+        return
+
+    groups = (
+        [selected_section]
+        if selected_section != "All sections"
+        else list(milestone_logic.MILESTONE_SECTIONS)
+    )
+    for section_name in groups:
+        section_milestones = [
+            milestone for milestone in visible
+            if milestone.get("section", "Other") == section_name
+        ]
+        if not section_milestones:
+            continue
+        st.markdown(f"### {html.escape(section_name)}")
+        for milestone in section_milestones:
+            _render_milestone_card(milestone)
+
+
+def _render_milestone_card(milestone: dict[str, Any]) -> None:
+    milestone_id = milestone["id"]
+    color = _resolved_color({"color": milestone.get("color", "Grey")})
+    safe_title = html.escape(str(milestone.get("title") or "Untitled milestone"))
+    safe_section = html.escape(str(milestone.get("section", "Other")))
+    emoji = milestone.get("emoji") if milestone.get("emoji") in milestone_logic.MILESTONE_EMOJIS else "🎯"
+    checklist = [
+        item for item in milestone.get("checklist", [])
+        if isinstance(item, dict)
+    ]
+    done_count = sum(bool(item.get("done")) for item in checklist)
+
+    with st.container(border=True):
+        st.markdown(
+            f"<div style='height:5px;background:{color};border-radius:8px;margin-bottom:12px'></div>",
+            unsafe_allow_html=True,
+        )
+        icon_col, title_col, date_col = st.columns([0.75, 3.8, 1.7], vertical_alignment="center")
+        with icon_col:
+            st.markdown(
+                f"<div style='font-size:2.35rem;line-height:1.1;text-align:center'>{emoji}</div>",
+                unsafe_allow_html=True,
+            )
+        with title_col:
+            st.markdown(
+                f"<div style='font-size:1.15rem;font-weight:700;line-height:1.25'>{safe_title}</div>"
+                f"<div style='color:{color};font-size:.85rem;margin-top:4px;font-weight:600'>{safe_section}</div>",
+                unsafe_allow_html=True,
+            )
+        with date_col:
+            try:
+                parsed_due = datetime.date.fromisoformat(str(milestone.get("end_date", "")))
+                due_label = parsed_due.strftime("%d %b %Y")
+            except ValueError:
+                due_label = "Date not set"
+                parsed_due = None
+            st.markdown(
+                "<div style='text-align:right;font-size:.82rem;opacity:.8'>END DATE</div>"
+                f"<div style='text-align:right;font-weight:600'>{html.escape(due_label)}</div>",
+                unsafe_allow_html=True,
+            )
+
+        if checklist:
+            st.progress(done_count / len(checklist))
+            st.caption(f"{done_count} of {len(checklist)} checklist items complete")
+        else:
+            st.caption("No checklist items yet.")
+
+        if parsed_due and parsed_due < datetime.date.today() and checklist and done_count < len(checklist):
+            st.caption("End date has passed. You can edit the date or continue working through the checklist.")
+        elif checklist and done_count == len(checklist):
+            st.caption("Milestone checklist complete.")
+
+        st.markdown("**Checklist**")
+        if not checklist:
+            st.caption("Add your first step below.")
+        for item in checklist:
+            item_id = item["id"]
+            checkbox_key = f"milestone_check_{milestone_id}_{item_id}"
+            edit_key = f"milestone_editing_item_{milestone_id}"
+            item_is_editing = st.session_state.get(edit_key) == item_id
+
+            check_col, text_col, edit_col, delete_col = st.columns(
+                [0.45, 4.0, 0.8, 0.9],
+                vertical_alignment="center",
+            )
+            with check_col:
+                st.checkbox(
+                    str(item.get("text", "Checklist item")),
+                    value=bool(item.get("done", False)),
+                    key=checkbox_key,
+                    label_visibility="collapsed",
+                    on_change=_toggle_milestone_item,
+                    args=(milestone_id, item_id, checkbox_key),
+                )
+            with text_col:
+                safe_item_text = html.escape(str(item.get("text") or "Checklist item"))
+                style = "text-decoration:line-through;opacity:.55" if item.get("done") else "font-weight:500"
+                st.markdown(
+                    f"<div style='padding:5px 0;{style}'>{safe_item_text}</div>",
+                    unsafe_allow_html=True,
+                )
+            with edit_col:
+                if st.button("Edit", key=f"edit_milestone_item_button_{milestone_id}_{item_id}", use_container_width=True):
+                    st.session_state[edit_key] = item_id
+                    st.rerun()
+            with delete_col:
+                if st.button("Delete", key=f"delete_milestone_item_{milestone_id}_{item_id}", use_container_width=True):
+                    milestone_logic.delete_checklist_item(milestone, item_id)
+                    milestone["updated_at"] = _now()
+                    if st.session_state.get(edit_key) == item_id:
+                        st.session_state.pop(edit_key, None)
+                    _mark_changed()
+                    st.rerun()
+
+            if item_is_editing:
+                with st.form(f"edit_milestone_item_form_{milestone_id}_{item_id}"):
+                    replacement = st.text_input(
+                        "Checklist item",
+                        value=str(item.get("text", "")),
+                        key=f"edit_milestone_item_text_{milestone_id}_{item_id}",
+                    )
+                    save_item = st.form_submit_button("Save item", type="primary")
+                    cancel_item = st.form_submit_button("Cancel")
+                if save_item:
+                    try:
+                        milestone_logic.update_checklist_item(milestone, item_id, replacement)
+                    except ValueError as exc:
+                        st.warning(str(exc))
+                    else:
+                        milestone["updated_at"] = _now()
+                        st.session_state.pop(edit_key, None)
+                        _mark_changed()
+                        st.rerun()
+                if cancel_item:
+                    st.session_state.pop(edit_key, None)
+                    st.rerun()
+
+        with st.form(f"add_milestone_item_form_{milestone_id}", clear_on_submit=True):
+            new_item_text = st.text_input(
+                "Add checklist item",
+                placeholder="e.g. Solve 10 mixed questions",
+                key=f"new_milestone_item_text_{milestone_id}",
+            )
+            add_item = st.form_submit_button("＋ Add checklist item")
+        if add_item:
+            try:
+                milestone_logic.add_checklist_item(milestone, new_item_text)
+            except ValueError as exc:
+                st.warning(str(exc))
+            else:
+                milestone["updated_at"] = _now()
+                _mark_changed()
+                st.rerun()
+
+        with st.expander("Edit milestone details", expanded=False):
+            try:
+                existing_due = datetime.date.fromisoformat(str(milestone.get("end_date", "")))
+            except ValueError:
+                existing_due = datetime.date.today() + datetime.timedelta(days=7)
+            with st.form(f"edit_milestone_form_{milestone_id}"):
+                new_title = st.text_input(
+                    "Milestone title",
+                    value=str(milestone.get("title", "")),
+                    key=f"edit_milestone_title_{milestone_id}",
+                )
+                new_due = st.date_input(
+                    "End date",
+                    value=existing_due,
+                    key=f"edit_milestone_due_{milestone_id}",
+                )
+                section_options = list(milestone_logic.MILESTONE_SECTIONS)
+                new_section = st.selectbox(
+                    "Goal section",
+                    options=section_options,
+                    index=section_options.index(milestone.get("section", "Other"))
+                    if milestone.get("section", "Other") in section_options else section_options.index("Other"),
+                    key=f"edit_milestone_section_{milestone_id}",
+                )
+                metadata_col1, metadata_col2 = st.columns(2)
+                with metadata_col1:
+                    new_emoji = st.selectbox(
+                        "Icon",
+                        options=list(milestone_logic.MILESTONE_EMOJIS),
+                        index=list(milestone_logic.MILESTONE_EMOJIS).index(emoji),
+                        key=f"edit_milestone_emoji_{milestone_id}",
+                    )
+                with metadata_col2:
+                    color_options = list(PALETTE)
+                    new_color = st.selectbox(
+                        "Milestone color",
+                        options=color_options,
+                        index=color_options.index(milestone.get("color", "Grey"))
+                        if milestone.get("color", "Grey") in color_options else color_options.index("Grey"),
+                        key=f"edit_milestone_color_{milestone_id}",
+                    )
+                save_details = st.form_submit_button("Save milestone", type="primary")
+            if save_details:
+                try:
+                    milestone_logic.update_milestone(
+                        milestone,
+                        title=new_title,
+                        end_date=new_due,
+                        section=new_section,
+                        color=new_color,
+                        emoji=new_emoji,
+                    )
+                except ValueError as exc:
+                    st.warning(str(exc))
+                else:
+                    milestone["updated_at"] = _now()
+                    _mark_changed()
+                    st.rerun()
+
+        confirm_key = f"confirm_delete_milestone_{milestone_id}"
+        if st.button("Delete milestone", key=f"delete_milestone_{milestone_id}"):
+            st.session_state[confirm_key] = True
+            st.rerun()
+        if st.session_state.get(confirm_key):
+            st.warning("Delete this milestone and all its checklist items?")
+            confirm_col, cancel_col = st.columns(2)
+            with confirm_col:
+                if st.button("Confirm delete", key=f"confirm_delete_milestone_button_{milestone_id}", type="primary"):
+                    st.session_state.milestones = [
+                        row for row in st.session_state.milestones
+                        if row.get("id") != milestone_id
+                    ]
+                    st.session_state.pop(confirm_key, None)
+                    _mark_changed()
+                    st.rerun()
+            with cancel_col:
+                if st.button("Keep milestone", key=f"cancel_delete_milestone_{milestone_id}"):
+                    st.session_state.pop(confirm_key, None)
+                    st.rerun()
