@@ -45,7 +45,7 @@ HTML = """
     </div>
   </div>
   <div class="wb-canvas-viewport">
-    <canvas class="wb-canvas" width="1200" height="800" aria-label="Interactive whiteboard canvas"></canvas>
+    <canvas class="wb-canvas" width="1200" height="800" tabindex="0" aria-label="Interactive whiteboard canvas"></canvas>
   </div>
   <div class="wb-footer">
     <span data-status>Ready</span>
@@ -109,7 +109,7 @@ export default function(component) {
   const colorInput = root.querySelector("[data-color]");
   const widthInput = root.querySelector("[data-width]");
   const objects = () => Array.isArray(wb.page.objects) ? wb.page.objects : (wb.page.objects = []);
-  const uid = () => (crypto && crypto.randomUUID ? crypto.randomUUID() : "wb-" + Date.now() + "-" + Math.random().toString(16).slice(2));
+  const uid = () => (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : "wb-" + Date.now() + "-" + Math.random().toString(16).slice(2));
   const emit = () => {
     wb.dirty = true;
     wb.setStateValue("page", clone(wb.page));
@@ -283,14 +283,13 @@ export default function(component) {
       }
     }));
     canvas.addEventListener("pointerdown",e=>{
-      e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+      e.preventDefault(); canvas.focus({preventScroll:true}); canvas.setPointerCapture(e.pointerId);
       const p=pointFromEvent(e), tool=wb.tool;
       if (tool==="text" || tool==="sticky") { addText(p,tool==="sticky"); return; }
       if (tool==="select") {
         const hit=objectAt(p); wb.selected=hit?hit.id:null;
         if (hit) {
-          snapshot();
-          wb.dragging={id:hit.id,start:p,original:clone(hit),moved:false};
+          wb.dragging={id:hit.id,start:p,original:clone(hit),moved:false,snapshotted:false};
         }
         redraw(); return;
       }
@@ -327,6 +326,10 @@ export default function(component) {
         if(hit){
           const dx=p.x-wb.dragging.start.x, dy=p.y-wb.dragging.start.y;
           const original=wb.dragging.original;
+          if (!wb.dragging.snapshotted && Math.abs(dx)+Math.abs(dy)>0) {
+            snapshot();
+            wb.dragging.snapshotted=true;
+          }
           if(hit.type==="stroke") hit.points=original.points.map(pt=>({x:pt.x+dx,y:pt.y+dy}));
           else {hit.x=original.x+dx;hit.y=original.y+dy;}
           wb.dragging.moved=wb.dragging.moved||Math.abs(dx)+Math.abs(dy)>0;
@@ -507,7 +510,7 @@ def render() -> None:
             "Page", page_ids,
             index=page_ids.index(selected_page_id),
             format_func=lambda value: next((p.get("title", "Page") for p in selected_board["pages"] if p["id"] == value), "Page"),
-            key=f"whiteboard_page_picker_{selected_board_id}",
+            key=f"whiteboard_page_picker_{selected_board_id}_{selected_page_id}",
         )
         st.session_state.selected_whiteboard_page_id = selected_page_id
     with page_add:
