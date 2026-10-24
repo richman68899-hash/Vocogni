@@ -10,6 +10,7 @@ import streamlit as st
 
 import data
 import logic
+from . import revision_sprint as revision_sprint_section
 
 
 STATUS_OPTIONS = ["All", "Not started", "In progress", "Completed"]
@@ -49,6 +50,9 @@ def _render_grid():
     st.markdown("<h2>Browse Courses</h2>", unsafe_allow_html=True)
 
     progress = st.session_state.progress
+    # Keep the sprint discoverable directly on the Browse landing page.
+    if revision_sprint_section.render_browse_entry(progress):
+        return
     coach = logic.get_mistake_coach(progress)
     if coach:
         st.markdown("### Your next best step")
