@@ -7,7 +7,7 @@ button,select{border:1px solid #d9dee7;border-radius:7px;background:white;color:
 button:hover,select:hover{border-color:#477ed1}.tool.active{background:#477ed1;color:white;border-color:#477ed1}
 .options{padding-top:6px;border-top:1px solid #e0e4eb}.options label{display:flex;align-items:center;gap:5px;font-size:12px}
 #color{width:28px;height:27px;border:0;padding:0;background:transparent}#width{width:84px}
-#stage{width:100%;height:min(62vh,650px);min-height:300px;overflow:auto;background:white;border:1px solid #dce1e8;border-radius:8px;touch-action:none}
+#stage{width:100%;height:min(62vh,650px);min-height:300px;overflow:auto;background:white;border:1px solid #dce1e8;border-radius:8px;touch-action: none}
 #canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;touch-action:none;background:white;outline:none}
 #stage:focus{outline:2px solid #477ed1;outline-offset:1px}
 footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#697386}
