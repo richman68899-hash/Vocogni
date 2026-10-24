@@ -34,7 +34,6 @@ SETTING_WIDGET_KEYS = {
     "difficulty": "settings_difficulty",
     "animations": "settings_animations",
     "sound": "settings_sound",
-    "reduced_motion": "settings_reduced_motion",
     "larger_text": "settings_larger_text",
     "high_readability": "settings_high_readability",
 }
@@ -131,6 +130,17 @@ def _settings_changed(
     return any(settings.get(key) != value for key, value in new_values.items())
 
 
+def _current_widget_values(settings: dict[str, Any]) -> dict[str, Any]:
+    """Read the latest widget values for accurate summaries before syncing."""
+    current = dict(settings)
+    for setting_key, widget_key in SETTING_WIDGET_KEYS.items():
+        current[setting_key] = _safe_value(setting_key, st.session_state[widget_key])
+    # One visible motion control maps to the two legacy settings keys, keeping
+    # older saved records compatible without presenting duplicate switches.
+    current["reduced_motion"] = not current.get("animations", True)
+    return current
+
+
 def _current_summary(settings: dict[str, Any]) -> str:
     """Create a compact, truthful summary of the current setup."""
     theme = settings.get("appearance", "Light")
@@ -148,7 +158,7 @@ def render() -> None:
 
     st.title("Settings")
     st.caption("Set up how Vocogni looks and how lessons respond. Changes apply immediately and save automatically.")
-    st.markdown(f"<div class='vc-muted'>{_current_summary(settings)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='vc-muted'>{_current_summary(_current_widget_values(settings))}</div>", unsafe_allow_html=True)
 
     # Quick setups are just shortcuts over existing controls. Learners can
     # change any individual setting afterwards.
@@ -237,19 +247,14 @@ def render() -> None:
             st.subheader("Focus & interaction")
             st.caption("Reduce extra effects and choose whether correct answers play a sound.")
             st.toggle(
-                "Animations and transitions",
+                "Motion and transitions",
                 key=SETTING_WIDGET_KEYS["animations"],
-                help="Turns off CSS transitions and animated scrolling in the app's visual layer.",
+                help="Turn this off to suppress the app's transitions and smooth scrolling.",
             )
             st.toggle(
                 "Correct-answer sound",
                 key=SETTING_WIDGET_KEYS["sound"],
                 help="Plays a short tone after a correct answer. Browser audio settings may still block it.",
-            )
-            st.toggle(
-                "Reduced motion",
-                key=SETTING_WIDGET_KEYS["reduced_motion"],
-                help="Disables the app's transitions and smooth scrolling, even when animations are enabled.",
             )
 
     with reading_col:
@@ -284,6 +289,9 @@ def render() -> None:
         setting_key: _safe_value(setting_key, st.session_state[widget_key])
         for setting_key, widget_key in SETTING_WIDGET_KEYS.items()
     }
+    # The old schema had separate animation/reduced-motion switches that
+    # implemented the same CSS behavior. Keep both persisted keys aligned.
+    new_values["reduced_motion"] = not new_values["animations"]
     if _settings_changed(settings, new_values):
         settings.update(new_values)
         state.mark_persistent_dirty()
