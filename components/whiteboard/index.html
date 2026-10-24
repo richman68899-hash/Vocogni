@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="whiteboard.css">
+  <title>Vocogni Whiteboard</title>
+</head>
+<body>
+  <main id="app" aria-label="Vocogni whiteboard editor">
+    <header class="toolbar">
+      <div class="tool-row" role="toolbar" aria-label="Drawing tools">
+        <button data-tool="select" class="tool active" aria-pressed="true">Select</button>
+        <button data-tool="hand" class="tool" aria-pressed="false">Hand</button>
+        <button data-tool="pen" class="tool" aria-pressed="false">Pen</button>
+        <button data-tool="highlighter" class="tool" aria-pressed="false">Highlighter</button>
+        <button data-tool="eraser" class="tool" aria-pressed="false">Eraser</button>
+        <button data-tool="text" class="tool" aria-pressed="false">Text</button>
+        <button data-tool="sticky" class="tool" aria-pressed="false">Sticky</button>
+        <button data-tool="rectangle" class="tool" aria-pressed="false">Rectangle</button>
+        <button data-tool="ellipse" class="tool" aria-pressed="false">Ellipse</button>
+        <button data-tool="triangle" class="tool" aria-pressed="false">Triangle</button>
+        <button data-tool="line" class="tool" aria-pressed="false">Line</button>
+        <button data-tool="arrow" class="tool" aria-pressed="false">Arrow</button>
+      </div>
+      <div class="tool-row options">
+        <label>Colour <input id="color" type="color" value="#273142" aria-label="Drawing colour"></label>
+        <label>Width <input id="width" type="range" min="1" max="18" value="4" aria-label="Stroke width"></label>
+        <button id="undo" type="button">Undo</button>
+        <button id="redo" type="button">Redo</button>
+        <button id="duplicate" type="button">Duplicate</button>
+        <button id="delete-selected" type="button">Delete</button>
+        <button id="save-now" type="button">Save now</button>
+      </div>
+      <div class="tool-row options">
+        <button id="previous-page" type="button">← Page</button>
+        <span id="page-label" aria-live="polite">Page 1</span>
+        <button id="next-page" type="button">Page →</button>
+        <button id="new-page" type="button">＋ Page</button>
+        <button id="duplicate-page" type="button">Copy page</button>
+        <button id="delete-page" type="button">Delete page</button>
+        <select id="background" aria-label="Canvas background">
+          <option value="plain">Plain</option><option value="grid" selected>Graph grid</option><option value="dots">Dots</option><option value="dark">Dark</option>
+        </select>
+        <button id="export-png" type="button">Export PNG</button>
+        <button id="export-pdf" type="button">Print / PDF</button>
+        <button id="export-json" type="button">Export JSON</button>
+      </div>
+    </header>
+    <div id="stage" tabindex="0" aria-label="Drawing canvas">
+      <canvas id="canvas" width="1200" height="800" aria-label="Whiteboard canvas"></canvas>
+    </div>
+    <footer>
+      <span id="status" aria-live="polite">Ready</span>
+      <span>Use Select to move objects. Touch, stylus and mouse drawing are supported.</span>
+    </footer>
+  </main>
+  <script src="whiteboard.js"></script>
+</body>
+</html>
