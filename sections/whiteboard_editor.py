@@ -59,6 +59,9 @@ def _consume_component_event(event: Any, expected_board_id: str) -> bool:
         return False
     if not board.get("pages"):
         return False
+    event_page_id = event.get("page_id")
+    if not isinstance(event_page_id, str) or event_page_id not in {p.get("id") for p in board["pages"]}:
+        return False
 
     # The component can update pages and object lists, but cannot change a
     # board's placement/title or create a different board via a canvas event.
@@ -84,6 +87,7 @@ def _consume_component_event(event: Any, expected_board_id: str) -> bool:
         return False
 
     st.session_state["whiteboard_ack_event_id"] = event_id
+    st.session_state["selected_whiteboard_page_id"] = event_page_id
     st.session_state["whiteboard_save_error"] = False
     return True
 
