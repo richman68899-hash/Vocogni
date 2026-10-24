@@ -61,6 +61,28 @@ class WhiteboardDataTests(unittest.TestCase):
         self.assertNotIn("<script>", svg)
         self.assertIn("<ellipse", svg)
 
+    def test_aggregate_board_limits_bound_objects_and_strokes(self):
+        board = whiteboard_data.create_board(title="Large board")
+        board["pages"] = []
+        for index in range(10):
+            page = whiteboard_data.create_page(f"Page {index + 1}", "plain")
+            page["objects"] = [
+                {"id": f"{index}-{item}", "type": "text", "x": 0, "y": 20,
+                 "text": "x", "color": "#273142", "fontSize": 20}
+                for item in range(whiteboard_data.MAX_OBJECTS_PER_PAGE)
+            ]
+            board["pages"].append(page)
+        cleaned = whiteboard_data.sanitize_boards([board])[0]
+        total_objects = sum(len(page["objects"]) for page in cleaned["pages"])
+        total_text = sum(
+            len(obj.get("text", ""))
+            for page in cleaned["pages"]
+            for obj in page["objects"]
+            if obj.get("type") in {"text", "sticky"}
+        )
+        self.assertLessEqual(total_objects, whiteboard_data.MAX_OBJECTS_PER_BOARD)
+        self.assertLessEqual(total_text, whiteboard_data.MAX_TEXT_CHARS_PER_BOARD)
+
     def test_limits_bound_large_inputs(self):
         raw = whiteboard_data.create_page()
         raw["objects"] = [
