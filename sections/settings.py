@@ -1,34 +1,10 @@
+"""Settings page for the current Vocogni learning prototype.
+
+Settings are saved through state.py's shared durable learner-state flow.
+This page intentionally exposes only controls that the current app supports,
+and describes prototype preferences honestly instead of implying features
+that are not implemented yet.
 """
-sections/settings.py — Settings.
-
-Vocogni Version 1.2.0
-
-Settings apply immediately.
-
-Persistence behavior:
-- Settings widgets are intentionally outside a form.
-- Streamlit reruns when a setting changes.
-- The current values are compared with the durable settings stored in
-  st.session_state.
-- If a meaningful setting changed, the durable state is updated and
-  state.mark_persistent_dirty() is called.
-- app.py performs the actual Supabase save through
-  state.flush_persistent_save().
-
-No separate "Save Settings" button is required.
-
-The settings control:
-- appearance
-- text size
-- feedback timing
-- difficulty
-- animations
-- sound
-- reduced motion
-- larger text
-- high readability
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -37,333 +13,230 @@ import streamlit as st
 
 from version import APP_VERSION
 import state
+from settings_model import (
+    DEFAULT_SETTINGS,
+    PRESETS,
+    SETTING_OPTIONS,
+    SETTING_WIDGET_KEYS,
+    current_summary as _current_summary,
+    safe_value as _safe_value,
+    settings_changed as _settings_changed,
+)
 
 
-# ===========================================================================
-# HELPERS
-# ===========================================================================
-
-def _safe_index(
-    options: list[str],
-    value: Any,
-    fallback: int = 0,
-) -> int:
-    """
-    Return the index of value in options.
-
-    Falls back safely when an older persisted setting contains an invalid
-    or removed option.
-    """
-
-    try:
-        return options.index(value)
-
-    except (ValueError, TypeError):
-        return fallback
-
-
-def _settings_changed(
-    settings: dict[str, Any],
-    new_values: dict[str, Any],
-) -> bool:
-    """
-    Return True when at least one durable setting actually changed.
-    """
-
-    for key, new_value in new_values.items():
-
-        if settings.get(key) != new_value:
-            return True
-
-    return False
-
-
-# ===========================================================================
-# MAIN RENDER
-# ===========================================================================
-
-def render() -> None:
-    """
-    Render the settings page.
-
-    The widgets themselves trigger Streamlit reruns when changed.
-    At the end of the function we synchronize the current widget values
-    into the durable settings dictionary and mark the state dirty only
-    when something actually changed.
-    """
-
-    st.markdown(
-        "<h2>Settings</h2>",
-        unsafe_allow_html=True,
-    )
-
-    settings = st.session_state.settings
-
-    # =======================================================================
-    # APPEARANCE
-    # =======================================================================
-
-    st.markdown(
-        "<h3>Appearance</h3>",
-        unsafe_allow_html=True,
-    )
-
-    c1, c2 = st.columns(2)
-
-    with c1:
-
-        appearance_options = [
-            "Light",
-            "Dark",
-        ]
-
-        appearance = st.radio(
-            "Theme",
-            appearance_options,
-            index=_safe_index(
-                appearance_options,
-                settings.get(
-                    "appearance",
-                    "Light",
-                ),
-            ),
-            horizontal=True,
+def _ensure_widget_state(settings: dict[str, Any]) -> None:
+    """Initialize widget keys from saved preferences without overriding edits."""
+    for setting_key, widget_key in SETTING_WIDGET_KEYS.items():
+        valid_value = _safe_value(
+            setting_key,
+            settings.get(setting_key, DEFAULT_SETTINGS[setting_key]),
         )
+        if widget_key not in st.session_state or st.session_state[widget_key] not in (
+            SETTING_OPTIONS.get(setting_key, [False, True])
+        ):
+            st.session_state[widget_key] = valid_value
 
-    with c2:
 
-        text_size_options = [
-            "Small",
-            "Medium",
-            "Large",
-        ]
+def _apply_values(values: dict[str, Any]) -> None:
+    """Apply a preset/reset before widget construction on the next rerun."""
+    settings = st.session_state.get("settings")
+    if not isinstance(settings, dict):
+        settings = dict(DEFAULT_SETTINGS)
+        st.session_state.settings = settings
 
-        text_size = st.radio(
-            "Text size",
-            text_size_options,
-            index=_safe_index(
-                text_size_options,
-                settings.get(
-                    "text_size",
-                    "Medium",
-                ),
-                fallback=1,
-            ),
-            horizontal=True,
-        )
+    updated = dict(settings)
+    changed = False
+    for setting_key, value in values.items():
+        if setting_key in DEFAULT_SETTINGS:
+            validated = _safe_value(setting_key, value)
+            if updated.get(setting_key) != validated:
+                changed = True
+            updated[setting_key] = validated
 
-    # =======================================================================
-    # LEARNING EXPERIENCE
-    # =======================================================================
-
-    st.markdown(
-        "<h3 style='margin-top:1.2rem;'>"
-        "Learning experience"
-        "</h3>",
-        unsafe_allow_html=True,
-    )
-
-    c3, c4 = st.columns(2)
-
-    with c3:
-
-        feedback_options = [
-            "Immediate",
-            "After submission",
-        ]
-
-        feedback_timing = st.radio(
-            "Feedback",
-            feedback_options,
-            index=_safe_index(
-                feedback_options,
-                settings.get(
-                    "feedback_timing",
-                    "Immediate",
-                ),
-            ),
-            horizontal=True,
-            help=(
-                "Immediate shows correctness right after each "
-                "question. After submission shows a combined "
-                "summary at the end of the lesson."
-            ),
-        )
-
-    with c4:
-
-        difficulty_options = [
-            "Adaptive",
-            "Easy",
-            "Medium",
-            "Hard",
-        ]
-
-        difficulty = st.radio(
-            "Difficulty",
-            difficulty_options,
-            index=_safe_index(
-                difficulty_options,
-                settings.get(
-                    "difficulty",
-                    "Adaptive",
-                ),
-            ),
-            horizontal=True,
-            help=(
-                "Prototype preference. Easy also shows a hint "
-                "on numeric questions."
-            ),
-        )
-
-    # =======================================================================
-    # INTERACTION
-    # =======================================================================
-
-    st.markdown(
-        "<h3 style='margin-top:1.2rem;'>"
-        "Interaction"
-        "</h3>",
-        unsafe_allow_html=True,
-    )
-
-    c5, c6 = st.columns(2)
-
-    with c5:
-
-        animations = st.toggle(
-            "Animations",
-            value=bool(
-                settings.get(
-                    "animations",
-                    True,
-                )
-            ),
-            help=(
-                "Enables animated transitions and visual effects."
-            ),
-        )
-
-    with c6:
-
-        sound = st.toggle(
-            "Sound",
-            value=bool(
-                settings.get(
-                    "sound",
-                    True,
-                )
-            ),
-            help=(
-                "Plays a short tone on a correct answer."
-            ),
-        )
-
-    # =======================================================================
-    # ACCESSIBILITY
-    # =======================================================================
-
-    st.markdown(
-        "<h3 style='margin-top:1.2rem;'>"
-        "Accessibility"
-        "</h3>",
-        unsafe_allow_html=True,
-    )
-
-    reduced_motion = st.checkbox(
-        "Reduced motion",
-        value=bool(
-            settings.get(
-                "reduced_motion",
-                False,
-            )
-        ),
-        help=(
-            "Turns off transitions and animated effects "
-            "throughout the app."
-        ),
-    )
-
-    larger_text = st.checkbox(
-        "Larger text",
-        value=bool(
-            settings.get(
-                "larger_text",
-                False,
-            )
-        ),
-        help=(
-            "Increases the base text size beyond the "
-            "Text size option above."
-        ),
-    )
-
-    high_readability = st.checkbox(
-        "High readability mode",
-        value=bool(
-            settings.get(
-                "high_readability",
-                False,
-            )
-        ),
-        help=(
-            "Increases line spacing to make longer text "
-            "easier to read."
-        ),
-    )
-
-    st.markdown(
-        "<p class='vc-muted' style='margin-top:0.6rem;'>"
-        "These accessibility options only adjust spacing, motion, "
-        "and text size. Vocogni does not make medical claims about "
-        "ADHD or neurodivergence."
-        "</p>",
-        unsafe_allow_html=True,
-    )
-
-    # =======================================================================
-    # SYNCHRONIZE DURABLE SETTINGS
-    # =======================================================================
-    #
-    # Widgets are outside a form, so changing one causes Streamlit to rerun.
-    # The values returned above therefore represent the latest committed
-    # widget values for this run.
-    #
-    # We compare them against the existing durable settings first.
-    # This prevents unnecessary database writes.
-    # =======================================================================
-
-    new_values = {
-        "appearance": appearance,
-        "text_size": text_size,
-        "feedback_timing": feedback_timing,
-        "difficulty": difficulty,
-        "animations": animations,
-        "sound": sound,
-        "reduced_motion": reduced_motion,
-        "larger_text": larger_text,
-        "high_readability": high_readability,
-    }
-
-    changed = _settings_changed(
-        settings,
-        new_values,
-    )
+    st.session_state.settings = updated
+    for setting_key, widget_key in SETTING_WIDGET_KEYS.items():
+        if setting_key in values:
+            st.session_state[widget_key] = updated[setting_key]
 
     if changed:
-
-        # Update the durable learner state.
-        settings.update(
-            new_values
-        )
-
-        # Tell the central autosave system that durable learner data
-        # has changed.
         state.mark_persistent_dirty()
 
-    # App version is intentionally subtle and left-aligned at the bottom.
-    st.markdown(
-        f"<p class='vc-muted' style='font-size:0.75rem; margin-top:2rem; "
-        f"margin-bottom:0; text-align:left;'>Vocogni v{APP_VERSION}</p>",
-        unsafe_allow_html=True,
-    )
+
+def _apply_preset(name: str) -> None:
+    """Apply one named learning setup to the existing preferences."""
+    if name == "Balanced defaults":
+        _apply_values(DEFAULT_SETTINGS)
+    elif name in PRESETS:
+        _apply_values(PRESETS[name])
+
+
+def _restore_defaults() -> None:
+    """Restore every setting to its original default."""
+    _apply_values(DEFAULT_SETTINGS)
+
+
+def _current_widget_values(settings: dict[str, Any]) -> dict[str, Any]:
+    """Read the latest widget values for accurate summaries before syncing."""
+    current = dict(settings)
+    for setting_key, widget_key in SETTING_WIDGET_KEYS.items():
+        current[setting_key] = _safe_value(setting_key, st.session_state[widget_key])
+    # One visible motion control maps to the two legacy settings keys, keeping
+    # older saved records compatible without presenting duplicate switches.
+    current["reduced_motion"] = not current.get("animations", True)
+    return current
+
+
+def render() -> None:
+    """Render the Settings page with clear groupings and auto-save behavior."""
+    settings = st.session_state.settings
+    _ensure_widget_state(settings)
+
+    st.title("Settings")
+    st.caption("Set up how Vocogni looks and how lessons respond. Changes apply immediately and save automatically.")
+    st.markdown(f"<div class='vc-muted'>{_current_summary(_current_widget_values(settings))}</div>", unsafe_allow_html=True)
+
+    # Quick setups are just shortcuts over existing controls. Learners can
+    # change any individual setting afterwards.
+    with st.container(border=True):
+        st.subheader("Quick setups")
+        st.caption("Choose a starting point, then adjust any setting below.")
+
+        preset_cols = st.columns(3, gap="medium")
+        presets = [
+            ("Focused study", "Less motion and sound, with feedback grouped at the end."),
+            ("Reading comfort", "Larger text, more spacing, and reduced motion."),
+            ("Gentle practice", "Shows authored hints where available and keeps feedback immediate."),
+        ]
+        for column, (name, description) in zip(preset_cols, presets):
+            with column:
+                st.markdown(f"**{name}**")
+                st.caption(description)
+                st.button(
+                    "Apply setup",
+                    key=f"apply_settings_preset_{name.lower().replace(' ', '_')}",
+                    use_container_width=True,
+                    on_click=_apply_preset,
+                    args=(name,),
+                )
+
+    appearance_col, learning_col = st.columns(2, gap="large")
+
+    with appearance_col:
+        with st.container(border=True):
+            st.subheader("Appearance")
+            st.caption("Choose the visual theme and the standard text scale.")
+            st.radio(
+                "Theme",
+                SETTING_OPTIONS["appearance"],
+                horizontal=True,
+                key=SETTING_WIDGET_KEYS["appearance"],
+            )
+            st.radio(
+                "Text size",
+                SETTING_OPTIONS["text_size"],
+                horizontal=True,
+                key=SETTING_WIDGET_KEYS["text_size"],
+            )
+            st.markdown("**Preview**")
+            st.markdown(
+                "<div class='vc-summary-box'>"
+                "<strong>Example lesson note</strong><br>"
+                "Read the idea, solve a question, then apply it to a new problem."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+
+    with learning_col:
+        with st.container(border=True):
+            st.subheader("Learning preferences")
+            st.caption("Control feedback timing and how hints appear.")
+            st.radio(
+                "Feedback timing",
+                SETTING_OPTIONS["feedback_timing"],
+                key=SETTING_WIDGET_KEYS["feedback_timing"],
+                help=(
+                    "Immediate gives feedback after each question. "
+                    "After submission shows a combined summary at the end of the lesson."
+                ),
+            )
+            st.selectbox(
+                "Hint assistance",
+                SETTING_OPTIONS["difficulty"],
+                format_func=lambda value: {
+                    "Adaptive": "On request",
+                    "Easy": "Automatic hints",
+                    "Hard": "No hints",
+                }.get(value, value),
+                key=SETTING_WIDGET_KEYS["difficulty"],
+                help=(
+                    "On request reveals an authored hint only when you ask. "
+                    "Automatic hints show authored support immediately. No hints hides it. "
+                    "This changes assistance, not the underlying question bank."
+                ),
+            )
+            difficulty = st.session_state[SETTING_WIDGET_KEYS["difficulty"]]
+            if difficulty == "Easy":
+                st.info("Authored hints appear automatically on supported questions.")
+            elif difficulty == "Adaptive":
+                st.caption("Hints stay hidden until you select Show hint on a supported question.")
+            else:
+                st.caption("Authored hints remain hidden for this setup.")
+
+    focus_col, reading_col = st.columns(2, gap="large")
+
+    with focus_col:
+        with st.container(border=True):
+            st.subheader("Focus & interaction")
+            st.caption("Reduce extra effects and choose whether correct answers play a sound.")
+            st.toggle(
+                "Motion and transitions",
+                key=SETTING_WIDGET_KEYS["animations"],
+                help="Turn this off to suppress the app's transitions and smooth scrolling.",
+            )
+            st.toggle(
+                "Correct-answer sound",
+                key=SETTING_WIDGET_KEYS["sound"],
+                help="Plays a short tone after a correct answer. Browser audio settings may still block it.",
+            )
+
+    with reading_col:
+        with st.container(border=True):
+            st.subheader("Reading comfort")
+            st.caption("Adjust text display without changing lesson content.")
+            st.toggle(
+                "Larger text",
+                key=SETTING_WIDGET_KEYS["larger_text"],
+                help="Raises the base text size beyond the selected text-size setting.",
+            )
+            st.toggle(
+                "High-readability spacing",
+                key=SETTING_WIDGET_KEYS["high_readability"],
+                help="Increases line spacing to make longer text blocks easier to track.",
+            )
+            st.caption("These options change display and motion only, not lesson content.")
+
+    st.divider()
+    reset_col, info_col = st.columns([1, 3], gap="medium")
+    with reset_col:
+        st.button(
+            "Restore defaults",
+            key="restore_settings_defaults",
+            on_click=_restore_defaults,
+            use_container_width=True,
+        )
+    with info_col:
+        st.caption("Settings are saved through your existing Vocogni learner record. Save status remains visible in the sidebar.")
+
+    new_values = {
+        setting_key: _safe_value(setting_key, st.session_state[widget_key])
+        for setting_key, widget_key in SETTING_WIDGET_KEYS.items()
+    }
+    # The old schema had separate animation/reduced-motion switches that
+    # implemented the same CSS behavior. Keep both persisted keys aligned.
+    new_values["reduced_motion"] = not new_values["animations"]
+    if _settings_changed(settings, new_values):
+        settings.update(new_values)
+        state.mark_persistent_dirty()
+
+    st.divider()
+    st.caption(f"Vocogni v{APP_VERSION}")
