@@ -1,8 +1,8 @@
-"""Regression tests for the redesigned Settings page."""
+"""Regression tests for Settings defaults, presets, and UI structure."""
 import unittest
 from pathlib import Path
 
-from sections import settings as settings_page
+import settings_model
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,15 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SettingsPageTests(unittest.TestCase):
     def test_presets_only_change_existing_durable_settings(self):
-        known_settings = set(settings_page.DEFAULT_SETTINGS)
-        for name, values in settings_page.PRESETS.items():
+        known_settings = set(settings_model.DEFAULT_SETTINGS)
+        for name, values in settings_model.PRESETS.items():
             with self.subTest(preset=name):
                 self.assertTrue(values)
                 self.assertLessEqual(set(values), known_settings)
 
     def test_every_visible_setting_maps_to_a_durable_setting(self):
         self.assertEqual(
-            set(settings_page.SETTING_WIDGET_KEYS),
+            set(settings_model.SETTING_WIDGET_KEYS),
             {
                 "appearance",
                 "text_size",
@@ -30,15 +30,20 @@ class SettingsPageTests(unittest.TestCase):
                 "high_readability",
             },
         )
-        self.assertTrue(set(settings_page.SETTING_WIDGET_KEYS) <= set(settings_page.DEFAULT_SETTINGS))
+        self.assertTrue(
+            set(settings_model.SETTING_WIDGET_KEYS)
+            <= set(settings_model.DEFAULT_SETTINGS)
+        )
 
     def test_invalid_legacy_values_fall_back_safely(self):
-        self.assertEqual(settings_page._safe_value("appearance", "Sepia"), "Light")
-        self.assertEqual(settings_page._safe_value("text_size", None), "Medium")
-        self.assertEqual(settings_page._safe_value("difficulty", "Impossible"), "Adaptive")
+        self.assertEqual(settings_model.safe_value("appearance", "Sepia"), "Light")
+        self.assertEqual(settings_model.safe_value("text_size", None), "Medium")
+        self.assertEqual(settings_model.safe_value("difficulty", "Impossible"), "Adaptive")
+        self.assertFalse(settings_model.safe_value("sound", "false"))
+        self.assertTrue(settings_model.safe_value("sound", "true"))
 
     def test_setup_summary_reflects_real_setting_labels(self):
-        summary = settings_page._current_summary(settings_page.DEFAULT_SETTINGS)
+        summary = settings_model.current_summary(settings_model.DEFAULT_SETTINGS)
         self.assertIn("Light theme", summary)
         self.assertIn("Medium text", summary)
         self.assertIn("immediate feedback", summary)
