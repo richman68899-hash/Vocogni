@@ -13,67 +13,15 @@ import streamlit as st
 
 from version import APP_VERSION
 import state
-
-
-DEFAULT_SETTINGS: dict[str, Any] = {
-    "appearance": "Light",
-    "text_size": "Medium",
-    "animations": True,
-    "sound": True,
-    "feedback_timing": "Immediate",
-    "difficulty": "Adaptive",
-    "reduced_motion": False,
-    "larger_text": False,
-    "high_readability": False,
-}
-
-SETTING_WIDGET_KEYS = {
-    "appearance": "settings_appearance",
-    "text_size": "settings_text_size",
-    "feedback_timing": "settings_feedback_timing",
-    "difficulty": "settings_difficulty",
-    "animations": "settings_animations",
-    "sound": "settings_sound",
-    "larger_text": "settings_larger_text",
-    "high_readability": "settings_high_readability",
-}
-
-SETTING_OPTIONS = {
-    "appearance": ["Light", "Dark"],
-    "text_size": ["Small", "Medium", "Large"],
-    "feedback_timing": ["Immediate", "After submission"],
-    "difficulty": ["Adaptive", "Easy", "Medium", "Hard"],
-}
-
-# Presets only change existing supported settings. They do not create a
-# second settings schema or promise changes to the lesson/question bank.
-PRESETS: dict[str, dict[str, Any]] = {
-    "Focused study": {
-        "animations": False,
-        "sound": False,
-        "reduced_motion": True,
-        "feedback_timing": "After submission",
-    },
-    "Reading comfort": {
-        "text_size": "Large",
-        "larger_text": True,
-        "high_readability": True,
-        "reduced_motion": True,
-        "animations": False,
-    },
-    "Gentle practice": {
-        "difficulty": "Easy",
-        "feedback_timing": "Immediate",
-        "sound": False,
-    },
-}
-
-
-def _safe_value(key: str, value: Any) -> Any:
-    """Return a valid setting value without breaking older learner records."""
-    if key in SETTING_OPTIONS:
-        return value if value in SETTING_OPTIONS[key] else DEFAULT_SETTINGS[key]
-    return bool(value) if key in DEFAULT_SETTINGS else value
+from settings_model import (
+    DEFAULT_SETTINGS,
+    PRESETS,
+    SETTING_OPTIONS,
+    SETTING_WIDGET_KEYS,
+    current_summary as _current_summary,
+    safe_value as _safe_value,
+    settings_changed as _settings_changed,
+)
 
 
 def _ensure_widget_state(settings: dict[str, Any]) -> None:
@@ -122,14 +70,6 @@ def _restore_defaults() -> None:
     _apply_values(DEFAULT_SETTINGS)
 
 
-def _settings_changed(
-    settings: dict[str, Any],
-    new_values: dict[str, Any],
-) -> bool:
-    """Return True only when a durable preference changes."""
-    return any(settings.get(key) != value for key, value in new_values.items())
-
-
 def _current_widget_values(settings: dict[str, Any]) -> dict[str, Any]:
     """Read the latest widget values for accurate summaries before syncing."""
     current = dict(settings)
@@ -139,16 +79,6 @@ def _current_widget_values(settings: dict[str, Any]) -> dict[str, Any]:
     # older saved records compatible without presenting duplicate switches.
     current["reduced_motion"] = not current.get("animations", True)
     return current
-
-
-def _current_summary(settings: dict[str, Any]) -> str:
-    """Create a compact, truthful summary of the current setup."""
-    theme = settings.get("appearance", "Light")
-    text = settings.get("text_size", "Medium")
-    feedback = settings.get("feedback_timing", "Immediate")
-    motion = "Motion reduced" if settings.get("reduced_motion") or not settings.get("animations", True) else "Motion enabled"
-    sound = "Sound on" if settings.get("sound", True) else "Sound off"
-    return f"{theme} theme  ·  {text} text  ·  {feedback.lower()} feedback  ·  {motion}  ·  {sound}"
 
 
 def render() -> None:
