@@ -58,7 +58,7 @@
       return {x:Math.min(...xs)-8,y:Math.min(...ys)-8,w:Math.max(...xs)-Math.min(...xs)+16,h:Math.max(...ys)-Math.min(...ys)+16};
     }
     if (obj.type==="text") return {x:obj.x,y:obj.y-(obj.fontSize||24),w:Math.max(50,String(obj.text||"").length*(obj.fontSize||24)*.6),h:(obj.fontSize||24)*1.5};
-    return {x:obj.x,y:obj.y,w:obj.w||1,h:obj.h||1};
+    return {x:Math.min(obj.x,obj.x+(obj.w||1)),y:Math.min(obj.y,obj.y+(obj.h||1)),w:Math.abs(obj.w||1),h:Math.abs(obj.h||1)};
   }
   function drawBackground() {
     const page=activePage(); if (!page) return;
@@ -113,7 +113,7 @@
   function renderCanvas() {
     if(!state.board||!activePage())return;
     drawBackground();objects().forEach(drawObject);
-    if(state.selected){const obj=objects().find(o=>o.id===state.selected);if(obj){const b=bounds(obj);ctx.save();ctx.strokeStyle="#477ed1";ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.strokeRect(b.x-5,b.y-5,b.w+10,b.h+10);ctx.restore();}}
+    if(state.selected){const obj=objects().find(o=>o.id===state.selected);if(obj){const b=bounds(obj);ctx.save();ctx.strokeStyle="#477ed1";ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.strokeRect(b.x-5,b.y-5,b.w+10,b.h+10);ctx.setLineDash([]);if(obj.type==="sticky"||(obj.type==="shape"&&["rect","ellipse","triangle"].includes(obj.shape))){ctx.fillStyle="#ffffff";ctx.strokeStyle="#477ed1";ctx.fillRect(b.x+b.w-5,b.y+b.h-5,10,10);ctx.strokeRect(b.x+b.w-5,b.y+b.h-5,10,10);}ctx.restore();}}
     $("#background").value=activePage().background||"grid";updatePageLabel();
   }
   function position(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*1200/r.width,y:(e.clientY-r.top)*800/r.height};}
@@ -145,6 +145,8 @@
     $("#width").addEventListener("input",e=>state.width=Number(e.target.value));
     $("#undo").addEventListener("click",undoFn);$("#redo").addEventListener("click",redoFn);
     $("#duplicate").addEventListener("click",duplicateSelected);$("#delete-selected").addEventListener("click",deleteSelected);
+    $("#clear-page").addEventListener("click",()=>{if(!objects().length||!window.confirm("Clear every object from this page?"))return;snapshot();activePage().objects=[];state.selected=null;renderCanvas();changed();});
+    $("#zoom").addEventListener("change",e=>{canvas.style.width=e.target.value+"%";});
     $("#save-now").addEventListener("click",()=>{if(state.pending)postPending();else changed();});
     $("#previous-page").addEventListener("click",()=>movePage(-1));$("#next-page").addEventListener("click",()=>movePage(1));
     $("#new-page").addEventListener("click",()=>{if(state.board.pages.length>=40){status("Page limit reached");return;}snapshot();const n=state.board.pages.length+1;const page={id:uid(),title:"Page "+n,width:1200,height:800,background:"grid",objects:[]};state.board.pages.push(page);state.pageId=page.id;state.selected=null;renderCanvas();changed();});
@@ -158,7 +160,7 @@
       e.preventDefault();canvas.focus();const p=position(e);canvas.setPointerCapture(e.pointerId);
       if(state.tool==="hand"){state.handStart={x:e.clientX,y:e.clientY,left:stage.scrollLeft,top:stage.scrollTop};return;}
       if(state.tool==="text"||state.tool==="sticky"){addText(p,state.tool==="sticky");return;}
-      if(state.tool==="select"){const hit=objectAt(p);state.selected=hit?hit.id:null;if(hit)state.dragging={id:hit.id,start:p,original:clone(hit),moved:false,snapshotted:false};renderCanvas();return;}
+      if(state.tool==="select"){const hit=objectAt(p);state.selected=hit?hit.id:null;if(hit){const b=bounds(hit);const canResize=hit.type==="sticky"||(hit.type==="shape"&&["rect","ellipse","triangle"].includes(hit.shape));const resize=canResize&&p.x>=b.x+b.w-18&&p.y>=b.y+b.h-18;state.dragging={id:hit.id,start:p,original:clone(hit),moved:false,snapshotted:false,resize:!!resize,resizeOrigin:b};}renderCanvas();return;}
       if(state.tool==="eraser"){const hit=objectAt(p);if(hit){snapshot();state.board.pages[currentPageIndex()].objects=objects().filter(o=>o.id!==hit.id);state.drawing={type:"eraser",changed:true};renderCanvas();}else state.drawing={type:"eraser",changed:false};return;}
       snapshot();if(state.tool==="pen"||state.tool==="highlighter"){const obj={id:uid(),type:"stroke",points:[p],color:state.color,width:state.width,tool:state.tool};objects().push(obj);state.drawing={type:"stroke",id:obj.id};}else{const shape=state.tool==="rectangle"?"rect":state.tool==="ellipse"?"ellipse":state.tool==="triangle"?"triangle":state.tool==="line"?"line":"arrow";const obj={id:uid(),type:"shape",shape,x:p.x,y:p.y,w:0,h:0,color:state.color,width:state.width};objects().push(obj);state.drawing={type:"shape",id:obj.id,start:p};}renderCanvas();
     });
@@ -168,7 +170,7 @@
       if(state.drawing?.type==="stroke"){const obj=objects().find(o=>o.id===state.drawing.id);if(obj)obj.points.push(p);renderCanvas();}
       else if(state.drawing?.type==="shape"){const obj=objects().find(o=>o.id===state.drawing.id);if(obj){obj.w=p.x-state.drawing.start.x;obj.h=p.y-state.drawing.start.y;}renderCanvas();}
       else if(state.drawing?.type==="eraser"){const hit=objectAt(p);if(hit){state.board.pages[currentPageIndex()].objects=objects().filter(o=>o.id!==hit.id);state.drawing.changed=true;renderCanvas();}}
-      else if(state.dragging){const obj=objects().find(o=>o.id===state.dragging.id);if(obj){const dx=p.x-state.dragging.start.x,dy=p.y-state.dragging.start.y;const orig=state.dragging.original;if(Math.abs(dx)+Math.abs(dy)>0&&!state.dragging.snapshotted){snapshot();state.dragging.snapshotted=true;}if(obj.type==="stroke")obj.points=orig.points.map(pt=>({x:pt.x+dx,y:pt.y+dy}));else{obj.x=orig.x+dx;obj.y=orig.y+dy;}state.dragging.moved=true;renderCanvas();}}
+      else if(state.dragging){const obj=objects().find(o=>o.id===state.dragging.id);if(obj){const dx=p.x-state.dragging.start.x,dy=p.y-state.dragging.start.y;const orig=state.dragging.original;if(Math.abs(dx)+Math.abs(dy)>0&&!state.dragging.snapshotted){snapshot();state.dragging.snapshotted=true;}if(state.dragging.resize){obj.x=state.dragging.resizeOrigin.x;obj.y=state.dragging.resizeOrigin.y;obj.w=Math.max(20,p.x-obj.x);obj.h=Math.max(20,p.y-obj.y);}else if(obj.type==="stroke")obj.points=orig.points.map(pt=>({x:pt.x+dx,y:pt.y+dy}));else{obj.x=orig.x+dx;obj.y=orig.y+dy;}state.dragging.moved=true;renderCanvas();}}
     });
     const finish=()=>{let save=false;if(state.drawing){save=state.drawing.type!=="eraser"||state.drawing.changed;if(state.drawing.type==="shape"){const obj=objects().find(o=>o.id===state.drawing.id);if(obj&&Math.abs(obj.w)<3&&Math.abs(obj.h)<3)state.board.pages[currentPageIndex()].objects=objects().filter(o=>o.id!==obj.id);}}if(state.dragging&&state.dragging.moved)save=true;state.drawing=null;state.dragging=null;state.handStart=null;renderCanvas();if(save)changed();};
     canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);
