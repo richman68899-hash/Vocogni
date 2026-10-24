@@ -208,6 +208,12 @@ def _render_folder_view(folder: dict[str, Any]) -> None:
             st.session_state.note_folders = [
                 f for f in st.session_state.note_folders if f.get("id") != folder["id"]
             ]
+            # Whiteboards use the same flat folder model. Preserve boards if
+            # their folder is deleted, returning them to Unfiled like notes.
+            for board in st.session_state.get("whiteboards", []):
+                if isinstance(board, dict) and board.get("folder_id") == folder["id"]:
+                    board["folder_id"] = None
+                    board["updated_at"] = _now()
             st.session_state.selected_note_folder_id = None
             _mark_changed()
             st.rerun()
