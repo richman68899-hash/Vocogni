@@ -24,7 +24,7 @@ from typing import Any
 import streamlit as st
 
 import data
-import learning_rhythm
+from . import learning_rhythm
 import state
 
 
