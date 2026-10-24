@@ -145,6 +145,28 @@ class WhiteboardModelTests(unittest.TestCase):
             {"id": "board_1"}, {"id": "board_12"}, {"id": "custom-id"}
         ]), 13)
 
+    def test_mind_map_and_flowchart_templates_create_editable_objects(self):
+        mind_map = whiteboards.create_whiteboard(2, "Mind map", template="mind_map")
+        flowchart = whiteboards.create_whiteboard(3, "Flowchart", template="flowchart")
+        self.assertEqual(mind_map["pages"][0]["background"], "blank")
+        self.assertGreaterEqual(len(mind_map["pages"][0]["objects"]), 10)
+        self.assertTrue(any(obj.get("text") == "Main idea" for obj in mind_map["pages"][0]["objects"]))
+        self.assertEqual(flowchart["pages"][0]["background"], "blank")
+        self.assertTrue(any(obj.get("shape") == "arrow" for obj in flowchart["pages"][0]["objects"]))
+        self.assertTrue(any(obj.get("text") == "Process" for obj in flowchart["pages"][0]["objects"]))
+
+    def test_duplicate_board_uses_new_ids_and_preserves_content(self):
+        original = whiteboards.create_whiteboard(1, "Original", template="mind_map")
+        duplicate = whiteboards.duplicate_whiteboard(original, 2)
+        self.assertEqual(duplicate["id"], "board_2")
+        self.assertEqual(duplicate["title"], "Original copy")
+        self.assertEqual(duplicate["pages"][0]["title"], "Page 1")
+        self.assertEqual(
+            {obj["id"] for obj in duplicate["pages"][0]["objects"]},
+            {f"object_1_{i}" for i in range(1, len(duplicate["pages"][0]["objects"]) + 1)},
+        )
+        self.assertNotEqual(duplicate["created_at"], original["created_at"])
+
     def test_metadata_update_validates_title_and_preserves_page_objects(self):
         board = whiteboards.create_whiteboard(1, "Original", None)
         board["pages"][0]["objects"].append({
