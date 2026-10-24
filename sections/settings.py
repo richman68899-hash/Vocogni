@@ -271,7 +271,7 @@ def render() -> None:
                 key=SETTING_WIDGET_KEYS["high_readability"],
                 help="Increases line spacing to make longer text blocks easier to track.",
             )
-            st.caption("These options change display and motion only; they do not diagnose or infer a learning or medical condition.")
+            st.caption("These options change display and motion only, not lesson content.")
 
     st.divider()
     reset_col, info_col = st.columns([1, 3], gap="medium")
