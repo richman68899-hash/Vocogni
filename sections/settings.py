@@ -45,16 +45,21 @@ def _apply_values(values: dict[str, Any]) -> None:
         st.session_state.settings = settings
 
     updated = dict(settings)
+    changed = False
     for setting_key, value in values.items():
         if setting_key in DEFAULT_SETTINGS:
-            updated[setting_key] = _safe_value(setting_key, value)
+            validated = _safe_value(setting_key, value)
+            if updated.get(setting_key) != validated:
+                changed = True
+            updated[setting_key] = validated
 
     st.session_state.settings = updated
     for setting_key, widget_key in SETTING_WIDGET_KEYS.items():
         if setting_key in values:
             st.session_state[widget_key] = updated[setting_key]
 
-    state.mark_persistent_dirty()
+    if changed:
+        state.mark_persistent_dirty()
 
 
 def _apply_preset(name: str) -> None:
