@@ -31,7 +31,7 @@ SETTING_OPTIONS = {
     "appearance": ["Light", "Dark"],
     "text_size": ["Small", "Medium", "Large"],
     "feedback_timing": ["Immediate", "After submission"],
-    "difficulty": ["Adaptive", "Easy", "Medium", "Hard"],
+    "difficulty": ["Adaptive", "Easy", "Hard"],
 }
 
 PRESETS: dict[str, dict[str, Any]] = {
@@ -58,6 +58,10 @@ PRESETS: dict[str, dict[str, Any]] = {
 
 def safe_value(key: str, value: Any) -> Any:
     """Return a supported setting value without breaking older learner data."""
+    # Before the hint-assistance labels, Medium was an exposed preference but
+    # had no distinct behavior. Map it to the existing on-request behavior.
+    if key == "difficulty" and value == "Medium":
+        return "Adaptive"
     if key in SETTING_OPTIONS:
         return value if value in SETTING_OPTIONS[key] else DEFAULT_SETTINGS[key]
     if key not in DEFAULT_SETTINGS:
