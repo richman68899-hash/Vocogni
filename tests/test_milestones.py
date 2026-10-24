@@ -70,7 +70,7 @@ class MilestoneDataTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             milestones.add_checklist_item(milestone, " ")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             milestones.update_checklist_item(milestone, 123, "New text")
         with self.assertRaises(KeyError):
             milestones.set_checklist_item_done(milestone, 123, True)
