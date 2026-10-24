@@ -1426,15 +1426,29 @@ def _render_question(
 
     else:
 
-        if (
-            settings.get("difficulty")
-            == "Easy"
-            and question.get("input_hint")
-        ):
+        hint = question.get("input_hint")
+        hint_mode = settings.get("difficulty", "Adaptive")
+        # Preserve a useful behavior for older learner records created before
+        # Medium was retired as a separate (non-functional) option.
+        if hint_mode == "Medium":
+            hint_mode = "Adaptive"
 
-            st.caption(
-                f"Hint: {question['input_hint']}"
-            )
+        if hint:
+            if hint_mode == "Easy":
+                st.caption(f"Hint: {hint}")
+            elif hint_mode == "Adaptive":
+                hint_state_key = (
+                    f"hint_revealed_{lesson['id']}_"
+                    f"{flow.get('attempt_number', 1)}_{question['id']}"
+                )
+                if st.button(
+                    "Show hint",
+                    key=f"show_hint_{lesson['id']}_"
+                    f"{flow.get('attempt_number', 1)}_{question['id']}",
+                ):
+                    st.session_state[hint_state_key] = True
+                if st.session_state.get(hint_state_key, False):
+                    st.caption(f"Hint: {hint}")
 
         step = (
             1.0
