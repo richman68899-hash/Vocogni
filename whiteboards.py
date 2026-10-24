@@ -303,8 +303,49 @@ def create_whiteboard(
     title: str = "Untitled whiteboard",
     folder_id: int | None = None,
     now: str | None = None,
+    template: str = "grid",
 ) -> dict[str, Any]:
+    """Create a blank board or a lightweight study template."""
     timestamp = now or now_utc()
+    if template not in {"blank", "dots", "grid", "ruled", "coordinate", "mind_map", "flowchart"}:
+        template = "grid"
+
+    objects = []
+    background = template if template in BACKGROUNDS else "grid"
+    if template == "mind_map":
+        background = "blank"
+        objects = [
+            {"id": "connector_left_top", "type": "shape", "shape": "line", "x": 600, "y": 380, "width": -300, "height": -160, "color": "#AAB7C0", "stroke_width": 2},
+            {"id": "connector_right_top", "type": "shape", "shape": "line", "x": 600, "y": 380, "width": 300, "height": -160, "color": "#AAB7C0", "stroke_width": 2},
+            {"id": "connector_left_bottom", "type": "shape", "shape": "line", "x": 600, "y": 380, "width": -300, "height": 160, "color": "#AAB7C0", "stroke_width": 2},
+            {"id": "connector_right_bottom", "type": "shape", "shape": "line", "x": 600, "y": 380, "width": 300, "height": 160, "color": "#AAB7C0", "stroke_width": 2},
+            {"id": "center", "type": "shape", "shape": "ellipse", "x": 500, "y": 330, "width": 200, "height": 100, "color": "#477ED1", "fill": "#EAF2FF", "filled": True, "stroke_width": 2},
+            {"id": "center_text", "type": "text", "x": 540, "y": 385, "text": "Main idea", "color": "#244B86", "font_size": 24},
+            {"id": "topic_left_top", "type": "shape", "shape": "rectangle", "x": 150, "y": 150, "width": 180, "height": 76, "color": "#399568", "fill": "#E9F7EF", "filled": True, "stroke_width": 2},
+            {"id": "topic_right_top", "type": "shape", "shape": "rectangle", "x": 870, "y": 150, "width": 180, "height": 76, "color": "#E58A32", "fill": "#FFF3E5", "filled": True, "stroke_width": 2},
+            {"id": "topic_left_bottom", "type": "shape", "shape": "rectangle", "x": 150, "y": 530, "width": 180, "height": 76, "color": "#8D6BC1", "fill": "#F4EEFC", "filled": True, "stroke_width": 2},
+            {"id": "topic_right_bottom", "type": "shape", "shape": "rectangle", "x": 870, "y": 530, "width": 180, "height": 76, "color": "#D66D9B", "fill": "#FCEEF4", "filled": True, "stroke_width": 2},
+            {"id": "label_left_top", "type": "text", "x": 178, "y": 195, "text": "Branch 1", "color": "#245A43", "font_size": 20},
+            {"id": "label_right_top", "type": "text", "x": 896, "y": 195, "text": "Branch 2", "color": "#8B4F12", "font_size": 20},
+            {"id": "label_left_bottom", "type": "text", "x": 178, "y": 575, "text": "Branch 3", "color": "#5D4383", "font_size": 20},
+            {"id": "label_right_bottom", "type": "text", "x": 896, "y": 575, "text": "Branch 4", "color": "#963D69", "font_size": 20},
+        ]
+    elif template == "flowchart":
+        background = "blank"
+        objects = [
+            {"id": "start_shape", "type": "shape", "shape": "rectangle", "x": 460, "y": 55, "width": 280, "height": 76, "color": "#399568", "fill": "#E9F7EF", "filled": True, "stroke_width": 2},
+            {"id": "start_label", "type": "text", "x": 545, "y": 101, "text": "Start / Input", "color": "#245A43", "font_size": 22},
+            {"id": "arrow_one", "type": "shape", "shape": "arrow", "x": 600, "y": 132, "width": 0, "height": 70, "color": "#667985", "stroke_width": 2},
+            {"id": "process_shape", "type": "shape", "shape": "rectangle", "x": 460, "y": 205, "width": 280, "height": 76, "color": "#477ED1", "fill": "#EAF2FF", "filled": True, "stroke_width": 2},
+            {"id": "process_label", "type": "text", "x": 535, "y": 250, "text": "Process", "color": "#244B86", "font_size": 22},
+            {"id": "arrow_two", "type": "shape", "shape": "arrow", "x": 600, "y": 282, "width": 0, "height": 70, "color": "#667985", "stroke_width": 2},
+            {"id": "decision_shape", "type": "shape", "shape": "rectangle", "x": 460, "y": 355, "width": 280, "height": 76, "color": "#E58A32", "fill": "#FFF3E5", "filled": True, "stroke_width": 2},
+            {"id": "decision_label", "type": "text", "x": 520, "y": 400, "text": "Decision / Output", "color": "#8B4F12", "font_size": 21},
+            {"id": "arrow_three", "type": "shape", "shape": "arrow", "x": 600, "y": 432, "width": 0, "height": 70, "color": "#667985", "stroke_width": 2},
+            {"id": "end_shape", "type": "shape", "shape": "rectangle", "x": 460, "y": 505, "width": 280, "height": 76, "color": "#8D6BC1", "fill": "#F4EEFC", "filled": True, "stroke_width": 2},
+            {"id": "end_label", "type": "text", "x": 555, "y": 550, "text": "End / Result", "color": "#5D4383", "font_size": 22},
+        ]
+
     return sanitize_board({
         "id": f"board_{_positive_int(board_id)}",
         "title": title,
@@ -312,8 +353,8 @@ def create_whiteboard(
         "pages": [{
             "id": "page_1",
             "title": "Page 1",
-            "background": "grid",
-            "objects": [],
+            "background": background,
+            "objects": objects,
         }],
         "active_page_id": "page_1",
         "created_at": timestamp,
@@ -321,6 +362,25 @@ def create_whiteboard(
     })
 
 
+def duplicate_whiteboard(
+    board: dict[str, Any],
+    new_id: int,
+    title: str | None = None,
+) -> dict[str, Any]:
+    """Duplicate a board while assigning fresh page and object identifiers."""
+    from copy import deepcopy
+
+    copied = deepcopy(board)
+    copied["id"] = f"board_{_positive_int(new_id)}"
+    copied["title"] = _string(title, str(board.get("title", "Whiteboard")) + " copy", MAX_BOARD_TITLE_LENGTH)
+    copied["created_at"] = now_utc()
+    copied["updated_at"] = copied["created_at"]
+    for page_index, page in enumerate(copied.get("pages", []), start=1):
+        page["id"] = f"page_{page_index}"
+        for object_index, obj in enumerate(page.get("objects", []), start=1):
+            obj["id"] = f"object_{page_index}_{object_index}"
+    copied["active_page_id"] = copied["pages"][0]["id"] if copied.get("pages") else "page_1"
+    return sanitize_board(copied)
 def update_whiteboard_metadata(
     board: dict[str, Any],
     *,
