@@ -213,6 +213,11 @@ def _render_editor(board: dict[str, Any]) -> None:
                 st.rerun()
 
     status = st.session_state.get("_persistent_save_status", "saved")
+    status_map = st.session_state["_whiteboard_component_save_status"]
+    if status == "saved" and not state.has_pending_persistence():
+        status_map[board_id] = "saved"
+    elif status == "error":
+        status_map[board_id] = "error"
     if status == "error":
         st.error("Vocogni could not confirm that all changes were saved.")
         if st.button("Retry save", key=f"whiteboard_retry_save_{board_id}"):
@@ -225,7 +230,6 @@ def _render_editor(board: dict[str, Any]) -> None:
         "multi-page boards, undo/redo, and export are available in the canvas below."
     )
     ack_map = st.session_state["_whiteboard_component_ack"]
-    status_map = st.session_state["_whiteboard_component_save_status"]
     event = _whiteboard_component(
         board=board,
         ack_event_id=ack_map.get(board_id, ""),
@@ -279,7 +283,8 @@ def _consume_component_event(board: dict[str, Any], event: Any) -> None:
             saved = state.flush_persistent_save()
             status_map[board_id] = "saved" if saved else "error"
         else:
-            status_map[board_id] = "saved" if not state.has_pending_persistence() else "error"
+            saved = state.flush_persistent_save()
+            status_map[board_id] = "saved" if saved else "error"
     except (TypeError, ValueError) as exc:
         status_map[board_id] = "error"
         st.error(f"Whiteboard changes were rejected: {exc}")
