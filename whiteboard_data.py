@@ -14,9 +14,13 @@ from uuid import uuid4
 
 MAX_BOARDS = 100
 MAX_PAGES_PER_BOARD = 40
-MAX_OBJECTS_PER_PAGE = 300
-MAX_POINTS_PER_STROKE = 3000
+MAX_OBJECTS_PER_PAGE = 200
+MAX_POINTS_PER_STROKE = 2000
 MAX_TEXT_LENGTH = 5000
+MAX_OBJECTS_PER_BOARD = 1200
+MAX_POINTS_PER_BOARD = 30000
+MAX_TEXT_CHARS_PER_PAGE = 20000
+MAX_TEXT_CHARS_PER_BOARD = 100000
 BACKGROUNDS = {"plain", "grid", "dots", "dark"}
 OBJECT_TYPES = {"stroke", "shape", "text", "sticky"}
 SHAPES = {"rect", "ellipse", "triangle", "line", "arrow"}
@@ -102,8 +106,14 @@ def create_board(
     }
 
 
-def sanitize_page(value: Any) -> dict[str, Any] | None:
-    """Validate one page before it enters persistent learner state."""
+def sanitize_page(
+    value: Any,
+    *,
+    max_objects: int = MAX_OBJECTS_PER_PAGE,
+    max_points: int = MAX_POINTS_PER_STROKE,
+    max_text_chars: int = MAX_TEXT_CHARS_PER_PAGE,
+) -> dict[str, Any] | None:
+    """Validate one bounded page before it enters persistent learner state."""
     if not isinstance(value, dict):
         return None
     page_id = value.get("id")
@@ -112,10 +122,15 @@ def sanitize_page(value: Any) -> dict[str, Any] | None:
     background = value.get("background", "grid")
     if background not in BACKGROUNDS:
         background = "grid"
+    object_limit = max(0, min(MAX_OBJECTS_PER_PAGE, int(max_objects)))
+    point_budget = max(0, min(MAX_POINTS_PER_STROKE, int(max_points)))
+    text_budget = max(0, min(MAX_TEXT_CHARS_PER_PAGE, int(max_text_chars)))
     objects = []
+    remaining_points = point_budget
+    remaining_text = text_budget
     source_objects = value.get("objects", [])
     if isinstance(source_objects, list):
-        for raw in source_objects[:MAX_OBJECTS_PER_PAGE]:
+        for raw in source_objects[:object_limit]:
             if not isinstance(raw, dict) or raw.get("type") not in OBJECT_TYPES:
                 continue
             kind = raw["type"]
@@ -123,12 +138,14 @@ def sanitize_page(value: Any) -> dict[str, Any] | None:
             if kind == "stroke":
                 points_raw = raw.get("points", [])
                 points = []
+                point_limit = min(MAX_POINTS_PER_STROKE, remaining_points)
                 if isinstance(points_raw, list):
-                    for point in points_raw[:MAX_POINTS_PER_STROKE]:
+                    for point in points_raw[:point_limit]:
                         if isinstance(point, dict):
                             points.append({"x": _number(point.get("x")), "y": _number(point.get("y"))})
                 if len(points) < 2:
                     continue
+                remaining_points -= len(points)
                 item.update({
                     "points": points,
                     "color": _color(raw.get("color")),
@@ -147,12 +164,14 @@ def sanitize_page(value: Any) -> dict[str, Any] | None:
                     "fill": _color(raw.get("fill"), "#FFFFFF"),
                 })
             else:
-                text = raw.get("text", "")
-                if not isinstance(text, str):
-                    text = str(text)
+                raw_text = raw.get("text", "")
+                if not isinstance(raw_text, str):
+                    raw_text = str(raw_text)
+                text = raw_text[:min(MAX_TEXT_LENGTH, remaining_text)]
+                remaining_text -= len(text)
                 item.update({
                     "x": _number(raw.get("x")), "y": _number(raw.get("y")),
-                    "text": text[:MAX_TEXT_LENGTH], "color": _color(raw.get("color")),
+                    "text": text, "color": _color(raw.get("color")),
                     "fontSize": max(10.0, min(96.0, _number(raw.get("fontSize"), 24.0))),
                 })
                 if kind == "sticky":
@@ -173,7 +192,7 @@ def sanitize_page(value: Any) -> dict[str, Any] | None:
 
 
 def sanitize_boards(value: Any) -> list[dict[str, Any]]:
-    """Restore a bounded, validated set of editable whiteboards."""
+    """Restore validated boards with aggregate object, stroke and text budgets."""
     if not isinstance(value, list):
         return []
     boards: list[dict[str, Any]] = []
@@ -187,11 +206,32 @@ def sanitize_boards(value: Any) -> list[dict[str, Any]]:
         seen.add(board_id)
         raw_pages = raw.get("pages", [])
         pages = []
+        remaining_objects = MAX_OBJECTS_PER_BOARD
+        remaining_points = MAX_POINTS_PER_BOARD
+        remaining_text = MAX_TEXT_CHARS_PER_BOARD
         if isinstance(raw_pages, list):
             for raw_page in raw_pages[:MAX_PAGES_PER_BOARD]:
-                page = sanitize_page(raw_page)
-                if page is not None:
-                    pages.append(page)
+                page = sanitize_page(
+                    raw_page,
+                    max_objects=remaining_objects,
+                    max_points=remaining_points,
+                    max_text_chars=remaining_text,
+                )
+                if page is None:
+                    continue
+                pages.append(page)
+                remaining_objects -= len(page["objects"])
+                for obj in page["objects"]:
+                    if obj.get("type") == "stroke":
+                        remaining_points -= len(obj.get("points", []))
+                    elif obj.get("type") in {"text", "sticky"}:
+                        remaining_text -= len(obj.get("text", ""))
+                if remaining_objects <= 0:
+                    remaining_objects = 0
+                if remaining_points <= 0:
+                    remaining_points = 0
+                if remaining_text <= 0:
+                    remaining_text = 0
         if not pages:
             pages = [create_page()]
         folder_id = raw.get("folder_id")
