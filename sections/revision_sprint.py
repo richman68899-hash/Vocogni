@@ -6,6 +6,7 @@ from collections import defaultdict
 
 import streamlit as st
 
+import data
 import revision_sprint as sprint_logic
 import state
 
@@ -92,27 +93,135 @@ def _render_setup(course, progress, bank):
         use_container_width=True,
     ):
         mode = "balanced" if mode_label.startswith("Whole course") else "personalized"
-        questions = sprint_logic.select_questions(
-            progress,
-            course_id,
-            count=count,
-            mode=mode,
+        _begin_sprint_session(course, progress, count, mode)
+
+
+def _begin_sprint_session(course, progress, count, mode):
+    """Create a shared sprint session from either Browse or a course page."""
+    course_id = course["id"]
+    questions = sprint_logic.select_questions(
+        progress,
+        course_id,
+        count=count,
+        mode=mode,
+    )
+    if not questions:
+        st.warning("No supported questions could be selected for this sprint.")
+        return
+
+    sequence = int(st.session_state.get("_revision_sprint_sequence", 0)) + 1
+    st.session_state["_revision_sprint_sequence"] = sequence
+    st.session_state[_SESSION_KEY] = {
+        "session_id": f"{course_id}_{sequence}",
+        "course_id": course_id,
+        "course_title": course.get("title", course_id),
+        "mode": mode,
+        "stage": "active",
+        "items": questions,
+        "answer_keys": [
+            f"revision_sprint_answer_{course_id}_{sequence}_{index}"
+            for index in range(len(questions))
+        ],
+    }
+    st.rerun()
+
+
+def render_browse_entry(progress):
+    """Expose revision sprint on the Browse landing page, before a course is opened."""
+    session = st.session_state.get(_SESSION_KEY)
+    if isinstance(session, dict) and session.get("stage") in ("active", "results"):
+        with st.container(border=True):
+            st.markdown("### Personalized Revision Sprint")
+            st.caption(
+                f"Your session for {session.get('course_title', 'this course')}. "
+                "Finish here, then use the results to choose your next step."
+            )
+            if session["stage"] == "active":
+                _render_active(session, progress)
+            else:
+                _render_results(session)
+        return True
+
+    courses = data.all_courses_in_order()
+    eligible_courses = []
+    banks = {}
+    for course in courses:
+        course_id = course.get("id")
+        if not course_id:
+            continue
+        bank = sprint_logic.question_bank_for_course(course_id)
+        if len(bank) >= 3:
+            eligible_courses.append(course)
+            banks[course_id] = bank
+
+    with st.container(border=True):
+        st.markdown("### Personalized Revision Sprint")
+        st.caption(
+            "Start a focused practice set directly from Browse. Vocogni prioritizes "
+            "previous mistakes and skills that need review, then explains your result."
         )
-        sequence = int(st.session_state.get("_revision_sprint_sequence", 0)) + 1
-        st.session_state["_revision_sprint_sequence"] = sequence
-        st.session_state[_SESSION_KEY] = {
-            "session_id": f"{course_id}_{sequence}",
-            "course_id": course_id,
-            "course_title": course.get("title", course_id),
-            "mode": mode,
-            "stage": "active",
-            "items": questions,
-            "answer_keys": [
-                f"revision_sprint_answer_{course_id}_{sequence}_{index}"
-                for index in range(len(questions))
-            ],
-        }
-        st.rerun()
+
+        if not eligible_courses:
+            st.info(
+                "Revision sprints are not available yet because the current courses "
+                "do not have enough supported practice questions."
+            )
+            return False
+
+        course_by_id = {course["id"]: course for course in eligible_courses}
+        course_ids = list(course_by_id)
+        default_course = st.session_state.get("revision_sprint_browse_course")
+        if default_course not in course_ids:
+            default_course = course_ids[0]
+        default_index = course_ids.index(default_course)
+
+        course_col, count_col = st.columns([2, 1], vertical_alignment="bottom")
+        with course_col:
+            course_id = st.selectbox(
+                "Choose a course",
+                options=course_ids,
+                index=default_index,
+                format_func=lambda value: course_by_id[value].get("title", value),
+                key="revision_sprint_browse_course",
+            )
+        bank = banks[course_id]
+        available_counts = [count for count in (3, 5, 10) if count <= len(bank)]
+        with count_col:
+            count = st.selectbox(
+                "Question count",
+                options=available_counts,
+                format_func=lambda value: str(value),
+                key=f"revision_sprint_browse_count_{course_id}",
+            )
+
+        mode_label = st.radio(
+            "Question selection",
+            options=["Personalized", "Whole-course mix"],
+            horizontal=True,
+            key=f"revision_sprint_browse_mode_{course_id}",
+        )
+        weak_skills = sprint_logic.weak_skills_for_course(progress, course_id, limit=3)
+        if weak_skills:
+            st.caption("Priority skills: " + " · ".join(weak_skills))
+        else:
+            st.caption(
+                "No clear weak-skill pattern yet. The first sprint will start with "
+                "unanswered questions and spread practice across the course."
+            )
+
+        st.caption(
+            f"{len(bank)} supported questions available. Scores are practice evidence, "
+            "not official exam marks or predicted school grades."
+        )
+        if st.button(
+            "Start revision sprint",
+            key="revision_sprint_browse_start",
+            type="primary",
+            use_container_width=True,
+        ):
+            mode = "balanced" if mode_label == "Whole-course mix" else "personalized"
+            _begin_sprint_session(course_by_id[course_id], progress, count, mode)
+    return False
 
 
 def _answer_widget(question, label, key):
