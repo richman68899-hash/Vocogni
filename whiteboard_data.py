@@ -22,6 +22,9 @@ MAX_OBJECTS_PER_BOARD = 1200
 MAX_POINTS_PER_BOARD = 30000
 MAX_TEXT_CHARS_PER_PAGE = 20000
 MAX_TEXT_CHARS_PER_BOARD = 100000
+MAX_OBJECTS_PER_LEARNER = 5000
+MAX_POINTS_PER_LEARNER = 100000
+MAX_TEXT_CHARS_PER_LEARNER = 250000
 BACKGROUNDS = {"plain", "grid", "dots", "dark"}
 OBJECT_TYPES = {"stroke", "shape", "text", "sticky"}
 SHAPES = {"rect", "ellipse", "triangle", "line", "arrow"}
@@ -198,6 +201,9 @@ def sanitize_boards(value: Any) -> list[dict[str, Any]]:
         return []
     boards: list[dict[str, Any]] = []
     seen: set[str] = set()
+    learner_objects = MAX_OBJECTS_PER_LEARNER
+    learner_points = MAX_POINTS_PER_LEARNER
+    learner_text = MAX_TEXT_CHARS_PER_LEARNER
     for raw in value[:MAX_BOARDS]:
         if not isinstance(raw, dict):
             continue
@@ -207,9 +213,9 @@ def sanitize_boards(value: Any) -> list[dict[str, Any]]:
         seen.add(board_id)
         raw_pages = raw.get("pages", [])
         pages = []
-        remaining_objects = MAX_OBJECTS_PER_BOARD
-        remaining_points = MAX_POINTS_PER_BOARD
-        remaining_text = MAX_TEXT_CHARS_PER_BOARD
+        remaining_objects = min(MAX_OBJECTS_PER_BOARD, learner_objects)
+        remaining_points = min(MAX_POINTS_PER_BOARD, learner_points)
+        remaining_text = min(MAX_TEXT_CHARS_PER_BOARD, learner_text)
         if isinstance(raw_pages, list):
             for raw_page in raw_pages[:MAX_PAGES_PER_BOARD]:
                 page = sanitize_page(
@@ -233,6 +239,9 @@ def sanitize_boards(value: Any) -> list[dict[str, Any]]:
                     remaining_points = 0
                 if remaining_text <= 0:
                     remaining_text = 0
+                learner_objects -= len(page["objects"])
+                learner_points -= sum(len(obj.get("points", [])) for obj in page["objects"] if obj.get("type") == "stroke")
+                learner_text -= sum(len(obj.get("text", "")) for obj in page["objects"] if obj.get("type") in {"text", "sticky"})
         if not pages:
             pages = [create_page()]
         folder_id = raw.get("folder_id")
