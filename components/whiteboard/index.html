@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="whiteboard.css">
+  <title>Vocogni Whiteboard</title>
+</head>
+<body>
+  <main id="whiteboard-app" aria-label="Vocogni whiteboard editor">
+    <div class="toolbar" id="toolbar">
+      <div class="tool-group" role="group" aria-label="Drawing tools">
+        <button class="tool active" data-tool="select" title="Select and move objects (V)">↖ Select</button>
+        <button class="tool" data-tool="pen" title="Pen (P)">✎ Pen</button>
+        <button class="tool" data-tool="highlighter" title="Highlighter (H)">▰ Highlight</button>
+        <button class="tool" data-tool="eraser" title="Erase object (E)">⌫ Eraser</button>
+        <button class="tool" data-tool="text" title="Add text (T)">T Text</button>
+        <button class="tool" data-tool="sticky" title="Add sticky note">▤ Sticky</button>
+        <button class="tool" data-tool="hand" title="Pan canvas (Space)">✋ Hand</button>
+      </div>
+      <div class="tool-group" role="group" aria-label="Shape tools">
+        <button class="tool" data-tool="rectangle" title="Rectangle">□</button>
+        <button class="tool" data-tool="ellipse" title="Ellipse">○</button>
+        <button class="tool" data-tool="triangle" title="Triangle">△</button>
+        <button class="tool" data-tool="line" title="Line">／</button>
+        <button class="tool" data-tool="arrow" title="Arrow">↗</button>
+      </div>
+      <div class="tool-group style-tools">
+        <label class="control-label" for="stroke-color">Color</label>
+        <input id="stroke-color" type="color" value="#2563EB" aria-label="Stroke color">
+        <label class="control-label" for="stroke-width">Width</label>
+        <select id="stroke-width" aria-label="Stroke width">
+          <option value="2">Fine</option>
+          <option value="4" selected>Medium</option>
+          <option value="8">Thick</option>
+          <option value="14">Marker</option>
+        </select>
+      </div>
+      <div class="tool-group">
+        <button id="undo" title="Undo (Ctrl+Z)" disabled>↶ Undo</button>
+        <button id="redo" title="Redo (Ctrl+Y)" disabled>↷ Redo</button>
+        <button id="duplicate" title="Duplicate selected object" disabled>Duplicate</button>
+        <button id="delete-selected" title="Delete selected object" disabled>Delete</button>
+        <button id="edit-selected" title="Edit selected text" disabled>Edit text</button>
+      </div>
+      <div class="tool-group">
+        <label class="control-label" for="background">Background</label>
+        <select id="background" aria-label="Page background">
+          <option value="blank">Blank</option>
+          <option value="dots">Dot grid</option>
+          <option value="grid">Graph paper</option>
+          <option value="ruled">Ruled</option>
+          <option value="coordinate">Coordinate plane</option>
+        </select>
+        <button id="zoom-out" title="Zoom out">−</button>
+        <span id="zoom-label" aria-live="polite">100%</span>
+        <button id="zoom-in" title="Zoom in">+</button>
+        <button id="zoom-reset" title="Reset zoom">Fit</button>
+      </div>
+      <div class="tool-group page-tools">
+        <button id="previous-page" title="Previous page">←</button>
+        <span id="page-label">Page 1 of 1</span>
+        <button id="next-page" title="Next page">→</button>
+        <button id="new-page">＋ Page</button>
+        <button id="duplicate-page" title="Duplicate page">Copy page</button>
+        <button id="delete-page" title="Delete current page">Delete page</button>
+      </div>
+      <div class="tool-group export-tools">
+        <button id="save-now" class="primary">Save now</button>
+        <button id="export-png">Export PNG</button>
+        <button id="export-pdf">Print / PDF</button>
+        <button id="export-json">Download JSON</button>
+        <span id="save-status" class="save-status" role="status">Ready</span>
+      </div>
+    </div>
+    <div id="hint" class="hint">Choose a tool, then draw. Select to move, resize, duplicate, or delete objects.</div>
+    <div class="canvas-shell">
+      <svg id="stage" viewBox="0 0 1200 760" role="application" aria-label="Whiteboard canvas" tabindex="0">
+        <defs id="canvas-defs">
+          <pattern id="pattern-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.25" fill="#CFD6DC"></circle>
+          </pattern>
+          <pattern id="pattern-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#D5DDE3" stroke-width="1"></path>
+          </pattern>
+          <pattern id="pattern-ruled" width="32" height="36" patternUnits="userSpaceOnUse">
+            <path d="M 0 35.5 L 32 35.5" fill="none" stroke="#D5DDE3" stroke-width="1"></path>
+          </pattern>
+          <pattern id="pattern-coordinate" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E1E6EA" stroke-width=".8"></path>
+            <path d="M 20 0 L 20 40 M 0 20 L 40 20" fill="none" stroke="#C2CDD5" stroke-width=".85"></path>
+          </pattern>
+          <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"></path>
+          </marker>
+        </defs>
+        <g id="scene">
+          <rect id="page-background" x="0" y="0" width="1200" height="760" fill="#FFFFFF"></rect>
+          <g id="object-layer"></g>
+          <g id="preview-layer"></g>
+          <g id="selection-layer"></g>
+        </g>
+      </svg>
+    </div>
+    <div id="notice" class="notice" aria-live="polite"></div>
+  </main>
+  <script src="whiteboard.js"></script>
+</body>
+</html>
