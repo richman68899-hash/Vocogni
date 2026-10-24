@@ -126,8 +126,9 @@ def _render_improvement(progress, course_id, lesson_id):
     st.caption("Improvement tracking will compare saved diagnostic and post-lesson results when both are available.")
 
 
-def render(progress):
-    st.markdown("### Coach")
+def render(progress, show_heading=True):
+    if show_heading:
+        st.markdown("### Coach")
     st.caption("Focused practice for this lesson. Questions are drawn from your course content; generated variants are used only when their answers are unambiguous.")
 
     courses = data.all_courses_in_order()

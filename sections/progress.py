@@ -7,27 +7,103 @@ import streamlit as st
 import data
 import logic
 import coach
+import state
+
+
+# The overview stays open on first use; detailed panels start collapsed to
+# reduce the amount of information shown at once. Learner choices are saved
+# inside the existing durable settings object.
+_PROGRESS_SECTION_DEFAULTS = {
+    "overview": True,
+    "topic_detail": False,
+    "mastery_receipt": False,
+    "recommendations": False,
+    "coach": False,
+    "lesson_diagnostics": False,
+    "ai_summary": False,
+}
+
+
+def _section_widget_key(section_id):
+    return f"progress_section_expanded_{section_id}"
+
+
+def _ensure_section_widget_state(section_id):
+    """Seed the expander from the learner's saved layout preference."""
+    key = _section_widget_key(section_id)
+    if key in st.session_state:
+        return
+
+    settings = st.session_state.get("settings", {})
+    saved_sections = settings.get("progress_sections", {}) if isinstance(settings, dict) else {}
+    saved_value = saved_sections.get(section_id) if isinstance(saved_sections, dict) else None
+    if isinstance(saved_value, bool):
+        st.session_state[key] = saved_value
+    else:
+        st.session_state[key] = _PROGRESS_SECTION_DEFAULTS[section_id]
+
+
+def _save_section_state(section_id):
+    """Persist expander changes using Vocogni's existing learner autosave."""
+    key = _section_widget_key(section_id)
+    expanded = bool(st.session_state.get(key, _PROGRESS_SECTION_DEFAULTS[section_id]))
+
+    settings = st.session_state.get("settings")
+    if not isinstance(settings, dict):
+        settings = {}
+        st.session_state.settings = settings
+
+    saved_sections = settings.get("progress_sections")
+    if not isinstance(saved_sections, dict):
+        saved_sections = {}
+    else:
+        saved_sections = dict(saved_sections)
+
+    if saved_sections.get(section_id) != expanded:
+        saved_sections[section_id] = expanded
+        settings["progress_sections"] = saved_sections
+        state.mark_persistent_dirty()
+
+
+def _progress_section(section_id, title):
+    """Create a stateful expander that saves its open/closed state."""
+    _ensure_section_widget_state(section_id)
+    return st.expander(
+        title,
+        expanded=_PROGRESS_SECTION_DEFAULTS[section_id],
+        key=_section_widget_key(section_id),
+        on_change=_save_section_state,
+        args=(section_id,),
+    )
 
 
 def render():
     st.markdown("<h2>Progress</h2>", unsafe_allow_html=True)
+    st.caption("Open a section to explore the detail you need. Each section remembers whether you left it open or closed.")
 
     progress = st.session_state.progress
     profile = st.session_state.profile
 
-    _render_overview(progress)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    _render_topic_detail(progress)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    _render_mastery_receipt(progress)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    _render_recommendations(progress)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    coach.render(progress)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    _render_lesson_diagnostics(progress)
-    st.markdown("<hr>", unsafe_allow_html=True)
-    _render_ai_summary(profile, progress)
+    with _progress_section("overview", "Overview"):
+        _render_overview(progress)
+
+    with _progress_section("topic_detail", "Topic progress"):
+        _render_topic_detail(progress)
+
+    with _progress_section("mastery_receipt", "Mastery Receipt"):
+        _render_mastery_receipt(progress)
+
+    with _progress_section("recommendations", "Recommended next steps"):
+        _render_recommendations(progress)
+
+    with _progress_section("coach", "Coach"):
+        coach.render(progress, show_heading=False)
+
+    with _progress_section("lesson_diagnostics", "Lesson diagnostics"):
+        _render_lesson_diagnostics(progress)
+
+    with _progress_section("ai_summary", "AI progress summary"):
+        _render_ai_summary(profile, progress)
 
 
 def _stat_block(label, value):
@@ -38,7 +114,7 @@ def _stat_block(label, value):
 
 
 def _render_overview(progress):
-    st.markdown("<h3>Overview</h3>", unsafe_allow_html=True)
+    st.caption("A snapshot of course activity, completed lessons, answers, mistakes, and diagnostic averages.")
     stats = logic.overall_stats(progress)
 
     row1 = st.columns(3)
@@ -94,7 +170,7 @@ _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge-
 
 
 def _render_topic_detail(progress):
-    st.markdown("<h3>Topic progress</h3>", unsafe_allow_html=True)
+    st.caption("Inspect one course at a time to see lesson completion, practice accuracy, and recurring mistakes.")
     courses = data.all_courses_in_order()
     labels = [c["topic_label"] for c in courses]
     selected_label = st.selectbox("Select a topic", labels, key="progress_topic_select")
@@ -172,7 +248,6 @@ def _render_mastery_receipt(progress):
     )
     receipt = logic.mastery_receipt_for_course(progress, course["id"])
 
-    st.markdown("<h3>Mastery Receipt</h3>", unsafe_allow_html=True)
     st.caption(
         f"A course-specific summary built automatically from {course.get('title', course['id'])}'s "
         "published questions, saved practice attempts, and diagnostic reviews. "
@@ -207,15 +282,11 @@ def _render_mastery_receipt(progress):
         receipt["skills"],
         key=lambda item: status_order.get(item["status"], 4),
     )
-    first_review_expanded = True
-
     st.markdown("#### Skill-by-skill evidence")
     for item in skills:
         status = item["status"]
-        expanded = status == "Needs review" and first_review_expanded
-        if expanded:
-            first_review_expanded = False
-        with st.expander(f"{item['skill']} — {status}", expanded=expanded):
+        with st.container(border=True):
+            st.markdown(f"**{item['skill']} — {status}**")
             if item["lesson_titles"]:
                 st.caption("Course content: " + ", ".join(item["lesson_titles"]))
 
@@ -271,7 +342,7 @@ def _render_lesson_diagnostics(progress):
     course_id = course["id"]
     prog = progress.get(course_id, {})
 
-    st.markdown("<h4 style='margin-top:1rem;'>Lesson diagnostics</h4>", unsafe_allow_html=True)
+    st.caption("Shows the selected topic's entry-diagnostic baseline, flagged skills, and any saved post-lesson practice comparison.")
     diagnostic_records = prog.get("diagnostics", {})
     lesson_assessments = prog.get("lesson_assessments", {})
     if not diagnostic_records:
@@ -303,7 +374,7 @@ def _render_lesson_diagnostics(progress):
     st.caption("The current diagnostic is a rule-based prototype. Results identify areas to investigate; they are not a clinical, psychometric, or validated mastery assessment.")
 
 def _render_recommendations(progress):
-    st.markdown("<h3>Recommended next steps</h3>", unsafe_allow_html=True)
+    st.caption("Turns saved activity into suggested next actions, so you know what to practise next.")
     recs = logic.generate_recommendations(progress)
     if not recs:
         st.markdown(
@@ -317,7 +388,6 @@ def _render_recommendations(progress):
 
 
 def _render_ai_summary(profile, progress):
-    st.markdown("<h3>AI progress summary</h3>", unsafe_allow_html=True)
     st.markdown(
         "<span class='vc-muted'>A prototype simulation built from your own stored "
         "statistics \u2014 no AI model is called in Version 1. See README.md for how "
