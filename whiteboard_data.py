@@ -16,6 +16,7 @@ MAX_BOARDS = 100
 MAX_PAGES_PER_BOARD = 40
 MAX_OBJECTS_PER_PAGE = 200
 MAX_POINTS_PER_STROKE = 2000
+MAX_POINTS_PER_PAGE = 20000
 MAX_TEXT_LENGTH = 5000
 MAX_OBJECTS_PER_BOARD = 1200
 MAX_POINTS_PER_BOARD = 30000
@@ -123,7 +124,7 @@ def sanitize_page(
     if background not in BACKGROUNDS:
         background = "grid"
     object_limit = max(0, min(MAX_OBJECTS_PER_PAGE, int(max_objects)))
-    point_budget = max(0, min(MAX_POINTS_PER_STROKE, int(max_points)))
+    point_budget = max(0, min(MAX_POINTS_PER_PAGE, int(max_points)))
     text_budget = max(0, min(MAX_TEXT_CHARS_PER_PAGE, int(max_text_chars)))
     objects = []
     remaining_points = point_budget
