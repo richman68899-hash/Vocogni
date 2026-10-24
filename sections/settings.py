@@ -144,7 +144,7 @@ def render() -> None:
     with learning_col:
         with st.container(border=True):
             st.subheader("Learning preferences")
-            st.caption("Control feedback timing and the available hint preference.")
+            st.caption("Control feedback timing and how hints appear.")
             st.radio(
                 "Feedback timing",
                 SETTING_OPTIONS["feedback_timing"],
@@ -155,20 +155,27 @@ def render() -> None:
                 ),
             )
             st.selectbox(
-                "Difficulty preference",
+                "Hint assistance",
                 SETTING_OPTIONS["difficulty"],
+                format_func=lambda value: {
+                    "Adaptive": "On request",
+                    "Easy": "Automatic hints",
+                    "Hard": "No hints",
+                }.get(value, value),
                 key=SETTING_WIDGET_KEYS["difficulty"],
                 help=(
-                    "Easy reveals authored hints when a question provides one. "
-                    "Adaptive, Medium, and Hard are saved preferences; they do not "
-                    "currently regenerate or reorder the authored question bank."
+                    "On request reveals an authored hint only when you ask. "
+                    "Automatic hints show authored support immediately. No hints hides it. "
+                    "This changes assistance, not the underlying question bank."
                 ),
             )
             difficulty = st.session_state[SETTING_WIDGET_KEYS["difficulty"]]
             if difficulty == "Easy":
-                st.info("Hint support is shown only on questions that have an authored hint.")
+                st.info("Authored hints appear automatically on supported questions.")
+            elif difficulty == "Adaptive":
+                st.caption("Hints stay hidden until you select Show hint on a supported question.")
             else:
-                st.caption("Questions and progression continue to follow the course's authored learning path.")
+                st.caption("Authored hints remain hidden for this setup.")
 
     focus_col, reading_col = st.columns(2, gap="large")
 
