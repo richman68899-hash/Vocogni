@@ -74,6 +74,7 @@ import streamlit as st
 
 import data
 import milestones as milestone_logic
+import whiteboards as whiteboard_logic
 import persistence
 
 
@@ -187,6 +188,7 @@ def init_session_state() -> None:
         "next_note_folder_id": 1,
         "milestones": [],
         "next_milestone_id": 1,
+        "whiteboards": [],
         "settings": _default_settings(),
 
         # ------------------------------------------------------------------
@@ -443,6 +445,9 @@ def _build_persistent_state() -> dict[str, Any]:
         ),
         "next_milestone_id": int(
             st.session_state.next_milestone_id
+        ),
+        "whiteboards": deepcopy(
+            st.session_state.whiteboards
         ),
         "settings": deepcopy(
             st.session_state.settings
@@ -767,6 +772,25 @@ def load_saved_learner_state() -> None:
             and saved_next_milestone_id >= 1
             else 1,
             milestone_logic.next_milestone_id(st.session_state.milestones),
+        )
+
+        # Whiteboards live in the same JSON state bundle as Notes and Milestones.
+        # Older learner records without whiteboards safely restore to an empty list.
+        st.session_state.whiteboards = whiteboard_logic.sanitize_whiteboards(
+            saved.get("whiteboards", [])
+        )
+        valid_whiteboard_ids = {
+            board["id"] for board in st.session_state.whiteboards
+        }
+        valid_folder_ids_for_boards = {
+            folder["id"] for folder in st.session_state.note_folders
+        }
+        for board in st.session_state.whiteboards:
+            if board.get("folder_id") not in valid_folder_ids_for_boards:
+                board["folder_id"] = None
+        st.session_state.next_whiteboard_id = max(
+            whiteboard_logic.next_whiteboard_id(st.session_state.whiteboards),
+            1,
         )
 
         # Notes referencing a deleted/unknown folder are returned to Unfiled.
