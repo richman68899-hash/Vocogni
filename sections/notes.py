@@ -13,6 +13,7 @@ from typing import Any
 import streamlit as st
 import state
 import milestones as milestone_logic
+from . import whiteboard as whiteboard_section
 
 PALETTE = milestone_logic.PALETTE
 
@@ -88,7 +89,7 @@ def render() -> None:
 
     workspace = st.radio(
         "Notes workspace",
-        ["Notes & folders", "Learning milestones"],
+        ["Notes & folders", "Learning milestones", "Whiteboard"],
         horizontal=True,
         key="notes_workspace_view",
         label_visibility="collapsed",
@@ -96,6 +97,9 @@ def render() -> None:
     st.divider()
     if workspace == "Learning milestones":
         _render_milestones()
+        return
+    if workspace == "Whiteboard":
+        whiteboard_section.render()
         return
 
     selected_folder_id = st.session_state.get("selected_note_folder_id")
