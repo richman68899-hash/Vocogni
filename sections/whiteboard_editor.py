@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +81,9 @@ def _folder_color(folder_id: int | None) -> str:
     value = folder.get("color", "Grey")
     if value == "System":
         return "#858B95"
-    return whiteboards.PALETTE.get(value, value if isinstance(value, str) and value.startswith("#") else "#858B95")
+    if isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+        return value
+    return "#858B95"
 
 
 def _render_library() -> None:
@@ -89,6 +92,14 @@ def _render_library() -> None:
         "Draw, annotate, organize ideas, and keep your work editable. "
         "Boards are private to your Vocogni account."
     )
+    if st.session_state.get("_persistent_save_status") == "error":
+        st.error("Your latest Notes change could not be confirmed as saved.")
+        if st.button("Retry saving Notes", key="retry_whiteboard_library_save"):
+            saved = state.flush_persistent_save()
+            if saved:
+                for board_id in st.session_state["_whiteboard_component_save_status"]:
+                    st.session_state["_whiteboard_component_save_status"][board_id] = "saved"
+            st.rerun()
     boards = st.session_state.whiteboards
 
     with st.expander("＋ Create a whiteboard", expanded=not boards):
