@@ -39,6 +39,8 @@ class SettingsPageTests(unittest.TestCase):
         self.assertEqual(settings_model.safe_value("appearance", "Sepia"), "Light")
         self.assertEqual(settings_model.safe_value("text_size", None), "Medium")
         self.assertEqual(settings_model.safe_value("difficulty", "Impossible"), "Adaptive")
+        self.assertEqual(settings_model.safe_value("difficulty", "Medium"), "Adaptive")
+        self.assertEqual(settings_model.SETTING_OPTIONS["difficulty"], ["Adaptive", "Easy", "Hard"])
         self.assertFalse(settings_model.safe_value("sound", "false"))
         self.assertTrue(settings_model.safe_value("sound", "true"))
 
@@ -60,6 +62,13 @@ class SettingsPageTests(unittest.TestCase):
         self.assertNotIn("neurodivergence", lowered)
         self.assertNotIn("adhd", lowered)
         self.assertNotIn("medical condition", lowered)
+
+    def test_course_supports_automatic_and_on_request_hints(self):
+        source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
+        self.assertIn('if hint_mode == "Easy":', source)
+        self.assertIn('elif hint_mode == "Adaptive":', source)
+        self.assertIn('"Show hint"', source)
+        self.assertIn('if hint_mode == "Medium":', source)
 
 
 if __name__ == "__main__":
