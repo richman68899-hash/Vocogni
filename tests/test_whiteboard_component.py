@@ -43,7 +43,7 @@ class WhiteboardComponentTests(unittest.TestCase):
             'id="delete-selected"', 'id="previous-page"',
             'id="next-page"', 'id="new-page"', 'id="duplicate-page"',
             'id="delete-page"', 'id="export-png"', 'id="export-pdf"',
-            'id="export-json"', 'id="save-now"',
+            'id="export-json"', 'id="save-now"', 'id="clear-page"', 'id="zoom"',
         ):
             with self.subTest(action=action):
                 self.assertIn(action, html)
@@ -59,6 +59,9 @@ class WhiteboardComponentTests(unittest.TestCase):
         self.assertIn("function redoFn", js)
         self.assertIn("function exportSvg", js)
         self.assertIn("function pdf", js)
+        self.assertIn('$("#clear-page")', js)
+        self.assertIn('$("#zoom")', js)
+        self.assertIn("state.dragging.resize", js)
 
     def test_editor_uses_local_component_and_validates_board_updates(self):
         editor = (ROOT / "sections" / "whiteboard_editor.py").read_text(encoding="utf-8")

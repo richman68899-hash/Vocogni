@@ -74,6 +74,7 @@ import streamlit as st
 
 import data
 import milestones as milestone_logic
+import whiteboard_data
 import persistence
 
 
@@ -184,6 +185,7 @@ def init_session_state() -> None:
         "progress": _default_progress(),
         "notes": [],
         "note_folders": [],
+        "whiteboards": [],
         "next_note_folder_id": 1,
         "milestones": [],
         "next_milestone_id": 1,
@@ -431,6 +433,9 @@ def _build_persistent_state() -> dict[str, Any]:
         ),
         "notes": deepcopy(
             st.session_state.notes
+        ),
+        "whiteboards": deepcopy(
+            st.session_state.whiteboards
         ),
         "note_folders": deepcopy(
             st.session_state.note_folders
@@ -686,6 +691,7 @@ def load_saved_learner_state() -> None:
         "profile",
         "progress",
         "notes",
+        "whiteboards",
         "settings",
         "next_note_id",
     }
@@ -729,6 +735,11 @@ def load_saved_learner_state() -> None:
         )
 
         st.session_state.notes = restored_notes
+        # Whiteboards are validated before restoration because the canvas
+        # sends editable objects from the browser into the durable JSON bundle.
+        st.session_state.whiteboards = whiteboard_data.sanitize_boards(
+            saved.get("whiteboards", [])
+        )
 
         # Folder data was introduced after the original notes schema.
         # Missing or malformed fields safely default to an empty list.
