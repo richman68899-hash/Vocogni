@@ -100,6 +100,19 @@ def _render_library() -> None:
                 max_chars=whiteboards.MAX_BOARD_TITLE_LENGTH,
             )
             folder_label = st.selectbox("Folder", labels)
+            template = st.selectbox(
+                "Starting template",
+                options=["grid", "blank", "dots", "ruled", "coordinate", "mind_map", "flowchart"],
+                format_func=lambda value: {
+                    "grid": "Graph paper",
+                    "blank": "Blank canvas",
+                    "dots": "Dot grid",
+                    "ruled": "Ruled notes",
+                    "coordinate": "Coordinate plane",
+                    "mind_map": "Mind map",
+                    "flowchart": "Flowchart",
+                }[value],
+            )
             create = st.form_submit_button("Create whiteboard", type="primary")
         if create:
             clean = title.strip()
@@ -113,6 +126,7 @@ def _render_library() -> None:
                     new_id,
                     title=clean,
                     folder_id=values[folder_label],
+                    template=template,
                 )
                 boards.append(board)
                 st.session_state.next_whiteboard_id = new_id + 1
@@ -168,6 +182,57 @@ def _render_library() -> None:
                 ):
                     st.session_state.selected_whiteboard_id = board["id"]
                     st.rerun()
+
+                duplicate_col, delete_col = st.columns(2)
+                with duplicate_col:
+                    if st.button(
+                        "Duplicate",
+                        key=f"duplicate_whiteboard_{board['id']}",
+                        use_container_width=True,
+                    ):
+                        if len(st.session_state.whiteboards) >= whiteboards.MAX_WHITEBOARDS:
+                            st.warning(f"You can currently keep up to {whiteboards.MAX_WHITEBOARDS} whiteboards.")
+                        else:
+                            next_id = int(st.session_state.next_whiteboard_id)
+                            copy = whiteboards.duplicate_whiteboard(board, next_id)
+                            st.session_state.whiteboards.append(copy)
+                            st.session_state.next_whiteboard_id = next_id + 1
+                            state.mark_persistent_dirty()
+                            saved = state.flush_persistent_save()
+                            st.session_state["_whiteboard_component_save_status"][copy["id"]] = "saved" if saved else "error"
+                            st.rerun()
+                with delete_col:
+                    if st.button(
+                        "Delete",
+                        key=f"request_delete_whiteboard_{board['id']}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["_confirm_delete_whiteboard_id"] = board["id"]
+                        st.rerun()
+
+                if st.session_state.get("_confirm_delete_whiteboard_id") == board["id"]:
+                    st.warning("Delete this whiteboard and all of its pages?")
+                    yes_col, no_col = st.columns(2)
+                    with yes_col:
+                        if st.button("Confirm delete", key=f"confirm_delete_whiteboard_{board['id']}", type="primary"):
+                            st.session_state.whiteboards = [
+                                item for item in st.session_state.whiteboards
+                                if item.get("id") != board["id"]
+                            ]
+                            st.session_state["_whiteboard_component_save_status"].pop(board["id"], None)
+                            st.session_state["_whiteboard_component_ack"].pop(board["id"], None)
+                            if st.session_state.get("selected_whiteboard_id") == board["id"]:
+                                st.session_state.selected_whiteboard_id = None
+                            st.session_state.pop("_confirm_delete_whiteboard_id", None)
+                            state.mark_persistent_dirty()
+                            saved = state.flush_persistent_save()
+                            if not saved:
+                                st.error("The board was deleted from this session, but saving the deletion failed. Retry saving before leaving.")
+                            st.rerun()
+                    with no_col:
+                        if st.button("Keep board", key=f"cancel_delete_whiteboard_{board['id']}"):
+                            st.session_state.pop("_confirm_delete_whiteboard_id", None)
+                            st.rerun()
 
 
 def _render_editor(board: dict[str, Any]) -> None:
