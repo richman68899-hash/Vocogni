@@ -12,7 +12,6 @@ Non-pilot content remains available to existing legacy flows.
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import date
 import math
 from typing import Any
 
@@ -929,6 +928,34 @@ def get_review_record(question_id: str) -> dict[str, Any] | None:
     return deepcopy(metadata) if metadata else None
 
 
+def attempt_metadata(
+    question_id: str,
+    *,
+    course_id: str | None = None,
+    lesson_id: str | None = None,
+) -> dict[str, Any]:
+    """Return stable provenance fields to attach to a new saved answer record."""
+    record = get_question_record(
+        question_id, course_id=course_id, lesson_id=lesson_id
+    )
+    if record is None:
+        return {
+            "question_version": 1,
+            "skill_id": None,
+            "question_purpose": None,
+            "verification_status": "legacy",
+            "verification_engine_version": ENGINE_VERSION,
+        }
+    question = record["question"]
+    return {
+        "question_version": question.get("question_version", 1),
+        "skill_id": question.get("skill_id"),
+        "question_purpose": question.get("purpose"),
+        "verification_status": record.get("verification_status", "legacy"),
+        "verification_engine_version": ENGINE_VERSION,
+    }
+
+
 def validate_registry() -> list[str]:
     """Validate registry consistency without reading course content."""
     errors = []
@@ -936,10 +963,6 @@ def validate_registry() -> list[str]:
         if not isinstance(metadata, dict):
             errors.append(f"{question_id}: registry entry must be a dictionary.")
             continue
-        if question_id not in metadata.get("reviewed_content", {}).get("id", question_id) and False:
-            # Retained as an intentionally unreachable type guard; IDs are keys,
-            # while the question's own ID is compared by the catalogue.
-            errors.append(f"{question_id}: invalid registry ID.")
         if metadata.get("skill_id") not in math_taxonomy.SKILLS:
             errors.append(f"{question_id}: unknown skill ID.")
         if metadata.get("purpose") not in QUESTION_PURPOSES:
