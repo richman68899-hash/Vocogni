@@ -9,7 +9,7 @@ from string import Template
 
 _CSS_TEMPLATE = Template("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
 :root {
     color-scheme: $color_scheme;
@@ -42,8 +42,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 [data-testid="stAppViewContainer"] .main .block-container {
-    max-width: 1160px;
-    padding: 2.1rem clamp(1.1rem, 3.5vw, 2.8rem) 3.25rem;
+    max-width: 1120px;
+    padding: 2.25rem clamp(1.1rem, 3.5vw, 2.8rem) 3.5rem;
 }
 
 [data-testid="stSidebar"] {
@@ -74,17 +74,17 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 h1, h2, h3, h4, .vc-heading {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     color: var(--vc-text) !important;
-    font-weight: 650 !important;
-    letter-spacing: -0.035em;
-    line-height: 1.2;
+    font-weight: 700 !important;
+    letter-spacing: -0.032em;
+    line-height: 1.18;
 }
 
-h1 { font-size: clamp(1.85rem, 3vw, 2.25rem) !important; margin: 0 0 0.7rem 0 !important; }
-h2 { font-size: clamp(1.55rem, 2.5vw, 1.85rem) !important; margin: 0 0 0.65rem 0 !important; }
-h3 { font-size: 1.22rem !important; margin: 1.25rem 0 0.6rem 0 !important; }
-h4 { font-size: 1.02rem !important; margin: 0 0 0.5rem 0 !important; }
+h1 { font-size: clamp(1.95rem, 3vw, 2.35rem) !important; margin: 0 0 0.7rem 0 !important; }
+h2 { font-size: clamp(1.55rem, 2.5vw, 1.9rem) !important; margin: 0 0 0.65rem 0 !important; }
+h3 { font-size: 1.2rem !important; margin: 1.2rem 0 0.6rem 0 !important; }
+h4 { font-size: 1rem !important; margin: 0 0 0.5rem 0 !important; }
 
 p, li, label, input, textarea, button, select {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
@@ -144,7 +144,7 @@ hr, [data-testid="stDivider"] {
 .vc-logo-mark {
     align-items: center;
     background: var(--vc-accent);
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--vc-on-accent);
     display: inline-flex;
     flex: 0 0 36px;
@@ -158,9 +158,10 @@ hr, [data-testid="stDivider"] {
 
 .vc-logo-text {
     color: var(--vc-text);
-    font-size: 1.23rem;
-    font-weight: 700;
-    letter-spacing: -0.055em;
+    font-family: 'Manrope', 'Inter', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.045em;
     line-height: 1.15;
 }
 
@@ -174,9 +175,9 @@ hr, [data-testid="stDivider"] {
 .vc-card {
     background: var(--vc-surface);
     border: 1px solid var(--vc-border);
-    border-radius: 10px;
+    border-radius: 12px;
     margin-bottom: 0.8rem;
-    padding: 1rem 1.1rem;
+    padding: 1.15rem 1.2rem;
 }
 
 .vc-card--apply { border-left: 3px solid var(--vc-apply); }
@@ -185,13 +186,13 @@ hr, [data-testid="stDivider"] {
 [data-testid="stVerticalBlockBorderWrapper"] {
     background: var(--vc-surface) !important;
     border: 1px solid var(--vc-border) !important;
-    border-radius: 11px !important;
+    border-radius: 12px !important;
 }
 
 .vc-badge {
     background: var(--vc-surface-alt);
     border: 1px solid var(--vc-border);
-    border-radius: 6px;
+    border-radius: 7px;
     color: var(--vc-subtext);
     display: inline-block;
     font-size: 0.74rem;
@@ -276,12 +277,12 @@ hr, [data-testid="stDivider"] {
 .stButton > button,
 .stFormSubmitButton > button,
 [data-testid="stDownloadButton"] > button {
-    border-radius: 8px !important;
+    border-radius: 9px !important;
     box-shadow: none !important;
-    font-size: 0.91rem !important;
-    font-weight: 600 !important;
-    min-height: 2.65rem;
-    padding: 0.5rem 0.95rem;
+    font-size: 0.9rem !important;
+    font-weight: 650 !important;
+    min-height: 2.7rem;
+    padding: 0.55rem 1rem;
     transition: $transition !important;
 }
 
@@ -296,7 +297,8 @@ button[data-testid="stBaseButton-primary"] {
 .stButton > button[kind="primary"]:hover,
 .stFormSubmitButton > button[kind="primary"]:hover,
 button[data-testid="stBaseButton-primary"]:hover {
-    filter: brightness(0.94);
+    filter: brightness(0.95);
+    transform: translateY(-1px);
 }
 
 .stButton > button[kind="secondary"],
@@ -327,7 +329,7 @@ textarea:focus-visible {
 [data-baseweb="select"] > div {
     background-color: var(--vc-surface) !important;
     border-color: var(--vc-border) !important;
-    border-radius: 8px !important;
+    border-radius: 9px !important;
     color: var(--vc-text) !important;
 }
 
@@ -370,8 +372,8 @@ textarea:focus-visible {
 [data-testid="stMetric"] {
     background: var(--vc-surface);
     border: 1px solid var(--vc-border);
-    border-radius: 9px;
-    padding: 0.85rem 0.95rem;
+    border-radius: 11px;
+    padding: 0.9rem 1rem;
 }
 
 [data-testid="stTabs"] button[role="tab"] {
@@ -383,6 +385,52 @@ table {
 }
 
 * { scroll-behavior: $scroll_behavior; }
+
+
+/* Refined controls and dependable native-widget styling. */
+.stTextInput input, .stTextArea textarea, .stNumberInput input,
+[data-baseweb="select"] > div, [data-baseweb="input"] > div {
+    border-radius: 9px !important;
+}
+.stTextInput input:focus, .stTextArea textarea:focus, .stNumberInput input:focus,
+[data-baseweb="select"] > div:focus-within, [data-baseweb="input"] > div:focus-within {
+    border-color: var(--vc-accent) !important;
+    box-shadow: 0 0 0 1px var(--vc-accent) !important;
+}
+.stRadio [role="radiogroup"], .stCheckbox, .stToggle {
+    gap: 0.55rem;
+}
+[data-testid="stTabs"] button[role="tab"] {
+    border-radius: 7px 7px 0 0;
+    padding-left: 0.95rem;
+    padding-right: 0.95rem;
+}
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    border-radius: inherit;
+}
+[data-testid="stAlert"] {
+    border: 1px solid var(--vc-border);
+}
+[data-testid="stMetricLabel"] p {
+    color: var(--vc-subtext) !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+}
+[data-testid="stMetricValue"] {
+    color: var(--vc-text) !important;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-variant-numeric: tabular-nums;
+}
+[data-testid="stMarkdownContainer"] blockquote {
+    border-left-color: var(--vc-accent);
+    color: var(--vc-subtext);
+}
+[data-testid="stMarkdownContainer"] code {
+    border-radius: 5px;
+}
+.stCaption, [data-testid="stCaptionContainer"] {
+    line-height: 1.5;
+}
 
 @media (max-width: 800px) {
     [data-testid="stAppViewContainer"] .main .block-container {
@@ -418,36 +466,36 @@ def build_css(settings: dict) -> str:
     if dark:
         tokens = dict(
             color_scheme="dark",
-            on_accent="#10231F",
-            bg="#101A20",
-            surface="#18252C",
-            surface_alt="#202F35",
-            text="#F0F4F4",
-            subtext="#A6B7BC",
-            border="#33434A",
-            accent="#63B8AA",
-            apply_accent="#E0B66A",
-            success="#84D5A6",
-            error="#F08A7D",
-            success_bg="#17382B",
-            error_bg="#3E2524",
+            on_accent="#102521",
+            bg="#101B1C",
+            surface="#182526",
+            surface_alt="#223333",
+            text="#EAF1EF",
+            subtext="#A4B8B5",
+            border="#354846",
+            accent="#75C7B8",
+            apply_accent="#E5BB76",
+            success="#8ED0A4",
+            error="#F09A8F",
+            success_bg="#1B392D",
+            error_bg="#422A28", 
         )
     else:
         tokens = dict(
             color_scheme="light",
             on_accent="#FFFFFF",
-            bg="#F6F8F9",
+            bg="#F7F9F8",
             surface="#FFFFFF",
-            surface_alt="#F0F4F4",
-            text="#182831",
-            subtext="#5D6F76",
-            border="#DFE7E9",
+            surface_alt="#EFF5F3",
+            text="#172C32",
+            subtext="#5B6F73",
+            border="#DDE7E4",
             accent="#176B64",
-            apply_accent="#92651F",
-            success="#247A50",
-            error="#AF3F36",
-            success_bg="#E9F5ED",
-            error_bg="#FCEDEA",
+            apply_accent="#986B2C",
+            success="#27764D",
+            error="#B44840",
+            success_bg="#EAF4ED",
+            error_bg="#F9EEEC",
         )
 
     tokens.update(
