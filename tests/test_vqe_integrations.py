@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 import logic
+import math_taxonomy
 import question_engine
 import revision_sprint
 
@@ -77,6 +78,42 @@ class VQEIntegrationTests(unittest.TestCase):
         self.assertEqual(result["skill_id"], "math.number.fraction_representation")
         self.assertEqual(result["verification_status"], "verified")
         self.assertEqual(result["question_purpose"], "conceptual")
+
+    def test_mastery_receipt_groups_vqe_attempts_by_stable_skill_id(self):
+        progress = {"fractions": logic.blank_course_progress()}
+        progress["fractions"]["practice_attempts"] = {
+            "fractions_l1": [{
+                "attempt_number": 1,
+                "completed_at": "2026-10-25T05:00:00+00:00",
+                "results": [
+                    {
+                        "question_id": "fractions_l1_q1",
+                        "correct": True,
+                        "skill_id": "math.number.fraction_representation",
+                        "question_version": 1,
+                        "verification_status": "verified",
+                    },
+                    {
+                        "question_id": "fractions_l1_q2",
+                        "correct": False,
+                        "skill_id": "math.number.fraction_representation",
+                        "question_version": 1,
+                        "verification_status": "verified",
+                    },
+                ],
+            }]
+        }
+        receipt = logic.mastery_receipt_for_course(progress, "fractions")
+        skills = [
+            item for item in receipt["skills"]
+            if item.get("skill_id") == "math.number.fraction_representation"
+        ]
+        self.assertEqual(len(skills), 1)
+        self.assertEqual(skills[0]["skill"], math_taxonomy.SKILLS["math.number.fraction_representation"]["label"])
+        self.assertEqual(skills[0]["practice_answers"], 2)
+        self.assertEqual(skills[0]["distinct_practice_questions"], 2)
+        self.assertEqual(skills[0]["practice_performance_percent"], 50)
+        self.assertEqual(skills[0]["status"], "Needs review")
 
     def test_attempt_metadata_has_backward_compatible_legacy_fallback(self):
         metadata = question_engine.attempt_metadata(
