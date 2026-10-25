@@ -81,14 +81,16 @@ def _render_grid():
                 f"Practise in {target['title']}",
                 key=f"mistake_coach_open_{target_id}",
             ):
-                st.session_state.selected_course_id = target_id
-                st.session_state.page = "Browse Courses"
+                st.session_state.current_course = target_id
+                st.session_state.current_lesson = None
+                st.session_state.lesson_flow = None
+                st.session_state.nav = "Browse"
                 st.rerun()
 
     recs = logic.generate_recommendations(progress)
     if recs:
         st.markdown("<span class='vc-muted'>Additional recommendations</span>", unsafe_allow_html=True)
-        chips = "".join(f"<span class='vc-recommend-chip'>{r}</span>" for r in recs)
+        chips = "".join(f"<span class='vc-recommend-chip'>{html.escape(str(r))}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
     col_search, col_status, col_diff, col_category, col_subject = st.columns([2, 1, 1, 1, 1])
