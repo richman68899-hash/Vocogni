@@ -635,8 +635,8 @@ QUADRATICS_COURSE = {
     "id": "quadratics_graphs",
     "title": "Quadratics, Graphs & Integration",
     "short_description": (
-        "A visual, first-principles course covering quadratic forms, completing "
-        "the square, roots, inequalities, simultaneous equations and integration."
+        "Develop a visual, first-principles understanding of quadratic graphs, "
+        "completing the square, roots, inequalities, simultaneous equations, and integration."
     ),
     "difficulty": "Intermediate",
     "topic_label": "Quadratics & Graphs",

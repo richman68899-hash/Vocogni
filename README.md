@@ -105,18 +105,16 @@ The diagnostic currently covers only the three initial foundation lessons.
 
 ## Design notes
 
-- **Color has one job each.** A single teal accent is used for every
-  primary action and every progress indicator, so it always means "go /
-  progress." A second, warm amber accent appears *only* on Real-World
-  Challenge lessons — color itself signals "you're in the Apply stage,"
-  rather than decorating the page.
-- **Structure, not shadows.** Cards are defined by a hairline border, not
-  a stacked drop shadow, and every card looks the same *unless* it's a
-  challenge (amber edge) or the lesson you're currently on (accent edge).
-- **Two typefaces, one job each.** Space Grotesk for headings, IBM Plex
-  Sans for body/UI text, and IBM Plex Mono only for the numbers on the
-  Progress page — so progress reads like a measurement, not a game score.
-- No gradients, no confetti/celebration animations, no streaks or badges.
+- **A quiet interface, not a dashboard collage.** Inter is used throughout
+  the product; IBM Plex Mono is reserved for measured progress values.
+- **Color is functional.** Deep teal marks primary actions and progress.
+  Muted amber is reserved for real-world application tasks. Neutral surfaces
+  and borders separate content without decorative gradients or heavy shadows.
+- **Consistent structure.** Cards, fields, buttons, alerts, and expanders use
+  a shared spacing and radius scale. Interactive elements have visible focus
+  states and layouts adapt to smaller screens.
+- **Learner control remains intact.** Theme, text size, readability spacing,
+  and motion preferences continue to come from Settings.
 
 ---
 

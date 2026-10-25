@@ -92,20 +92,20 @@ def render() -> None:
     _ensure_widget_state(settings)
 
     st.title("Settings")
-    st.caption("Set up how Vocogni looks and how lessons respond. Changes apply immediately and save automatically.")
+    st.caption("Personalize the interface and learning support. Changes save automatically.")
     st.markdown(f"<div class='vc-muted'>{_current_summary(_current_widget_values(settings))}</div>", unsafe_allow_html=True)
 
     # Quick setups are just shortcuts over existing controls. Learners can
     # change any individual setting afterwards.
     with st.container(border=True):
         st.subheader("Quick setups")
-        st.caption("Choose a starting point, then adjust any setting below.")
+        st.caption("Start with a preset, then fine-tune individual preferences.")
 
         preset_cols = st.columns(3, gap="medium")
         presets = [
-            ("Focused study", "Less motion and sound, with feedback grouped at the end."),
-            ("Reading comfort", "Larger text, more spacing, and reduced motion."),
-            ("Gentle practice", "Shows authored hints where available and keeps feedback immediate."),
+            ("Focused study", "Fewer transitions, no answer sounds, and combined feedback at the end of a lesson."),
+            ("Reading comfort", "Larger text, more line spacing, and reduced motion."),
+            ("Gentle practice", "Immediate feedback, with hints shown automatically where supported."),
         ]
         for column, (name, description) in zip(preset_cols, presets):
             with column:
@@ -124,7 +124,7 @@ def render() -> None:
     with appearance_col:
         with st.container(border=True):
             st.subheader("Appearance")
-            st.caption("Choose the visual theme and the standard text scale.")
+            st.caption("Set the interface theme and text size.")
             st.radio(
                 "Theme",
                 SETTING_OPTIONS["appearance"],
@@ -149,7 +149,7 @@ def render() -> None:
     with learning_col:
         with st.container(border=True):
             st.subheader("Learning preferences")
-            st.caption("Control feedback timing and how hints appear.")
+            st.caption("Choose when feedback appears and how much hint support is available.")
             st.radio(
                 "Feedback timing",
                 SETTING_OPTIONS["feedback_timing"],
@@ -187,7 +187,7 @@ def render() -> None:
     with focus_col:
         with st.container(border=True):
             st.subheader("Focus & interaction")
-            st.caption("Reduce extra effects and choose whether correct answers play a sound.")
+            st.caption("Control motion and optional answer sounds.")
             st.toggle(
                 "Motion and transitions",
                 key=SETTING_WIDGET_KEYS["animations"],
@@ -202,7 +202,7 @@ def render() -> None:
     with reading_col:
         with st.container(border=True):
             st.subheader("Reading comfort")
-            st.caption("Adjust text display without changing lesson content.")
+            st.caption("Improve readability without changing lesson content.")
             st.toggle(
                 "Larger text",
                 key=SETTING_WIDGET_KEYS["larger_text"],
@@ -225,7 +225,7 @@ def render() -> None:
             use_container_width=True,
         )
     with info_col:
-        st.caption("Settings are saved through your existing Vocogni learner record. Save status remains visible in the sidebar.")
+        st.caption("Your preferences are stored with your learner profile. The sidebar shows save status.")
 
     new_values = {
         setting_key: _safe_value(setting_key, st.session_state[widget_key])

@@ -6,6 +6,8 @@ Course -> Lesson is one continuous flow (spec section 17), so it lives
 under a single sidebar nav slot rather than three separate ones.
 """
 
+import html
+
 import streamlit as st
 
 import data
@@ -47,7 +49,11 @@ def _status_for_course(course_id, progress):
 
 
 def _render_grid():
-    st.markdown("<h2>Browse Courses</h2>", unsafe_allow_html=True)
+    st.markdown("<h1>Course library</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<p class='vc-page-intro'>Explore a topic, continue your current path, or revisit a lesson to strengthen your understanding.</p>",
+        unsafe_allow_html=True,
+    )
 
     progress = st.session_state.progress
     # Keep the sprint discoverable directly on the Browse landing page.
@@ -55,15 +61,15 @@ def _render_grid():
         return
     coach = logic.get_mistake_coach(progress)
     if coach:
-        st.markdown("### Your next best step")
+        st.markdown("### Recommended next step")
         st.markdown(
             f"""
-            <div style="border:1px solid var(--vc-border, #d7e0e5);border-radius:12px;padding:1rem;margin:.35rem 0 1rem 0;">
-              <div style="font-size:.78rem;opacity:.75;margin-bottom:.35rem;">MISTAKE-TO-MASTERY COACH</div>
-              <div style="font-weight:700;font-size:1.08rem;">{coach['skill']}</div>
-              <div style="margin:.35rem 0;">{coach['why']}</div>
-              <div style="margin:.35rem 0;"><strong>Evidence:</strong> {coach['evidence_label']}</div>
-              <div><strong>Try next:</strong> {coach['action']}</div>
+            <div class='vc-card vc-card--current'>
+              <div class='vc-eyebrow'>Recommended next step</div>
+              <div style='font-weight:650;font-size:1.05rem;'>{html.escape(str(coach.get('skill', '')))}</div>
+              <div style='margin:.45rem 0;'>{html.escape(str(coach.get('why', '')))}</div>
+              <div style='margin:.4rem 0;'><strong>Evidence:</strong> {html.escape(str(coach.get('evidence_label', '')))}</div>
+              <div><strong>Next action:</strong> {html.escape(str(coach.get('action', '')))}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -72,24 +78,26 @@ def _render_grid():
             target_id = coach["available_course_ids"][0]
             target = data.get_course(target_id)
             if st.button(
-                f"Open {target['title']} to practise",
+                f"Practise in {target['title']}",
                 key=f"mistake_coach_open_{target_id}",
             ):
-                st.session_state.selected_course_id = target_id
-                st.session_state.page = "Browse Courses"
+                st.session_state.current_course = target_id
+                st.session_state.current_lesson = None
+                st.session_state.lesson_flow = None
+                st.session_state.nav = "Browse"
                 st.rerun()
 
     recs = logic.generate_recommendations(progress)
     if recs:
-        st.markdown("<span class='vc-muted'>Other recommendations</span>", unsafe_allow_html=True)
-        chips = "".join(f"<span class='vc-recommend-chip'>{r}</span>" for r in recs)
+        st.markdown("<span class='vc-muted'>Additional recommendations</span>", unsafe_allow_html=True)
+        chips = "".join(f"<span class='vc-recommend-chip'>{html.escape(str(r))}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
     col_search, col_status, col_diff, col_category, col_subject = st.columns([2, 1, 1, 1, 1])
     with col_search:
         search = st.text_input(
             "Search courses", value=st.session_state.browse_search,
-            placeholder="Search by title, category, subject, or topic",
+            placeholder="Search by title, subject, or topic",
         )
     with col_status:
         status_filter = st.selectbox(
@@ -154,26 +162,46 @@ def _render_course_card(course, progress):
     status = _status_for_course(course["id"], progress)
     pct = logic.course_lesson_progress_percent(progress, course["id"])
 
-    st.markdown("<div class='vc-card'>", unsafe_allow_html=True)
-    st.markdown(f"<h4 style='margin-bottom:0.3rem;'>{course['title']}</h4>", unsafe_allow_html=True)
-    st.markdown(
-        f"<span class='vc-badge'>{course['difficulty']}</span> "
-        f"<span class='vc-badge'>{status}</span>",
-        unsafe_allow_html=True,
+    title = html.escape(str(course.get("title", "Untitled course")))
+    description = html.escape(str(course.get("short_description", "")))
+    metadata = " · ".join(
+        html.escape(str(value))
+        for value in (
+            course.get("category_label", "Other"),
+            course.get("subject_label", "Other"),
+            f'{course.get("lesson_count", len(course["lessons"]))} lessons',
+            course.get("level", "Level not specified"),
+        )
+        if value
     )
-    st.markdown(f"<p style='margin-top:0.6rem;'>{course['short_description']}</p>", unsafe_allow_html=True)
-    st.caption(
-        f"{course.get('category_label', 'Other')} · "
-        f"{course.get('subject_label', 'Other')} · "
-        f"{course.get('lesson_count', len(course['lessons']))} lessons · "
-        f"{course.get('level', 'Level not specified')}"
-    )
-    st.progress(pct)
-    st.markdown(f"<span class='vc-muted'>{pct}% complete</span>", unsafe_allow_html=True)
 
-    button_label = {"Not started": "Start", "In progress": "Continue", "Completed": "Review"}[status]
-    if st.button(button_label, key=f"start_{course['id']}", type="primary", use_container_width=True):
-        st.session_state.current_course = course["id"]
-        st.rerun()
+    # A real Streamlit container keeps the card intact across reruns and
+    # responsive layouts; no HTML wrapper is left open across UI blocks.
+    with st.container(border=True):
+        st.markdown(f"<h3 style='margin-top:0'>{title}</h3>", unsafe_allow_html=True)
+        st.markdown(
+            f"<span class='vc-badge'>{html.escape(str(course.get('difficulty', '')))}</span> "
+            f"<span class='vc-badge'>{html.escape(status)}</span>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"<p style='margin-top:0.65rem'>{description}</p>",
+            unsafe_allow_html=True,
+        )
+        st.caption(metadata)
+        st.progress(pct)
+        st.markdown(f"<span class='vc-muted'>{pct}% complete</span>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        button_label = {
+            "Not started": "Start course",
+            "In progress": "Continue learning",
+            "Completed": "Review course",
+        }[status]
+        if st.button(
+            button_label,
+            key=f"start_{course['id']}",
+            type="primary",
+            use_container_width=True,
+        ):
+            st.session_state.current_course = course["id"]
+            st.rerun()
