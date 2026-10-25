@@ -83,7 +83,7 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 def render() -> None:
     st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Keep study notes organized, track learning milestones, or sketch an idea on the whiteboard.</p>",
+        "<p class='vc-page-intro'>Organize study notes, track milestones, and work through ideas on the whiteboard.</p>",
         unsafe_allow_html=True,
     )
     if st.session_state.get("note_editor_open", False):
@@ -259,7 +259,7 @@ def _render_notes_list(
 
     visible.sort(key=lambda n: n.get("updated_at", ""), reverse=True)
     if not visible:
-        st.info("No notes here yet. Create a note or choose another folder.")
+        st.info("No notes in this view yet. Create a note or choose another folder.")
         return
 
     for note in visible:
