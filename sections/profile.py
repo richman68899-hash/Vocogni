@@ -126,7 +126,7 @@ def render() -> None:
     """
 
     st.markdown(
-        "<h2>Profile</h2>",
+        "<h1>Profile</h1>",
         unsafe_allow_html=True,
     )
 
@@ -190,172 +190,148 @@ def _render_read_only(
     # Basic information
     # -----------------------------------------------------------------------
 
+    with st.container(border=True):
     st.markdown(
-        "<div class='vc-card'>",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        "<span class='vc-muted'>Basic info</span>",
-        unsafe_allow_html=True,
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-
-        _field_row(
-            "Age",
-            profile.get("age"),
+            "<span class='vc-muted'>Basic info</span>",
+            unsafe_allow_html=True,
         )
 
-        _field_row(
-            "Gender",
-            profile.get("gender", data.GENDER_OPTIONS[2]),
-        )
+        col1, col2, col3 = st.columns(3)
 
-        _field_row(
-            "Grade",
-            _clean_pref(
-                profile.get("grade")
-            ),
-        )
+        with col1:
 
-    with col2:
+            _field_row(
+                "Age",
+                profile.get("age"),
+            )
 
-        _field_row(
-            "Country",
-            profile.get("country"),
-        )
+            _field_row(
+                "Gender",
+                profile.get("gender", data.GENDER_OPTIONS[2]),
+            )
 
-        _field_row(
-            "Timezone",
-            _clean_pref(
-                profile.get("timezone")
-            ),
-        )
+            _field_row(
+                "Grade",
+                _clean_pref(
+                    profile.get("grade")
+                ),
+            )
 
-    with col3:
+        with col2:
 
-        _field_row(
-            "Preferred language",
-            _clean_pref(
-                profile.get("preferred_language")
-            ),
-        )
+            _field_row(
+                "Country",
+                profile.get("country"),
+            )
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True,
-    )
+            _field_row(
+                "Timezone",
+                _clean_pref(
+                    profile.get("timezone")
+                ),
+            )
+
+        with col3:
+
+            _field_row(
+                "Preferred language",
+                _clean_pref(
+                    profile.get("preferred_language")
+                ),
+            )
+
 
     # -----------------------------------------------------------------------
     # Learning preferences
     # -----------------------------------------------------------------------
 
+    with st.container(border=True):
     st.markdown(
-        "<div class='vc-card'>",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        "<span class='vc-muted'>Learning preferences</span>",
-        unsafe_allow_html=True,
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        _field_row(
-            "Preferred learning style",
-            _clean_pref(
-                profile.get("learning_style")
-            ),
+            "<span class='vc-muted'>Learning preferences</span>",
+            unsafe_allow_html=True,
         )
 
-        _field_row(
-            "Preferred difficulty",
-            profile.get(
-                "preferred_difficulty"
-            ),
-        )
+        col1, col2 = st.columns(2)
 
-    with col2:
+        with col1:
 
-        _field_row(
-            "Preferred session length",
-            _clean_pref(
-                profile.get("preferred_session_length")
-            ),
-        )
+            _field_row(
+                "Preferred learning style",
+                _clean_pref(
+                    profile.get("learning_style")
+                ),
+            )
 
-        _field_row(
-            "Preferred feedback style",
-            _clean_pref(
-                profile.get("preferred_feedback_style")
-            ),
-        )
+            _field_row(
+                "Preferred difficulty",
+                profile.get(
+                    "preferred_difficulty"
+                ),
+            )
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True,
-    )
+        with col2:
+
+            _field_row(
+                "Preferred session length",
+                _clean_pref(
+                    profile.get("preferred_session_length")
+                ),
+            )
+
+            _field_row(
+                "Preferred feedback style",
+                _clean_pref(
+                    profile.get("preferred_feedback_style")
+                ),
+            )
+
 
     # -----------------------------------------------------------------------
     # Subjects and goals
     # -----------------------------------------------------------------------
 
+    with st.container(border=True):
     st.markdown(
-        "<div class='vc-card'>",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        "<span class='vc-muted'>Subjects & goals</span>",
-        unsafe_allow_html=True,
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        _field_row(
-            "Favorite subjects",
-            profile.get("favorite_subjects"),
+            "<span class='vc-muted'>Subjects & goals</span>",
+            unsafe_allow_html=True,
         )
 
-        _field_row(
-            "Strong subjects",
-            profile.get("strong_subjects"),
-        )
+        col1, col2 = st.columns(2)
 
-        _field_row(
-            "Subjects you find difficult",
-            profile.get("weak_subjects"),
-        )
+        with col1:
 
-    with col2:
+            _field_row(
+                "Favorite subjects",
+                profile.get("favorite_subjects"),
+            )
 
-        _field_row(
-            "Learning goals",
-            profile.get("learning_goals"),
-        )
+            _field_row(
+                "Strong subjects",
+                profile.get("strong_subjects"),
+            )
 
-        _field_row(
-            "Interests",
-            profile.get("interests"),
-        )
+            _field_row(
+                "Subjects you find difficult",
+                profile.get("weak_subjects"),
+            )
 
-        _field_row(
-            "Career / vocational interests",
-            profile.get("career_interests"),
-        )
+        with col2:
 
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True,
-    )
+            _field_row(
+                "Learning goals",
+                profile.get("learning_goals"),
+            )
+
+            _field_row(
+                "Interests",
+                profile.get("interests"),
+            )
+
+            _field_row(
+                "Career / vocational interests",
+                profile.get("career_interests"),
+            )
+
 
     # -----------------------------------------------------------------------
     # Edit button
