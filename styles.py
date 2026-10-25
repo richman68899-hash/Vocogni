@@ -9,7 +9,7 @@ from string import Template
 
 _CSS_TEMPLATE = Template("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
     color-scheme: $color_scheme;
@@ -26,6 +26,8 @@ _CSS_TEMPLATE = Template("""
     --vc-error: $error;
     --vc-success-bg: $success_bg;
     --vc-error-bg: $error_bg;
+    --vc-nav-active-bg: $nav_active_bg;
+    --vc-nav-active-text: $nav_active_text;
 }
 
 html, body, .stApp, [data-testid="stAppViewContainer"] {
@@ -207,7 +209,7 @@ hr, [data-testid="stDivider"] {
 
 .vc-stat-number {
     color: var(--vc-text);
-    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     font-size: 1.55rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
@@ -399,6 +401,152 @@ table {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Refined product layer: restrained surfaces, clear hierarchy, predictable controls. */
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+::selection {
+    background: var(--vc-accent);
+    color: var(--vc-on-accent);
+}
+
+[data-testid="stAppViewContainer"] .main .block-container {
+    max-width: 1120px;
+    padding-top: 2rem;
+}
+
+h1, h2, h3, h4, .vc-heading {
+    font-weight: 600 !important;
+    letter-spacing: -0.028em;
+}
+
+h1 { margin-bottom: 0.55rem !important; }
+h2 { margin-bottom: 0.55rem !important; }
+h3 { margin-top: 1.05rem !important; }
+
+.vc-page-intro {
+    max-width: 700px;
+    font-size: 0.98rem;
+    line-height: 1.68;
+    margin: 0.15rem 0 1.55rem;
+}
+
+.vc-eyebrow {
+    letter-spacing: 0.075em;
+    font-size: 0.69rem;
+}
+
+.vc-card,
+.vc-lesson-row,
+.vc-summary-box,
+.vc-challenge-box,
+.vc-feedback,
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"],
+[data-testid="stExpander"] {
+    box-shadow: none !important;
+}
+
+.vc-card,
+.vc-lesson-row,
+.vc-summary-box,
+.vc-challenge-box,
+.vc-feedback {
+    border-radius: 9px;
+}
+
+.vc-card {
+    padding: 1.05rem 1.1rem;
+}
+
+.vc-stat-number {
+    font-size: 1.5rem;
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+}
+
+.vc-stat-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.stButton > button,
+.stFormSubmitButton > button,
+[data-testid="stDownloadButton"] > button {
+    min-height: 2.55rem;
+    border-radius: 7px !important;
+    font-weight: 600 !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+.stFormSubmitButton > button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover {
+    filter: brightness(0.96);
+}
+
+[data-testid="stSidebar"] .stButton > button {
+    min-height: 2.45rem;
+    margin: 0.08rem 0;
+    border-radius: 7px !important;
+}
+
+[data-testid="stSidebar"] .stButton > button[kind="primary"],
+[data-testid="stSidebar"] button[data-testid="stBaseButton-primary"] {
+    background: var(--vc-nav-active-bg) !important;
+    border-color: transparent !important;
+    color: var(--vc-nav-active-text) !important;
+    font-weight: 650 !important;
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input,
+[data-baseweb="select"] > div {
+    min-height: 2.65rem;
+    border-radius: 7px !important;
+}
+
+[data-testid="stMetric"] {
+    border-radius: 9px;
+    padding: 0.9rem 1rem;
+}
+
+[data-testid="stExpander"] summary {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+}
+
+[data-testid="stAlert"] {
+    border: 1px solid var(--vc-border);
+    box-shadow: none;
+}
+
+[data-testid="stProgressBar"] {
+    padding: 0;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="radio"]:focus-visible {
+    outline-color: var(--vc-accent) !important;
+}
+
+@media (max-width: 800px) {
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding: 1.25rem 0.9rem 2rem;
+    }
+    .vc-page-intro {
+        font-size: 0.94rem;
+        margin-bottom: 1.2rem;
+    }
+}
+
 </style>
 """)
 
@@ -418,36 +566,40 @@ def build_css(settings: dict) -> str:
     if dark:
         tokens = dict(
             color_scheme="dark",
-            on_accent="#10231F",
-            bg="#101A20",
-            surface="#18252C",
-            surface_alt="#202F35",
-            text="#F0F4F4",
-            subtext="#A6B7BC",
-            border="#33434A",
-            accent="#63B8AA",
-            apply_accent="#E0B66A",
-            success="#84D5A6",
-            error="#F08A7D",
-            success_bg="#17382B",
-            error_bg="#3E2524",
+            on_accent="#14241F",
+            bg="#111916",
+            surface="#18221E",
+            surface_alt="#202C27",
+            text="#EDF3EF",
+            subtext="#AFBDB5",
+            border="#34433B",
+            accent="#78C8B4",
+            apply_accent="#E4BC78",
+            success="#8BD6A6",
+            error="#F09B91",
+            success_bg="#1D382B",
+            error_bg="#3B2725",
+            nav_active_bg="#20372F",
+            nav_active_text="#A6E0CC",
         )
     else:
         tokens = dict(
             color_scheme="light",
             on_accent="#FFFFFF",
-            bg="#F6F8F9",
+            bg="#F7F8F6",
             surface="#FFFFFF",
-            surface_alt="#F0F4F4",
-            text="#182831",
-            subtext="#5D6F76",
-            border="#DFE7E9",
-            accent="#176B64",
-            apply_accent="#92651F",
-            success="#247A50",
-            error="#AF3F36",
-            success_bg="#E9F5ED",
-            error_bg="#FCEDEA",
+            surface_alt="#F1F4F1",
+            text="#1A2D29",
+            subtext="#5D6D67",
+            border="#DEE6E0",
+            accent="#17675F",
+            apply_accent="#875B22",
+            success="#246B4A",
+            error="#A53C36",
+            success_bg="#EAF4ED",
+            error_bg="#FCEFED",
+            nav_active_bg="#E6F1EC",
+            nav_active_text="#155A52",
         )
 
     tokens.update(
