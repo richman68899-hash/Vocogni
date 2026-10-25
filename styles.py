@@ -1,162 +1,406 @@
+"""Vocogni visual system.
+
+A quiet, high-clarity interface for learning: one type family, one primary
+accent, restrained surfaces, consistent spacing, and strong focus states.
+Theme, text scale, readability spacing, and motion remain learner-controlled.
 """
-styles.py — Visual design layer for Vocogni.
-
-Design intent (Version 1):
-  - Palette is a cool ink/paper base (not the common warm-cream-and-serif or
-    near-black-neon look) with a single working accent — a deep teal used
-    for every primary action and progress indicator, so it always means
-    "go / progress." A second accent (warm amber) is reserved *only* for
-    Real-World Challenge moments, so color itself signals "you are in the
-    Apply stage" rather than decorating the page.
-  - Two type families with distinct jobs: Space Grotesk for headings (a
-    little technical/geometric, matching the "applied learning" brand),
-    IBM Plex Sans for body and UI text (quiet and highly readable), and
-    IBM Plex Mono used sparingly for stat numbers only, so progress reads
-    like a measurement rather than a game score.
-  - Structure comes from hairline borders, not stacked drop shadows; every
-    card looks the same *unless* it's a Real-World Challenge (amber edge)
-    or the current lesson (accent edge) — variation is informational.
-
-Dark mode / text size / motion are implemented as a CSS layer generated at
-runtime from Settings, since Streamlit does not expose a public API to
-switch its native theme after the app has started. This is a solid
-approximation for a prototype, not full native theming — see the README
-"Known limitations" section.
-"""
-
 from string import Template
+
 
 _CSS_TEMPLATE = Template("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
-html, body, [data-testid="stAppViewContainer"] {
-    font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif !important;
-    background-color: $bg !important;
-    color: $text !important;
-    font-size: ${base_px}px;
+:root {
+    color-scheme: $color_scheme;
+    --vc-bg: $bg;
+    --vc-surface: $surface;
+    --vc-surface-alt: $surface_alt;
+    --vc-text: $text;
+    --vc-subtext: $subtext;
+    --vc-border: $border;
+    --vc-accent: $accent;
+    --vc-apply: $apply_accent;
+    --vc-success: $success;
+    --vc-error: $error;
+    --vc-success-bg: $success_bg;
+    --vc-error-bg: $error_bg;
+}
+
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    background: var(--vc-bg) !important;
+    color: var(--vc-text) !important;
+    font-size: $base_px;
     line-height: $line_height;
 }
 
-[data-testid="stHeader"] { background-color: $bg !important; }
+[data-testid="stHeader"] {
+    background: var(--vc-bg) !important;
+    border-bottom: 1px solid transparent;
+}
 
-[data-testid="stSidebar"] { background-color: $surface !important; border-right: 1px solid $border; }
+[data-testid="stAppViewContainer"] .main .block-container {
+    max-width: 1160px;
+    padding: 2.1rem clamp(1.1rem, 3.5vw, 2.8rem) 3.25rem;
+}
 
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] {
+    background: var(--vc-surface) !important;
+    border-right: 1px solid var(--vc-border);
+}
+
+[data-testid="stSidebar"] > div:first-child {
+    padding: 1.15rem 1rem 1.5rem;
+}
+
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
 [data-testid="stSidebar"] label,
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3 { color: $text !important; }
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] p {
+    color: var(--vc-text) !important;
+}
 
-[data-testid="stMarkdownContainer"] { color: $text; }
+[data-testid="stMarkdownContainer"] {
+    color: var(--vc-text);
+}
+
+[data-testid="stMarkdownContainer"] p {
+    line-height: $line_height;
+    margin-bottom: 0.72rem;
+}
 
 h1, h2, h3, h4, .vc-heading {
-    font-family: 'Space Grotesk', sans-serif !important;
-    font-weight: 600 !important;
-    letter-spacing: -0.01em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    color: var(--vc-text) !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
 }
 
-.vc-muted { color: $subtext !important; font-size: 0.92em; }
+h1 { font-size: clamp(1.85rem, 3vw, 2.25rem) !important; margin: 0 0 0.7rem 0 !important; }
+h2 { font-size: clamp(1.55rem, 2.5vw, 1.85rem) !important; margin: 0 0 0.65rem 0 !important; }
+h3 { font-size: 1.22rem !important; margin: 1.25rem 0 0.6rem 0 !important; }
+h4 { font-size: 1.02rem !important; margin: 0 0 0.5rem 0 !important; }
 
-hr { border-color: $border !important; }
+p, li, label, input, textarea, button, select {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+a, [data-testid="stMarkdownContainer"] a {
+    color: var(--vc-accent) !important;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+a:hover, [data-testid="stMarkdownContainer"] a:hover {
+    text-decoration-thickness: 2px;
+}
+
+.vc-muted,
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p {
+    color: var(--vc-subtext) !important;
+    font-size: 0.88rem;
+}
+
+.vc-page-intro {
+    max-width: 760px;
+    color: var(--vc-subtext);
+    font-size: 1rem;
+    line-height: 1.7;
+    margin: 0.1rem 0 1.35rem 0;
+}
+
+.vc-eyebrow {
+    color: var(--vc-subtext);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    line-height: 1.4;
+    margin-bottom: 0.45rem;
+    text-transform: uppercase;
+}
+
+hr, [data-testid="stDivider"] {
+    border-color: var(--vc-border) !important;
+}
 
 .vc-logo-wrap {
-    padding: 0.2rem 0 1rem 0;
-    border-bottom: 1px solid $border;
-    margin-bottom: 1rem;
+    padding: 0.25rem 0 1.05rem 0;
+    border-bottom: 1px solid var(--vc-border);
+    margin-bottom: 1.05rem;
 }
-.vc-logo-text {
-    font-family: 'Space Grotesk', sans-serif;
+
+.vc-logo-row {
+    align-items: center;
+    display: flex;
+    gap: 0.65rem;
+}
+
+.vc-logo-mark {
+    align-items: center;
+    background: var(--vc-accent);
+    border-radius: 8px;
+    color: #FFFFFF;
+    display: inline-flex;
+    flex: 0 0 36px;
+    font-size: 1.03rem;
     font-weight: 700;
-    font-size: 1.5rem;
-    color: $text;
-    letter-spacing: -0.02em;
+    height: 36px;
+    justify-content: center;
+    letter-spacing: -0.04em;
+    width: 36px;
 }
-.vc-logo-tag { color: $subtext; font-size: 0.76rem; margin-top: 0.15rem; }
+
+.vc-logo-text {
+    color: var(--vc-text);
+    font-size: 1.23rem;
+    font-weight: 700;
+    letter-spacing: -0.055em;
+    line-height: 1.15;
+}
+
+.vc-logo-tag {
+    color: var(--vc-subtext);
+    font-size: 0.7rem;
+    line-height: 1.45;
+    margin-top: 0.25rem;
+}
 
 .vc-card {
-    background-color: $surface;
-    border: 1px solid $border;
+    background: var(--vc-surface);
+    border: 1px solid var(--vc-border);
     border-radius: 10px;
-    padding: 1.05rem 1.25rem;
-    margin-bottom: 0.85rem;
-    transition: $transition;
+    margin-bottom: 0.8rem;
+    padding: 1rem 1.1rem;
 }
-.vc-card--apply { border-left: 3px solid $apply_accent; }
-.vc-card--current { border-color: $accent; box-shadow: 0 0 0 1px $accent; }
+
+.vc-card--apply { border-left: 3px solid var(--vc-apply); }
+.vc-card--current { border-color: var(--vc-accent); }
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: var(--vc-surface) !important;
+    border: 1px solid var(--vc-border) !important;
+    border-radius: 11px !important;
+}
 
 .vc-badge {
+    background: var(--vc-surface-alt);
+    border: 1px solid var(--vc-border);
+    border-radius: 6px;
+    color: var(--vc-subtext);
     display: inline-block;
-    padding: 0.15rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    background-color: $surface_alt;
-    color: $subtext;
-    border: 1px solid $border;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.45;
+    margin-right: 0.25rem;
+    padding: 0.18rem 0.48rem;
 }
-.vc-badge--apply { background-color: transparent; border-color: $apply_accent; color: $apply_accent; }
-.vc-badge--success { border-color: $success; color: $success; }
-.vc-badge--warn { border-color: $error; color: $error; }
 
-.vc-stat-number { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 1.65rem; color: $text; }
-.vc-stat-label { color: $subtext; font-size: 0.8rem; margin-top: -0.25rem; }
+.vc-badge--apply { background: transparent; border-color: var(--vc-apply); color: var(--vc-apply); }
+.vc-badge--success { background: var(--vc-success-bg); border-color: var(--vc-success-bg); color: var(--vc-success); }
+.vc-badge--warn { background: var(--vc-error-bg); border-color: var(--vc-error-bg); color: var(--vc-error); }
+
+.vc-stat-number {
+    color: var(--vc-text);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+    font-size: 1.55rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+}
+
+.vc-stat-label {
+    color: var(--vc-subtext);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin-top: 0.15rem;
+}
 
 .vc-lesson-row {
-    padding: 0.7rem 0.9rem;
-    border: 1px solid $border;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    background-color: $surface;
+    background: var(--vc-surface);
+    border: 1px solid var(--vc-border);
+    border-radius: 9px;
+    margin-bottom: 0.55rem;
+    padding: 0.8rem 0.95rem;
 }
-.vc-lesson-row--locked { opacity: 0.55; }
-.vc-lesson-row--current { border-color: $accent; }
+
+.vc-lesson-row--locked { opacity: 0.6; }
+.vc-lesson-row--current { border-color: var(--vc-accent); }
+
+.vc-summary-box,
+.vc-challenge-box {
+    border: 1px solid var(--vc-border);
+    border-radius: 9px;
+    margin: 0.3rem 0 0.9rem;
+    padding: 1rem 1.1rem;
+    white-space: pre-wrap;
+}
 
 .vc-summary-box {
-    background-color: $surface_alt;
-    border: 1px solid $border;
-    border-left: 3px solid $accent;
-    border-radius: 8px;
-    padding: 1rem 1.2rem;
-    white-space: pre-wrap;
-    font-size: 0.96em;
+    background: var(--vc-surface-alt);
+    border-left: 3px solid var(--vc-accent);
 }
 
 .vc-challenge-box {
-    background-color: $surface_alt;
-    border: 1px solid $border;
-    border-left: 3px solid $apply_accent;
-    border-radius: 8px;
-    padding: 1.1rem 1.3rem;
-    white-space: pre-wrap;
-    margin-bottom: 1rem;
+    background: var(--vc-surface);
+    border-left: 3px solid var(--vc-apply);
 }
 
-.vc-feedback { border-radius: 8px; padding: 0.85rem 1.1rem; margin: 0.6rem 0 0.9rem 0; border: 1px solid $border; }
-.vc-feedback--correct { border-color: $success; background-color: $success_bg; }
-.vc-feedback--incorrect { border-color: $error; background-color: $error_bg; }
+.vc-feedback {
+    border: 1px solid var(--vc-border);
+    border-radius: 9px;
+    margin: 0.6rem 0 0.9rem;
+    padding: 0.85rem 1rem;
+}
+
+.vc-feedback--correct { background: var(--vc-success-bg); border-color: var(--vc-success-bg); }
+.vc-feedback--incorrect { background: var(--vc-error-bg); border-color: var(--vc-error-bg); }
 
 .vc-recommend-chip {
+    background: var(--vc-surface-alt);
+    border: 1px solid var(--vc-border);
+    border-radius: 6px;
+    color: var(--vc-text);
     display: inline-block;
-    padding: 0.35rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid $accent;
-    color: $accent;
-    background-color: $surface;
-    font-size: 0.85rem;
-    margin: 0 0.4rem 0.4rem 0;
+    font-size: 0.82rem;
+    margin: 0 0.35rem 0.35rem 0;
+    padding: 0.28rem 0.58rem;
 }
 
-.stButton > button { border-radius: 8px !important; transition: $transition !important; }
-[data-testid="stSidebar"] .stButton > button { text-align: left !important; justify-content: flex-start !important; }
+/* Consistent, low-noise controls */
+.stButton > button,
+.stFormSubmitButton > button,
+[data-testid="stDownloadButton"] > button {
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    font-size: 0.91rem !important;
+    font-weight: 600 !important;
+    min-height: 2.65rem;
+    padding: 0.5rem 0.95rem;
+    transition: $transition !important;
+}
+
+.stButton > button[kind="primary"],
+.stFormSubmitButton > button[kind="primary"] {
+    background: var(--vc-accent) !important;
+    border: 1px solid var(--vc-accent) !important;
+    color: #FFFFFF !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+.stFormSubmitButton > button[kind="primary"]:hover {
+    filter: brightness(0.94);
+}
+
+.stButton > button[kind="secondary"],
+.stFormSubmitButton > button[kind="secondary"] {
+    background: var(--vc-surface) !important;
+    border: 1px solid var(--vc-border) !important;
+    color: var(--vc-text) !important;
+}
+
+.stButton > button:focus-visible,
+.stFormSubmitButton > button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--vc-accent) !important;
+    outline-offset: 2px !important;
+}
+
+[data-testid="stSidebar"] .stButton > button {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    width: 100%;
+}
+
+.stTextInput input,
+.stTextArea textarea,
+.stNumberInput input,
+[data-baseweb="select"] > div {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+    border-radius: 8px !important;
+    color: var(--vc-text) !important;
+}
+
+[data-baseweb="select"] [data-testid="stMarkdownContainer"],
+[data-baseweb="select"] span {
+    color: var(--vc-text);
+}
+
+.stRadio label, .stCheckbox label, .stToggle label {
+    font-size: 0.92rem;
+}
+
+[data-testid="stProgressBar"] > div {
+    background: var(--vc-surface-alt) !important;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+[data-testid="stProgressBar"] > div > div {
+    background: var(--vc-accent) !important;
+    border-radius: 999px;
+}
+
+[data-testid="stExpander"] {
+    background: var(--vc-surface);
+    border: 1px solid var(--vc-border);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+[data-testid="stExpander"] summary {
+    font-weight: 600;
+}
+
+[data-testid="stAlert"] {
+    border-radius: 9px;
+}
+
+[data-testid="stMetric"] {
+    background: var(--vc-surface);
+    border: 1px solid var(--vc-border);
+    border-radius: 9px;
+    padding: 0.85rem 0.95rem;
+}
+
+[data-testid="stTabs"] button[role="tab"] {
+    font-weight: 600;
+}
+
+table {
+    border-color: var(--vc-border) !important;
+}
 
 * { scroll-behavior: $scroll_behavior; }
+
+@media (max-width: 800px) {
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding: 1.35rem 1rem 2.25rem;
+    }
+    .vc-stat-number { font-size: 1.35rem; }
+    .vc-logo-wrap { margin-bottom: 0.65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 """)
 
 
 def build_css(settings: dict) -> str:
-    """Render the full <style> block for the current Settings state."""
+    """Render the visual system from the learner's current display settings."""
     dark = settings.get("appearance") == "Dark"
 
     size_map = {"Small": 14, "Medium": 16, "Large": 18}
@@ -164,30 +408,46 @@ def build_css(settings: dict) -> str:
     if settings.get("larger_text"):
         base_px = max(base_px, 19)
 
-    line_height = 1.8 if settings.get("high_readability") else 1.55
+    line_height = 1.82 if settings.get("high_readability") else 1.62
     no_motion = (not settings.get("animations", True)) or settings.get("reduced_motion", False)
 
     if dark:
         tokens = dict(
-            bg="#121A20", surface="#1B262C", surface_alt="#202D33",
-            text="#E8EDEC", subtext="#9FB2B2", border="#2B3940",
-            accent="#2E8C8C", apply_accent="#D9A046",
-            success="#3FAE72", error="#DD6656",
-            success_bg="#173226", error_bg="#3A2220",
+            color_scheme="dark",
+            bg="#101A20",
+            surface="#18252C",
+            surface_alt="#202F35",
+            text="#F0F4F4",
+            subtext="#A6B7BC",
+            border="#33434A",
+            accent="#63B8AA",
+            apply_accent="#E0B66A",
+            success="#84D5A6",
+            error="#F08A7D",
+            success_bg="#17382B",
+            error_bg="#3E2524",
         )
     else:
         tokens = dict(
-            bg="#F5F7F7", surface="#FFFFFF", surface_alt="#EEF2F2",
-            text="#16212C", subtext="#5A6B72", border="#DEE4E7",
-            accent="#1C6B6B", apply_accent="#B8842E",
-            success="#2F8F5B", error="#C0483D",
-            success_bg="#E6F4EC", error_bg="#FBEAE8",
+            color_scheme="light",
+            bg="#F6F8F9",
+            surface="#FFFFFF",
+            surface_alt="#F0F4F4",
+            text="#182831",
+            subtext="#5D6F76",
+            border="#DFE7E9",
+            accent="#176B64",
+            apply_accent="#92651F",
+            success="#247A50",
+            error="#AF3F36",
+            success_bg="#E9F5ED",
+            error_bg="#FCEDEA",
         )
 
     tokens.update(
-        base_px=base_px,
+        base_px=f"{base_px}px",
         line_height=line_height,
-        transition="none" if no_motion else "all 0.15s ease",
+        transition="none" if no_motion else "all 0.16s ease",
         scroll_behavior="auto" if no_motion else "smooth",
     )
     return _CSS_TEMPLATE.substitute(tokens)
