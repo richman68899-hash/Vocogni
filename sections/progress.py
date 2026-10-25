@@ -79,7 +79,10 @@ def _progress_section(section_id, title):
 
 def render():
     st.markdown("<h2>Progress</h2>", unsafe_allow_html=True)
-    st.caption("Open a section to explore the detail you need. Each section remembers whether you left it open or closed.")
+    st.markdown(
+        "<p class='vc-page-intro'>Review your learning activity, inspect question-level evidence, and choose a useful next step.</p>",
+        unsafe_allow_html=True,
+    )
 
     progress = st.session_state.progress
     profile = st.session_state.profile
@@ -114,7 +117,7 @@ def _stat_block(label, value):
 
 
 def _render_overview(progress):
-    st.caption("A snapshot of course activity, completed lessons, answers, mistakes, and diagnostic averages.")
+    st.caption("A concise snapshot of course activity, completed lessons, answers, and recorded results.")
     stats = logic.overall_stats(progress)
 
     row1 = st.columns(3)
@@ -170,7 +173,7 @@ _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge-
 
 
 def _render_topic_detail(progress):
-    st.caption("Inspect one course at a time to see lesson completion, practice accuracy, and recurring mistakes.")
+    st.caption("Choose a course to review lesson completion, practice accuracy, and recurring mistakes.")
     courses = data.all_courses_in_order()
     labels = [c["topic_label"] for c in courses]
     selected_label = st.selectbox("Select a topic", labels, key="progress_topic_select")
