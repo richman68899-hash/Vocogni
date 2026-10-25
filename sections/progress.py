@@ -80,7 +80,7 @@ def _progress_section(section_id, title):
 def render():
     st.markdown("<h1>Progress</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Review your learning activity, inspect question-level evidence, and choose a useful next step.</p>",
+        "<p class='vc-page-intro'>See what you have practised, which skills need more evidence, and what to work on next.</p>",
         unsafe_allow_html=True,
     )
 
@@ -105,7 +105,7 @@ def render():
     with _progress_section("lesson_diagnostics", "Lesson diagnostics"):
         _render_lesson_diagnostics(progress)
 
-    with _progress_section("ai_summary", "AI progress summary"):
+    with _progress_section("ai_summary", "Learning summary"):
         _render_ai_summary(profile, progress)
 
 
@@ -392,12 +392,12 @@ def _render_recommendations(progress):
 
 def _render_ai_summary(profile, progress):
     st.markdown(
-        "<span class='vc-muted'>A prototype simulation built from your own stored "
-        "statistics \u2014 no AI model is called in Version 1. See README.md for how "
+        "<span class='vc-muted'>A transparent summary of your recorded activity. "
+        "It uses saved results and rules; no external AI model is called. \u2014 no AI model is called in Version 1. See README.md for how "
         "to connect a real one later.</span>",
         unsafe_allow_html=True,
     )
-    if st.button("Generate Summary", type="primary"):
+    if st.button("Create learning summary", type="primary"):
         st.session_state.ai_summary_text = logic.generate_progress_summary(profile, progress)
 
     summary = st.session_state.get("ai_summary_text")
