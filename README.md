@@ -105,14 +105,14 @@ The diagnostic currently covers only the three initial foundation lessons.
 
 ## Design notes
 
-- **A quiet interface, not a dashboard collage.** Inter is used throughout
-  the product; IBM Plex Mono is reserved for measured progress values.
+- **A quiet interface, not a dashboard collage.** Inter is used for body copy,
+  Manrope for headings, and IBM Plex Mono for measured progress values.
 - **Color is functional.** Deep teal marks primary actions and progress.
-  Muted amber is reserved for real-world application tasks. Neutral surfaces
-  and borders separate content without decorative gradients or heavy shadows.
+  Muted amber is reserved for real-world application tasks. Soft neutral surfaces,
+  precise borders, and restrained accents keep attention on the learning task.
 - **Consistent structure.** Cards, fields, buttons, alerts, and expanders use
-  a shared spacing and radius scale. Interactive elements have visible focus
-  states and layouts adapt to smaller screens.
+  shared spacing and radius values. Controls have visible focus states, clear
+  hierarchy, and responsive layouts for smaller screens.
 - **Learner control remains intact.** Theme, text size, readability spacing,
   and motion preferences continue to come from Settings.
 
