@@ -9,7 +9,7 @@ import learning_maintenance
 import state
 
 
-_RED_FLAME = "<span style='color:#ef4444;font-size:1.1rem;' role='img' aria-label='Learning streak'>🔥</span>"
+_STREAK_MARK = "<span class='vc-streak-mark' role='img' aria-label='Recorded learning activity'>●</span>"
 
 
 def _plural_word(count, singular):
@@ -39,7 +39,7 @@ def _start_maintenance_lesson(course_id, lesson_id):
 
 def _render_learning_maintenance(progress, profile):
     """Render meaningful learning consistency and the spaced-review queue."""
-    st.markdown("<h3>Learning Rhythm</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Learning rhythm</h3>", unsafe_allow_html=True)
     st.caption(
         "Build a sustainable learning routine. A saved answer with feedback, a "
         "completed practice set, or a diagnostic counts as a learning day; simply "
@@ -121,7 +121,7 @@ def _render_learning_maintenance(progress, profile):
 
     row = st.columns(4)
     with row[0]:
-        _maintenance_stat_block("Current streak", f"{_RED_FLAME} {summary['current_streak']} {_plural_word(summary['current_streak'], 'day')}")
+        _maintenance_stat_block("Current streak", f"{_STREAK_MARK} {summary['current_streak']} {_plural_word(summary['current_streak'], 'day')}")
     with row[1]:
         _maintenance_stat_block("Longest streak", f"{_RED_FLAME} {summary['longest_streak']} {_plural_word(summary['longest_streak'], 'day')}")
     with row[2]:
