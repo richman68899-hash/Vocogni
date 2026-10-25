@@ -81,7 +81,7 @@ def _render_login() -> None:
     Streamlit handles the OIDC callback and session.
     """
 
-    left, hero, right = st.columns([1, 2, 1], gap="small")
+    _left, hero, _right = st.columns([1, 2, 1], gap="small")
     with hero:
         st.markdown(
             "<div class='vc-login-hero'>"
