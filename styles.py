@@ -840,6 +840,195 @@ button[data-testid="stBaseButton-secondary"] {
     }
 }
 
+
+/* ------------------------------------------------------------------
+   THEME CONTRAST PATCH
+   Keep native Streamlit/BaseWeb controls in sync with the selected
+   learner theme. The app supports a user-selected theme, so do not
+   rely on Streamlit's static .streamlit/config.toml theme alone.
+   ------------------------------------------------------------------ */
+html {
+    color-scheme: $color_scheme;
+}
+.stApp {
+    --background-color: var(--vc-bg);
+    --secondary-background-color: var(--vc-surface);
+    --text-color: var(--vc-text);
+    --primary-color: var(--vc-accent);
+    --border-color: var(--vc-border);
+    --code-background-color: var(--vc-surface-alt);
+    --input-background-color: var(--vc-surface);
+    color: var(--vc-text) !important;
+    background: var(--vc-bg) !important;
+}
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+[data-testid="stHeader"] {
+    background-color: var(--vc-bg) !important;
+    color: var(--vc-text) !important;
+}
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div:first-child {
+    background-color: var(--vc-surface) !important;
+    color: var(--vc-text) !important;
+}
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li,
+[data-testid="stMarkdownContainer"] blockquote,
+[data-testid="stMarkdownContainer"] strong,
+[data-testid="stMarkdownContainer"] em,
+[data-testid="stMarkdownContainer"] del,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stRadio"] label,
+[data-testid="stCheckbox"] label,
+[data-testid="stToggle"] label,
+[data-testid="stFileUploader"] label,
+[data-testid="stDateInput"] label,
+[data-testid="stTimeInput"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stMultiSelect"] label,
+[data-testid="stTextInput"] label,
+[data-testid="stTextArea"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stSlider"] label,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"],
+[data-testid="stMetricDelta"],
+[data-testid="stExpander"] summary {
+    color: var(--vc-text) !important;
+}
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+.stCaption,
+.vc-muted {
+    color: var(--vc-subtext) !important;
+}
+[data-testid="stMarkdownContainer"] a,
+[data-testid="stLinkButton"] a {
+    color: var(--vc-accent) !important;
+}
+[data-testid="stMetric"],
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stExpander"],
+[data-testid="stAlert"] {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+}
+[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] li {
+    color: var(--vc-text) !important;
+}
+[data-testid="stExpander"] summary:hover {
+    background-color: var(--vc-surface-alt) !important;
+}
+[data-testid="stExpander"] svg,
+[data-testid="stExpander"] summary span {
+    color: var(--vc-text) !important;
+}
+.stApp button[data-testid="stBaseButton-tertiary"] {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--vc-text) !important;
+}
+.stApp button[data-testid^="stBaseButton-"]:disabled {
+    color: var(--vc-subtext) !important;
+    opacity: 0.72;
+}
+.stApp input:not([type="checkbox"]):not([type="radio"]),
+.stApp textarea,
+.stApp [data-baseweb="input"] input,
+.stApp [data-baseweb="textarea"] textarea,
+.stApp [data-testid="stNumberInput"] input,
+.stApp [data-testid="stDateInput"] input,
+.stApp [data-testid="stTimeInput"] input,
+.stApp [data-baseweb="select"] > div {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+    color: var(--vc-text) !important;
+    caret-color: var(--vc-accent);
+}
+.stApp input::placeholder,
+.stApp textarea::placeholder {
+    color: var(--vc-subtext) !important;
+    opacity: 1 !important;
+}
+.stApp input:focus,
+.stApp textarea:focus,
+.stApp [data-baseweb="input"] > div:focus-within,
+.stApp [data-baseweb="textarea"] > div:focus-within {
+    border-color: var(--vc-accent) !important;
+    box-shadow: 0 0 0 1px var(--vc-accent) !important;
+}
+.stApp input[type="checkbox"],
+.stApp input[type="radio"],
+.stApp input[type="range"] {
+    accent-color: var(--vc-accent) !important;
+}
+.stApp [data-baseweb="select"] span,
+.stApp [data-baseweb="select"] input,
+.stApp [data-baseweb="select"] [role="combobox"] {
+    color: var(--vc-text) !important;
+}
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-testid="stSelectboxVirtualDropdown"],
+[data-testid="stMultiSelect"] [role="listbox"],
+[data-testid="stMultiSelect"] [role="option"] {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+    color: var(--vc-text) !important;
+}
+[role="listbox"] [role="option"],
+[role="menu"] [role="menuitem"],
+[data-baseweb="menu"] [role="option"] {
+    color: var(--vc-text) !important;
+}
+[role="listbox"] [role="option"]:hover,
+[role="listbox"] [role="option"][aria-selected="true"],
+[role="menu"] [role="menuitem"]:hover,
+[data-baseweb="menu"] [role="option"]:hover {
+    background-color: var(--vc-surface-alt) !important;
+    color: var(--vc-text) !important;
+}
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    border-color: var(--vc-border) !important;
+}
+.stApp table,
+.stApp thead,
+.stApp tbody,
+.stApp tr,
+.stApp th,
+.stApp td {
+    border-color: var(--vc-border) !important;
+}
+.stApp th {
+    background-color: var(--vc-surface-alt) !important;
+    color: var(--vc-text) !important;
+}
+.stApp td {
+    background-color: var(--vc-surface) !important;
+    color: var(--vc-text) !important;
+}
+.stApp pre,
+.stApp code {
+    background-color: var(--vc-surface-alt);
+    color: var(--vc-text);
+    border-color: var(--vc-border);
+}
+.stApp hr,
+[data-testid="stDivider"] {
+    border-color: var(--vc-border) !important;
+}
+.stApp ::selection {
+    background: var(--vc-accent);
+    color: var(--vc-on-accent);
+}
+
 </style>
 """)
 
