@@ -1,4 +1,4 @@
-"""Course-detail UI for the Personalized Revision Sprint."""
+"""Course-detail UI for the Revision sprint."""
 
 from __future__ import annotations
 
@@ -23,9 +23,9 @@ def render(course, progress):
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown("<h3>Personalized Revision Sprint</h3>", unsafe_allow_html=True)
     st.caption(
-        "A short revision set built from this course's existing questions. "
-        "It prioritizes skills that need practice, gives answer feedback, and "
-        "records results in your learning history."
+        "A focused practice set drawn from this course. "
+        "It prioritizes skills that need work, gives feedback, and "
+        "records each result in your learning history."
     )
 
     bank = sprint_logic.question_bank_for_course(course_id)
@@ -73,7 +73,7 @@ def _render_setup(course, progress, bank):
 
     weak_skills = sprint_logic.weak_skills_for_course(progress, course_id, limit=3)
     if weak_skills:
-        st.caption("Current priority skills: " + " · ".join(weak_skills))
+        st.caption("Priority skills: " + " · ".join(weak_skills))
     else:
         st.caption(
             "No clear weak-skill pattern is recorded yet. The personalized sprint "
@@ -87,7 +87,7 @@ def _render_setup(course, progress, bank):
     )
 
     if st.button(
-        "Build my revision sprint",
+        "Create revision sprint",
         type="primary",
         key=f"revision_sprint_start_{course_id}",
         use_container_width=True,
