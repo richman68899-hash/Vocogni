@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 import data
 import logic
+import question_engine
 
 
 SUPPORTED_QUESTION_TYPES = ("mc", "numeric", "open_ended")
@@ -53,50 +54,64 @@ def _is_supported_question(question):
 
 
 def question_bank_for_course(course_id):
-    """Collect unique authored practice questions supported by current graders."""
+    """Collect unique supported items through the shared VQE catalogue.
+
+    VQE pilot lessons and pathway items are strict: only reviewed, currently
+    verified content is included. Non-pilot lesson questions remain on the
+    legacy-compatible path while those lessons await review.
+    """
     course = data.get_course(course_id)
     if not course:
         return []
 
+    lesson_indexes = {
+        str(lesson.get("id") or ""): index
+        for index, lesson in enumerate(course.get("lessons", []))
+        if isinstance(lesson, dict)
+    }
+    per_lesson_index = defaultdict(int)
     bank = []
-    for lesson_index, lesson in enumerate(course.get("lessons", [])):
-        if not isinstance(lesson, dict):
+
+    for record in question_engine.iter_question_records(course_id=course_id):
+        lesson_id = str(record.get("lesson_id") or "")
+        question = record.get("question", {})
+        status = record.get("verification_status", "legacy")
+        source_fields = record.get("source_fields", [record.get("source_field", "")])
+        is_pathway = any(
+            str(field).startswith("diagnostic.pathways.")
+            for field in source_fields
+        )
+        pilot = question_engine.is_vqe_pilot_lesson(course_id, lesson_id)
+
+        if (pilot or is_pathway) and status != "verified":
+            continue
+        if not _is_supported_question(question):
             continue
 
-        lesson_id = str(lesson.get("id") or "")
-        lesson_title = str(lesson.get("title") or lesson_id or "Untitled lesson")
-        seen_ids = set()
-        rows = []
-        for field in ("practice_questions", "questions"):
-            value = lesson.get(field, [])
-            if isinstance(value, list):
-                rows.extend(item for item in value if isinstance(item, dict))
-        interactive = lesson.get("interactive_question")
-        if isinstance(interactive, dict):
-            rows.append(interactive)
-
-        for question_index, question in enumerate(rows):
-            if not _is_supported_question(question):
-                continue
-            question_id = str(question["id"])
-            if question_id in seen_ids:
-                continue
-            seen_ids.add(question_id)
-            skill = (
-                question.get("skill_tag")
-                or question.get("skill")
-                or question.get("mistake_tag")
-                or lesson_title
-            )
-            bank.append({
-                "lesson_id": lesson_id,
-                "lesson_title": lesson_title,
-                "lesson_index": lesson_index,
-                "question_index": question_index,
-                "question_id": question_id,
-                "skill": " ".join(str(skill).strip().split()) or lesson_title,
-                "question": deepcopy(question),
-            })
+        lesson_title = str(record.get("lesson_title") or lesson_id or "Untitled lesson")
+        skill = (
+            question.get("skill_tag")
+            or question.get("skill")
+            or question.get("mistake_tag")
+            or lesson_title
+        )
+        bank.append({
+            "lesson_id": lesson_id,
+            "lesson_title": lesson_title,
+            "lesson_index": lesson_indexes.get(lesson_id, 0),
+            "question_index": per_lesson_index[lesson_id],
+            "question_id": str(record["question_id"]),
+            "skill": " ".join(str(skill).strip().split()) or lesson_title,
+            "skill_id": question.get("skill_id"),
+            "question_version": question.get("question_version", 1),
+            "verification_status": status,
+            "question_purpose": question.get("purpose"),
+            "verification_engine_version": question.get(
+                "verification_engine_version", question_engine.ENGINE_VERSION
+            ),
+            "question": deepcopy(question),
+        })
+        per_lesson_index[lesson_id] += 1
     return bank
 
 
@@ -247,7 +262,14 @@ def select_questions(progress, course_id, count=5, mode="personalized"):
             "lesson_id": item["lesson_id"],
             "lesson_title": item["lesson_title"],
             "skill": item["skill"],
+            "skill_id": item.get("skill_id"),
             "question_id": item["question_id"],
+            "question_version": item.get("question_version", 1),
+            "verification_status": item.get("verification_status", "legacy"),
+            "question_purpose": item.get("question_purpose"),
+            "verification_engine_version": item.get(
+                "verification_engine_version", question_engine.ENGINE_VERSION
+            ),
             "question": deepcopy(item["question"]),
         }
         for item in chosen
@@ -326,6 +348,16 @@ def record_sprint_attempt(progress, course_id, graded_items, completed_at=None):
             "max_marks": maximum,
             "skill_tag": item["skill"],
             "mistake_tag": question.get("mistake_tag", item["skill"]),
+            "question_version": item.get("question_version", question.get("question_version", 1)),
+            "skill_id": item.get("skill_id", question.get("skill_id")),
+            "question_purpose": item.get("question_purpose", question.get("purpose")),
+            "verification_status": item.get(
+                "verification_status", question.get("verification_status", "legacy")
+            ),
+            "verification_engine_version": item.get(
+                "verification_engine_version",
+                question.get("verification_engine_version", question_engine.ENGINE_VERSION),
+            ),
         }
         grouped_results.setdefault(item["lesson_id"], []).append(result)
 

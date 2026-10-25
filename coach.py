@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import random
+from datetime import datetime, timezone
+
 import streamlit as st
 
 import data
 import logic
+import question_engine
 import state
 
 
@@ -47,8 +50,27 @@ def _lesson_candidates(course_id, lesson_id=None):
         selected = next((lesson for lesson in lessons if lesson.get("id") == lesson_id), None)
         if selected:
             lessons = [selected]
+        else:
+            return []
+
     questions = []
     for lesson in lessons:
+        current_lesson_id = lesson.get("id")
+        if question_engine.is_vqe_pilot_lesson(course_id, current_lesson_id):
+            records = question_engine.select_questions(
+                course_id=course_id,
+                lesson_id=current_lesson_id,
+                verified_only=True,
+                include_pathways=True,
+            )
+            for record in records:
+                question = record["question"]
+                if question.get("type") in ("mc", "numeric") and question.get("prompt"):
+                    questions.append((lesson, question))
+            continue
+
+        # Non-pilot lessons retain their existing authored-question behaviour
+        # until their content has been reviewed and opted into VQE.
         for question in lesson.get("questions", []):
             if question.get("type") in ("mc", "numeric") and question.get("prompt"):
                 questions.append((lesson, question))
@@ -58,7 +80,9 @@ def _lesson_candidates(course_id, lesson_id=None):
 def _randomized_question(course_id, lesson_id, index):
     """Reuse authored questions; safely vary integer coefficients for clean factorization."""
     candidates = _lesson_candidates(course_id, lesson_id)
-    if not candidates:
+    if not candidates and not (
+        lesson_id and question_engine.is_vqe_pilot_lesson(course_id, lesson_id)
+    ):
         candidates = _lesson_candidates(course_id)
     if not candidates:
         return None
@@ -66,6 +90,9 @@ def _randomized_question(course_id, lesson_id, index):
     lesson, original = random.choice(candidates)
     question = dict(original)
     question["options"] = list(original.get("options", []))
+    question["_vqe_source_question_id"] = original.get(
+        "_vqe_source_question_id", original.get("id")
+    )
     prompt = str(question.get("prompt", ""))
 
     # Generate a fresh, exactly factorable quadratic when the lesson explicitly
@@ -86,6 +113,8 @@ def _randomized_question(course_id, lesson_id, index):
         question["answer"] = correct
         question["explanation"] = f"Find two numbers that multiply to {c} and add to {a + b}: {a} and {b}."
         question["id"] = f"coach_factor_{index}_{a}_{b}"
+        question["verification_status"] = "generated_template"
+        question["verification_engine_version"] = question_engine.ENGINE_VERSION
     else:
         if question["type"] == "mc" and question["options"]:
             random.shuffle(question["options"])
@@ -184,6 +213,20 @@ def render(progress, show_heading=True):
                 "total_mistakes": 0,
             })
             coach_data["questions_attempted"] = int(coach_data.get("questions_attempted", 0)) + 1
+            coach_data.setdefault("attempts", []).append({
+                "question_id": str(question.get("_vqe_source_question_id", question.get("id", ""))),
+                "presented_question_id": str(question.get("id", "")),
+                "question_version": question.get("question_version", 1),
+                "skill_id": question.get("skill_id"),
+                "question_purpose": question.get("purpose"),
+                "verification_status": question.get("verification_status", "legacy"),
+                "verification_engine_version": question.get(
+                    "verification_engine_version", question_engine.ENGINE_VERSION
+                ),
+                "user_answer": answer,
+                "correct": bool(is_correct),
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            })
             if is_correct:
                 coach_data["correct_answers"] = int(coach_data.get("correct_answers", 0)) + 1
                 st.success("Correct. Keep going.")
