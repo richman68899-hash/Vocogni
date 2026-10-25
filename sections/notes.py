@@ -83,7 +83,7 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 def render() -> None:
     st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Keep study notes organized, track learning milestones, or sketch an idea on the whiteboard.</p>",
+        "<p class='vc-page-intro'>Organize lesson notes, track learning milestones, and work through ideas on the whiteboard.</p>",
         unsafe_allow_html=True,
     )
     if st.session_state.get("note_editor_open", False):
@@ -121,7 +121,7 @@ def _render_folder_index() -> None:
     folders = st.session_state.note_folders
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
 
-    st.markdown("### Folders")
+    st.markdown("### Your folders")
     with st.expander("Create a folder", expanded=not folders):
         with st.form("create_note_folder", clear_on_submit=True):
             name = st.text_input("Folder title", placeholder="e.g. Algebra")
