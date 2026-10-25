@@ -145,6 +145,37 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
         self.assertEqual(report["needs_review_count"], 0)
         self.assertEqual(report["counts"]["verified"], report["verified_count"])
 
+    def test_malformed_unreviewed_question_remains_needs_review_after_normalisation(self):
+        course_id = "vqe_invalid_legacy_test"
+        question = {
+            "id": "invalid_legacy_q",
+            "type": "mc",
+            "prompt": "Choose the answer.",
+            "options": ["A", "A"],
+            "answer": "B",
+            "explanation": "This item is deliberately invalid for the test.",
+            "mistake_tag": "test",
+        }
+        test_course = {
+            "id": course_id,
+            "title": "Invalid legacy test",
+            "topic_label": "Invalid legacy test",
+            "short_description": "Test-only data.",
+            "lessons": [{
+                "id": "lesson_1",
+                "title": "Invalid lesson",
+                "questions": [question],
+            }],
+        }
+        with patch.dict(data.COURSES, {course_id: test_course}), patch.object(
+            data, "COURSE_ORDER", list(data.COURSE_ORDER) + [course_id]
+        ):
+            records = question_engine.iter_question_records(course_id=course_id)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["verification_status"], "needs_review")
+        self.assertTrue(records[0]["verification_issues"])
+
     def test_conflicting_duplicate_ids_are_excluded_from_vqe(self):
         q1 = {
             "id": "duplicate_test_q",
