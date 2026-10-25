@@ -117,7 +117,7 @@ def _stat_block(label, value):
 
 
 def _render_overview(progress):
-    st.caption("A concise view of your learning activity and recorded results.")
+    st.caption("A snapshot of courses, completed lessons, practice attempts, and recorded results.")
     stats = logic.overall_stats(progress)
 
     row1 = st.columns(3)
