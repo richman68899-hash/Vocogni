@@ -476,7 +476,7 @@ LESSONS[0]["diagnostic"] = COURSE_ENTRY_DIAGNOSTIC
 GEOMETRY_COURSE = {
     "id": "basic_geometry",
     "title": "Basic Geometry",
-    "short_description": "Use angle relationships, perimeter, and area to solve geometry problems and practical tasks.",
+    "short_description": "Use angle relationships, perimeter, and area to solve geometric problems in diagrams and everyday contexts.",
     "difficulty": "Beginner",
     "topic_label": "Geometry",
     "category_id": "academics",
