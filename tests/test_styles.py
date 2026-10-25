@@ -42,3 +42,24 @@ def test_icon_text_and_empty_state_alignment_rules_are_present():
     assert ".vc-status__icon" in css
     assert ".vc-empty-state" in css
     assert ".vc-login-hero" in css
+
+def test_dark_theme_overrides_native_widget_surfaces_and_text():
+    css = styles.build_css({"appearance": "Dark"})
+    assert "--background-color: var(--vc-bg);" in css
+    assert "--secondary-background-color: var(--vc-surface);" in css
+    assert "color-scheme: dark;" in css
+    assert "[data-testid=\"stWidgetLabel\"] p" in css
+    assert "[data-baseweb=\"select\"] span" in css
+    assert "[role=\"listbox\"] [role=\"option\"]:hover" in css
+    assert "input::placeholder" in css
+    assert "[data-testid=\"stAlert\"] p" in css
+    assert "$" not in css
+
+
+def test_light_theme_keeps_native_controls_theme_aware():
+    css = styles.build_css({"appearance": "Light"})
+    assert "color-scheme: light;" in css
+    assert "--text-color: var(--vc-text);" in css
+    assert "background-color: var(--vc-surface) !important;" in css
+    assert "$" not in css
+
