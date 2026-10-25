@@ -132,7 +132,7 @@ def render() -> None:
 
     st.markdown(
         "<p class='vc-muted'>"
-        "Set preferences that make your learning experience more relevant. "
+        "Use optional details to tailor your learning workspace. "
         "Every field is optional."
         "</p>",
         unsafe_allow_html=True,
