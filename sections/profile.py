@@ -191,7 +191,7 @@ def _render_read_only(
     # -----------------------------------------------------------------------
 
     with st.container(border=True):
-    st.markdown(
+        st.markdown(
             "<span class='vc-muted'>Basic info</span>",
             unsafe_allow_html=True,
         )
@@ -246,7 +246,7 @@ def _render_read_only(
     # -----------------------------------------------------------------------
 
     with st.container(border=True):
-    st.markdown(
+        st.markdown(
             "<span class='vc-muted'>Learning preferences</span>",
             unsafe_allow_html=True,
         )
@@ -291,7 +291,7 @@ def _render_read_only(
     # -----------------------------------------------------------------------
 
     with st.container(border=True):
-    st.markdown(
+        st.markdown(
             "<span class='vc-muted'>Subjects & goals</span>",
             unsafe_allow_html=True,
         )
