@@ -840,6 +840,233 @@ button[data-testid="stBaseButton-secondary"] {
     }
 }
 
+
+/* ---------------------------------------------------------------
+   THEME PARITY + DARK-MODE READABILITY
+   Streamlit's native theme is light in config.toml, while learners
+   can switch appearance at runtime. Map its component tokens to the
+   active Vocogni palette so portals and form widgets follow suit.
+   --------------------------------------------------------------- */
+:root,
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stSidebar"] {
+    color-scheme: $color_scheme !important;
+    --primary-color: var(--vc-accent) !important;
+    --background-color: var(--vc-bg) !important;
+    --secondary-background-color: var(--vc-surface) !important;
+    --text-color: var(--vc-text) !important;
+    --secondary-text-color: var(--vc-subtext) !important;
+    --border-color: var(--vc-border) !important;
+    --link-color: var(--vc-accent) !important;
+    --code-background-color: var(--vc-surface-alt) !important;
+    --dataframe-border-color: var(--vc-border) !important;
+    --dataframe-header-background-color: var(--vc-surface-alt) !important;
+}
+
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stSidebar"],
+[data-testid="stMain"] {
+    background-color: var(--vc-bg) !important;
+    color: var(--vc-text);
+}
+
+[data-testid="stSidebar"] {
+    background-color: var(--vc-surface) !important;
+}
+
+/* Explicitly theme common widget labels and their rendered text. */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] label,
+[data-testid="stRadio"] label,
+[data-testid="stCheckbox"] label,
+[data-testid="stToggle"] label,
+[data-testid="stSlider"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stMultiSelect"] label,
+[data-testid="stTextInput"] label,
+[data-testid="stTextArea"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stDateInput"] label,
+[data-testid="stTimeInput"] label,
+[data-testid="stFileUploader"] label,
+[data-testid="stColorPicker"] label {
+    color: var(--vc-text) !important;
+}
+
+/* Input surfaces, entered text, and placeholders stay readable in both themes. */
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input,
+[data-testid="stTimeInput"] input,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea,
+[data-baseweb="select"] > div {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+    color: var(--vc-text) !important;
+    caret-color: var(--vc-accent);
+}
+
+input::placeholder,
+textarea::placeholder,
+[data-baseweb="input"] input::placeholder,
+[data-baseweb="textarea"] textarea::placeholder {
+    color: var(--vc-subtext) !important;
+    opacity: 1 !important;
+}
+
+input:disabled,
+textarea:disabled,
+[aria-disabled="true"] {
+    color: var(--vc-subtext) !important;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--vc-accent);
+}
+
+/* Menus and calendar popovers are rendered outside the normal widget tree. */
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-baseweb="calendar"],
+[data-baseweb="datepicker"],
+[role="listbox"],
+[role="listbox"] [role="option"],
+[data-baseweb="select"] [role="option"] {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+    color: var(--vc-text) !important;
+}
+
+[role="listbox"] [role="option"]:hover,
+[role="listbox"] [role="option"][aria-selected="true"],
+[data-baseweb="select"] [role="option"]:hover,
+[data-baseweb="select"] [role="option"][aria-selected="true"] {
+    background-color: var(--vc-surface-alt) !important;
+    color: var(--vc-text) !important;
+}
+
+[data-baseweb="calendar"] button,
+[data-baseweb="datepicker"] button,
+[data-baseweb="popover"] button {
+    color: var(--vc-text);
+}
+
+[data-baseweb="tooltip"] {
+    background-color: var(--vc-surface-alt) !important;
+    border: 1px solid var(--vc-border) !important;
+    color: var(--vc-text) !important;
+}
+
+/* Neutral, high-contrast surfaces for cards and feedback containers. */
+.vc-card,
+.vc-lesson-row,
+.vc-summary-box,
+.vc-challenge-box,
+.vc-feedback,
+.vc-badge,
+.vc-recommend-chip,
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"],
+[data-testid="stExpander"] {
+    color: var(--vc-text);
+}
+
+.vc-feedback--correct,
+.vc-feedback--incorrect {
+    color: var(--vc-text) !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"],
+[data-testid="stExpander"],
+[data-testid="stForm"],
+[data-testid="stAlert"] {
+    border-color: var(--vc-border) !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"],
+[data-testid="stExpander"] {
+    background-color: var(--vc-surface) !important;
+}
+
+[data-testid="stMetric"] label,
+[data-testid="stMetric"] [data-testid="stMetricLabel"],
+[data-testid="stMetric"] [data-testid="stMetricValue"],
+[data-testid="stMetric"] [data-testid="stMetricDelta"],
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] [data-testid="stMarkdownContainer"],
+[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+[data-testid="stAlert"] p {
+    color: var(--vc-text) !important;
+}
+
+[data-testid="stAlert"] {
+    background-color: var(--vc-surface-alt) !important;
+}
+
+/* Keep code, tables, quotes, tabs and small status text on the same palette. */
+pre, code, kbd, samp {
+    background-color: var(--vc-surface-alt);
+    color: var(--vc-text);
+    border-color: var(--vc-border);
+}
+
+blockquote {
+    border-left-color: var(--vc-accent) !important;
+    color: var(--vc-text);
+}
+
+table, thead, tbody, tr, th, td {
+    border-color: var(--vc-border) !important;
+    color: var(--vc-text);
+}
+
+th {
+    background-color: var(--vc-surface-alt);
+}
+
+[data-testid="stTabs"] button[role="tab"] {
+    color: var(--vc-subtext);
+}
+
+[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    color: var(--vc-accent) !important;
+    border-bottom-color: var(--vc-accent) !important;
+}
+
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+[data-testid="stStatusWidget"] {
+    color: var(--vc-subtext) !important;
+}
+
+a, [data-testid="stMarkdownContainer"] a {
+    color: var(--vc-accent) !important;
+}
+
+a:visited {
+    color: var(--vc-accent) !important;
+}
+
+button:disabled,
+[data-testid="stBaseButton-secondary"]:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+}
+
+@media (prefers-contrast: more) {
+    :root, .stApp, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
+        --vc-border: var(--vc-subtext);
+    }
+}
+
 </style>
 """)
 
