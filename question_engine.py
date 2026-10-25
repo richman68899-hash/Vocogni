@@ -677,7 +677,13 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
     question = record["question"]
     qid = record["question_id"]
     metadata = VERIFICATION_REGISTRY.get(qid)
-    issues = validate_question(question)
+    course_id = str(record.get("course_id") or "").casefold()
+    default_grader = (
+        "chemistry"
+        if "chem" in course_id
+        else "math"
+    )
+    issues = validate_question(question, default_grader=default_grader)
     if record.get("catalogue_conflict"):
         issues.append("Question ID has conflicting authored content.")
 
