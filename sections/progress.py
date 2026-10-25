@@ -393,7 +393,7 @@ def _render_recommendations(progress):
 def _render_ai_summary(profile, progress):
     st.markdown(
         "<span class='vc-muted'>A transparent summary of your recorded activity. "
-        "It uses saved results and rules; no external AI model is called. \u2014 no AI model is called in Version 1. See README.md for how "
+        "It uses saved results and rules; no external AI model is called. "
         "to connect a real one later.</span>",
         unsafe_allow_html=True,
     )
