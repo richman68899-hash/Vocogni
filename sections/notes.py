@@ -82,7 +82,10 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 
 def render() -> None:
     st.markdown("## Notes")
-    st.caption("Organize notes in folders or turn your plans into trackable milestones.")
+    st.markdown(
+        "<p class='vc-page-intro'>Keep study notes organized, track learning milestones, or sketch an idea on the whiteboard.</p>",
+        unsafe_allow_html=True,
+    )
     if st.session_state.get("note_editor_open", False):
         _render_editor()
         return
@@ -148,11 +151,11 @@ def _render_folder_index() -> None:
                 safe_name = html.escape(str(folder.get("name", "Untitled folder")))
                 count = _folder_count(folder.get("id"), notes)
                 st.markdown(
-                    f"<div style='border:1px solid {color};border-top:7px solid {color};"
-                    f"border-radius:12px;padding:16px;margin:4px 0 8px 0;"
-                    f"background:linear-gradient(180deg,{color}18,transparent);min-height:94px'>"
+                    f"<div style='border:1px solid var(--vc-border);border-left:3px solid {color};"
+                    f"border-radius:10px;padding:14px;margin:4px 0 8px 0;"
+                    f"background:var(--vc-surface);min-height:84px'>"
                     f"<div style='font-size:1.05rem;font-weight:650'>{safe_name}</div>"
-                    f"<div style='opacity:.75;font-size:.9rem;margin-top:8px'>{count} Notes</div></div>",
+                    f"<div style='color:var(--vc-subtext);font-size:.85rem;margin-top:7px'>{count} {'note' if count == 1 else 'notes'}</div></div>",
                     unsafe_allow_html=True,
                 )
                 if st.button("Open folder →", key=f"open_folder_{folder['id']}", use_container_width=True):
