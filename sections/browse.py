@@ -49,9 +49,9 @@ def _status_for_course(course_id, progress):
 
 
 def _render_grid():
-    st.markdown("<h1>Course library</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Learning library</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Explore a topic, continue your current path, or revisit a lesson to strengthen your understanding.</p>",
+        "<p class='vc-page-intro'>Choose a course, continue where you left off, or practise a skill that needs attention.</p>",
         unsafe_allow_html=True,
     )
 
@@ -97,7 +97,7 @@ def _render_grid():
     with col_search:
         search = st.text_input(
             "Search courses", value=st.session_state.browse_search,
-            placeholder="Search by title, subject, or topic",
+            placeholder="Search courses, subjects, or skills",
         )
     with col_status:
         status_filter = st.selectbox(
@@ -147,7 +147,7 @@ def _render_grid():
 
     if not filtered:
         st.markdown(
-            "<div class='vc-card'>No courses match your search or filters.</div>",
+            "<div class='vc-card vc-empty-state'><strong>No matching courses</strong><p>Clear a filter or try a broader search.</p></div>",
             unsafe_allow_html=True,
         )
         return
@@ -178,23 +178,23 @@ def _render_course_card(course, progress):
     # A real Streamlit container keeps the card intact across reruns and
     # responsive layouts; no HTML wrapper is left open across UI blocks.
     with st.container(border=True):
-        st.markdown(f"<h3 style='margin-top:0'>{title}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 class='vc-course-card-title'>{title}</h3>", unsafe_allow_html=True)
         st.markdown(
             f"<span class='vc-badge'>{html.escape(str(course.get('difficulty', '')))}</span> "
             f"<span class='vc-badge'>{html.escape(status)}</span>",
             unsafe_allow_html=True,
         )
         st.markdown(
-            f"<p style='margin-top:0.65rem'>{description}</p>",
+            f"<p class='vc-course-card-description'>{description}</p>",
             unsafe_allow_html=True,
         )
         st.caption(metadata)
         st.progress(pct)
-        st.markdown(f"<span class='vc-muted'>{pct}% complete</span>", unsafe_allow_html=True)
+        st.markdown(f"<div class='vc-progress-caption'>{pct}% complete</div>", unsafe_allow_html=True)
 
         button_label = {
             "Not started": "Start course",
-            "In progress": "Continue learning",
+            "In progress": "Continue course",
             "Completed": "Review course",
         }[status]
         if st.button(
