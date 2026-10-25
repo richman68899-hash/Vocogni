@@ -1,14 +1,151 @@
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202936;background:#f7f8fa}
-*{box-sizing:border-box}body{margin:0;background:#f7f8fa}button,select,input{font:inherit}
-#app{display:flex;flex-direction:column;gap:8px;padding:8px;width:100%;min-width:0}
-.toolbar{display:flex;flex-direction:column;gap:7px}
-.tool-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
-button,select{border:1px solid #d9dee7;border-radius:7px;background:white;color:#273142;padding:7px 9px;font-size:12px;cursor:pointer}
-button:hover,select:hover{border-color:#477ed1}.tool.active{background:#477ed1;color:white;border-color:#477ed1}
-.options{padding-top:6px;border-top:1px solid #e0e4eb}.options label{display:flex;align-items:center;gap:5px;font-size:12px}
-#color{width:28px;height:27px;border:0;padding:0;background:transparent}#width{width:84px}
-#stage{width:100%;height:min(62vh,650px);min-height:300px;overflow:auto;background:white;border:1px solid #dce1e8;border-radius:8px;touch-action: none}
-#canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;touch-action:none;background:white;outline:none}
-#stage:focus{outline:2px solid #477ed1;outline-offset:1px}
-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:#697386}
-@media(max-width:640px){#app{padding:4px}.tool-row{gap:4px}button,select{padding:8px 7px}#stage{min-height:260px;height:48vh}footer{font-size:10px}}
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172C32;
+  background: #F7F9F8;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #F7F9F8;
+}
+
+button, select, input { font: inherit; }
+
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+button, select {
+  border: 1px solid #DDE7E4;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #172C32;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+button:hover, select:hover {
+  border-color: #176B64;
+  background: #EFF5F3;
+}
+
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid #176B64;
+  outline-offset: 2px;
+}
+
+.tool.active {
+  background: #176B64;
+  color: #FFFFFF;
+  border-color: #176B64;
+}
+
+.tool.active:hover { background: #145A54; }
+
+.options {
+  padding-top: 8px;
+  border-top: 1px solid #DDE7E4;
+}
+
+.options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #5B6F73;
+  font-size: 12px;
+  font-weight: 550;
+}
+
+#color {
+  width: 30px;
+  height: 28px;
+  border: 1px solid #DDE7E4;
+  border-radius: 6px;
+  padding: 2px;
+  background: #FFFFFF;
+}
+
+#width { width: 84px; accent-color: #176B64; }
+
+#stage {
+  width: 100%;
+  height: min(62vh, 650px);
+  min-height: 300px;
+  overflow: auto;
+  background: #FFFFFF;
+  border: 1px solid #DDE7E4;
+  border-radius: 11px;
+  touch-action: none;
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  touch-action: none;
+  background: #FFFFFF;
+  outline: none;
+}
+
+#stage:focus {
+  outline: 2px solid #176B64;
+  outline-offset: 2px;
+}
+
+#page-label {
+  align-self: center;
+  color: #5B6F73;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  color: #5B6F73;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  #app { padding: 6px; gap: 8px; }
+  .tool-row { gap: 5px; }
+  button, select { padding: 8px; }
+  #stage { min-height: 260px; height: 48vh; }
+  footer { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
