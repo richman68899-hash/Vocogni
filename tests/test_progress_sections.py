@@ -46,8 +46,8 @@ class ProgressSectionsTests(unittest.TestCase):
 
     def test_sections_have_clear_purpose_descriptions(self):
         for description in (
-            "A snapshot of course activity",
-            "Inspect one course at a time",
+            "A concise snapshot of course activity",
+            "Choose a course to review lesson completion",
             "A course-specific summary built automatically",
             "Turns saved activity into suggested next actions",
             "Focused practice for this lesson",
