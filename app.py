@@ -105,41 +105,23 @@ def _render_login() -> None:
 # ============================================================
 
 def _render_logo() -> None:
-    """
-    Render the Vocogni logo in the sidebar.
-    """
-
+    """Render a compact, accessible Vocogni wordmark in the sidebar."""
     logo_path = os.path.join(
-        os.path.dirname(
-            os.path.abspath(__file__)
-        ),
+        os.path.dirname(os.path.abspath(__file__)),
         "assets",
         "vocogni_logo.png",
     )
 
-    st.sidebar.markdown(
-        "<div class='vc-logo-wrap'>",
-        unsafe_allow_html=True,
-    )
-
     if os.path.exists(logo_path):
-
-        st.sidebar.image(
-            logo_path,
-            use_container_width=True,
-        )
-
-    else:
-
-        # Preserve the original fallback behavior.
-        st.sidebar.markdown(
-            "<div class='vc-logo-row'><span class='vc-logo-mark'>V</span>"
-            "<div><div class='vc-logo-text'>Vocogni</div>"
-            "<div class='vc-logo-tag'>Understand · Apply · Advance</div></div></div>",
-            unsafe_allow_html=True,
-        )
+        st.sidebar.image(logo_path, width=188)
+        st.sidebar.markdown("<hr>", unsafe_allow_html=True)
+        return
 
     st.sidebar.markdown(
+        "<div class='vc-logo-wrap'>"
+        "<div class='vc-logo-row'><span class='vc-logo-mark'>V</span>"
+        "<div><div class='vc-logo-text'>Vocogni</div>"
+        "<div class='vc-logo-tag'>Understand · Apply · Advance</div></div></div>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -340,6 +322,8 @@ def main() -> None:
     # ========================================================
 
     if not st.user.is_logged_in:
+        # The unauthenticated path exits early, so load its stylesheet here.
+        st.markdown(styles.build_css({}), unsafe_allow_html=True)
         _render_login()
 
     # ========================================================
