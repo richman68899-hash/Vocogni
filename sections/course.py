@@ -207,7 +207,7 @@ def render_course_detail() -> None:
                 unsafe_allow_html=True,
             )
         else:
-            st.info("Complete the course-entry diagnostic to finish this course.")
+            st.info("Complete the course-entry check to unlock the course's learning lessons.")
 
     # Revision Sprints reuse authored questions, existing grading rules, and
     # the current durable practice-history schema.
@@ -451,7 +451,7 @@ def render_lesson_flow() -> None:
     # Structured lessons across every course share the same three-screen flow.
     if lesson.get("worked_example") and (lesson.get("interactive_question") or lesson.get("practice_questions")):
         if diagnostic_config and diagnostic_result is None:
-            st.info("Complete the course-entry diagnostic before starting this lesson.")
+            st.info("Complete the course-entry check first. It helps select a suitable starting point for this lesson.")
             _render_diagnostic(lesson, course_id)
             return
 
@@ -536,7 +536,7 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
         unlocked = diagnostics.unlocked_pathways_for_score(diagnostic_result)
         labels = {key: value["label"] for key, value in diagnostics.PATHWAY_META.items()}
         st.markdown("### Choose a practice test")
-        st.caption("You can repeat practice tests. Your one-time diagnostic remains unchanged.")
+        st.caption("You can repeat practice tests. Your original course-entry diagnostic stays unchanged.")
         selected = st.selectbox(
             "Unlocked practice tests",
             options=unlocked,
@@ -753,7 +753,7 @@ def _render_course_diagnostic_result(lesson, result) -> None:
     if result.get("max_marks"):
         st.metric("Open-response marks", f"{result.get('marks_awarded', 0)} / {result.get('max_marks')}",
                   f"{result.get('mark_percent', 0)}%")
-        st.caption("The initial placement uses fully correct items; partial marks are displayed separately.")
+        st.caption("Placement is based on fully correct answers. Partial marks are shown separately.")
     st.subheader(result.get("outcome_label", "Diagnostic completed"))
     st.write(result.get("outcome_summary", "Your baseline result has been saved."))
     st.caption(result.get("next_action", "Continue to the first learning lesson."))
@@ -789,7 +789,7 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.write(item.get("explanation", ""))
 
     st.caption(
-        "This is a one-time baseline diagnostic. It is separate from the course's learning lessons."
+        "This initial check records a starting point. It is separate from the course's lessons and cannot be retaken."
     )
 
 
@@ -880,11 +880,11 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
             if not questions:
                 if question_engine.is_vqe_pilot_lesson(course_id, lesson["id"]):
                     st.error(
-                        "No eligible verified questions are available for this route. "
-                        "The lesson will not fall back to unverified content; review the VQE bank audit."
+                        "There are no reviewed questions available for this path yet. "
+                        "Vocogni has paused the lesson rather than show unreviewed questions."
                     )
                 else:
-                    st.error("This lesson needs at least one practice question before it can continue.")
+                    st.error("This lesson has no practice questions available yet, so it cannot continue.")
                 return
             question = questions[0]
 
@@ -1041,7 +1041,7 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             st.markdown(f"### {checkpoint_title}")
             marks_label = "Post-test marks" if lesson.get("kind") == "assessment" else "Open-response marks"
             st.metric(marks_label, f"{marks} / {max_marks}", f"{percent}%")
-            st.caption("Marks follow this question's configured practice rubric; they are not an official Cambridge grade.")
+            st.caption("Marks follow this practice question's rubric. They are not an official Cambridge grade.")
             if marks < max_marks:
                 st.info("Review the mark-by-mark feedback before retrying the question.")
         else:
