@@ -933,8 +933,7 @@ CHEMISTRY_COURSE = {
     "id": "chemistry_9701",
     "title": "Chemical Formulae and Equations",
     "short_description": (
-        "Build fluency in chemical formulae, equation writing and balancing, "
-        "state symbols, ionic reactions, and stoichiometry."
+        "Build confidence with chemical formulae, balanced equations, state symbols, ionic reactions, and stoichiometry."
     ),
     "difficulty": "Intermediate",
     "topic_label": "Chemistry 9701",
