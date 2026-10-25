@@ -469,7 +469,7 @@ def _as_finite_number(value: Any) -> bool:
         return False
 
 
-def validate_question(question: Any) -> list[str]:
+def validate_question(question: Any, *, default_grader: str = "math") -> list[str]:
     """Return structural errors for one supported question without mutating it."""
     if not isinstance(question, dict):
         return ["Question must be a dictionary."]
@@ -504,7 +504,7 @@ def validate_question(question: Any) -> list[str]:
         if "whole_number" in question and not isinstance(question["whole_number"], bool):
             errors.append("whole_number must be a boolean when provided.")
     elif question_type == "open_ended":
-        grader_name = question.get("grader", "math")
+        grader_name = question.get("grader") or default_grader
         if grader_name == "math":
             grader = math_grading
         elif grader_name == "chemistry":
