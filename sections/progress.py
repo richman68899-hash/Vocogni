@@ -252,8 +252,7 @@ def _render_mastery_receipt(progress):
     receipt = logic.mastery_receipt_for_course(progress, course["id"])
 
     st.caption(
-        "A skill-by-skill view of evidence from published questions, saved practice attempts, and diagnostic reviews. "
-        "published questions, saved practice attempts, and diagnostic reviews. "
+        "A skill-by-skill view of evidence from practice questions and course diagnostics. "
         "Results reflect the evidence recorded so far, not a guarantee of long-term mastery."
     )
 
