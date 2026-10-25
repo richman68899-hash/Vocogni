@@ -14,29 +14,29 @@ import state
 
 MESSAGE_BANK = {
     "zero": [
-        "Great job — you haven't made a mistake in this practice set. Keep it up.",
-        "Clean run. You're ready to stretch the same skill a little further.",
-        "Excellent accuracy. Use these warm-up questions to keep the skill sharp.",
+        "No errors in this set. Try a new example to check whether the method transfers.",
+        "All answers in this set were correct. Try a different question to extend the practice.",
+        "Your answers were accurate in this set. A varied question can test the same skill in a new context.",
     ],
     "low": [
-        "A small number of errors is useful feedback. Let's target the exact skill.",
-        "You're close. A little focused practice can make this more reliable.",
-        "Good progress. These questions will help reinforce the step that slipped.",
+        "A few errors point to a step worth reviewing. Focus on that step in the next questions.",
+        "Most steps are working. Focused practice can help make the method more consistent.",
+        "Review the step that caused an error, then practise it in a fresh example.",
     ],
     "medium": [
-        "Some steps need more practice. Work carefully and check each move.",
-        "Let's slow down and strengthen the part of this lesson that caused errors.",
-        "Mistakes show us where to focus next. Try these targeted questions.",
+        "Some steps need more practice. Work carefully and check each part of the method.",
+        "Review the step where errors occurred, then check each part of the method.",
+        "Errors help identify what to practise next. Use these questions to reinforce that step.",
     ],
     "high": [
-        "Let's rebuild this skill one step at a time. Accuracy matters more than speed.",
-        "This topic needs another pass. Use each question to practise the core method.",
-        "Start with the fundamentals, then build up. You can improve through deliberate practice.",
+        "This skill may need a more gradual review. Start with the core method and build from there.",
+        "Review the core method first, then apply it across a few focused questions.",
+        "Start with the fundamentals and add complexity as the method becomes more reliable.",
     ],
     "new": [
-        "Start with a few warm-up questions to establish a baseline.",
-        "Let's check the basics first, then use your answers to guide practice.",
-        "Try these questions at your own pace. Focus on the method, not speed.",
+        "Answer a few questions to establish a starting point.",
+        "Check the basics first, then use your answers to guide the next practice set.",
+        "Work at a steady pace and focus on applying the method accurately.",
     ],
 }
 
@@ -158,7 +158,7 @@ def _render_improvement(progress, course_id, lesson_id):
 def render(progress, show_heading=True):
     if show_heading:
         st.markdown("### Coach")
-    st.caption("Focused practice for this lesson. Questions are drawn from your course content; generated variants are used only when their answers are unambiguous.")
+    st.caption("Practise a specific lesson with questions from the course. Generated variants are used only when the expected answer is unambiguous.")
 
     courses = data.all_courses_in_order()
     if not courses:
@@ -166,7 +166,7 @@ def render(progress, show_heading=True):
         return
 
     labels = {course["topic_label"]: course["id"] for course in courses}
-    selected_label = st.selectbox("Coach topic", list(labels), key="coach_course")
+    selected_label = st.selectbox("Course", list(labels), key="coach_course")
     course_id = labels[selected_label]
     course = data.get_course(course_id)
     course_progress = progress.setdefault(course_id, {})
@@ -177,7 +177,7 @@ def render(progress, show_heading=True):
         return
 
     lesson_titles = {title: lesson_id for lesson_id, title in lesson_options}
-    selected_title = st.selectbox("Focus lesson", list(lesson_titles), key="coach_lesson")
+    selected_title = st.selectbox("Lesson to practise", list(lesson_titles), key="coach_lesson")
     lesson_id = lesson_titles[selected_title]
 
     lesson_record = diagnostic_records.get(lesson_id, {}) if isinstance(diagnostic_records, dict) else {}
@@ -188,7 +188,7 @@ def render(progress, show_heading=True):
     question_index = int(st.session_state.get(attempts_key, 0))
     messages = MESSAGE_BANK[band]
     st.markdown(f"**{messages[question_index % len(messages)]}**")
-    st.write("Here are some focused warm-up questions." if band in ("zero", "new") else "Let's practise the skill behind the errors.")
+    st.write("Start with a short set of warm-up questions." if band in ("zero", "new") else "Focus on the step behind the earlier errors.")
 
     question = _randomized_question(course_id, lesson_id, question_index)
     if question is None:
@@ -229,10 +229,10 @@ def render(progress, show_heading=True):
             })
             if is_correct:
                 coach_data["correct_answers"] = int(coach_data.get("correct_answers", 0)) + 1
-                st.success("Correct. Keep going.")
+                st.success("Correct. Your answer matches the expected result.")
             else:
                 coach_data["total_mistakes"] = int(coach_data.get("total_mistakes", 0)) + 1
-                st.error("Not quite. Review the method, then try another question.")
+                st.error("The answer does not match the expected result. Review the method, then continue.")
                 if question.get("explanation"):
                     st.write(question["explanation"])
             st.session_state[attempts_key] = question_index + 1
@@ -243,7 +243,7 @@ def render(progress, show_heading=True):
                 st.error("Your answer was recorded in this session, but saving failed. It will remain pending for retry.")
 
     coach_data = course_progress.get("coach", {})
-    st.markdown("#### Coaching data")
+    st.markdown("#### Practice record")
     cols = st.columns(3)
     with cols[0]:
         st.metric("Questions attempted", int(coach_data.get("questions_attempted", 0)))
