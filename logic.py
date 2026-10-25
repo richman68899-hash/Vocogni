@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 import wave
 
 import data
+import math_taxonomy
+import question_engine
 
 APPLICATION_TAG = data.APPLICATION_MISTAKE_TAG
 
@@ -231,21 +233,30 @@ def mastery_receipt_for_course(progress, course_id):
     question_skill_by_lesson = {}
     mistake_tag_skill_candidates = {}
 
-    def ensure_skill(label, lesson_title=None):
+    def ensure_skill(label, lesson_title=None, skill_id=None):
         safe_label = str(label or "Untitled skill").strip() or "Untitled skill"
+        stable_id = (
+            str(skill_id).strip()
+            if isinstance(skill_id, str) and skill_id in math_taxonomy.SKILLS
+            else None
+        )
         normalized = _mastery_normalize(safe_label) or "untitled skill"
-        record = skill_records.get(normalized)
+        key = stable_id or normalized
+        record = skill_records.get(key)
         if record is None:
             record = {
-                "_key": normalized,
+                "_key": key,
                 "skill": safe_label,
+                "skill_id": stable_id,
                 "_question_ids": set(),
                 "_practice": [],
                 "_diagnostic": [],
                 "_lesson_titles": [],
                 "legacy_error_count": 0,
             }
-            skill_records[normalized] = record
+            skill_records[key] = record
+        elif stable_id and not record.get("skill_id"):
+            record["skill_id"] = stable_id
         if lesson_title and lesson_title not in record["_lesson_titles"]:
             record["_lesson_titles"].append(lesson_title)
         return record
@@ -254,6 +265,14 @@ def mastery_receipt_for_course(progress, course_id):
     lessons = course.get("lessons", [])
     if not isinstance(lessons, list):
         lessons = []
+    # Resolve current, verified VQE metadata once. Legacy and stale items
+    # keep their tag-based mapping; approved items group evidence by stable ID.
+    verified_vqe_by_id = {
+        record["question_id"]: record["question"]
+        for record in question_engine.iter_question_records(course_id=course_id)
+        if record.get("verification_status") == "verified"
+    }
+
     for lesson in lessons:
         if not isinstance(lesson, dict):
             continue
@@ -273,13 +292,19 @@ def mastery_receipt_for_course(progress, course_id):
             continue
 
         for question in questions:
-            skill_label = _mastery_question_skill(question, lesson)
-            skill = ensure_skill(skill_label, lesson_title)
             question_id = question.get("id")
-            if question_id is not None and str(question_id).strip():
-                question_id = str(question_id).strip()
-                question_map[question_id] = skill["_key"]
-                skill["_question_ids"].add(question_id)
+            normalized_qid = str(question_id).strip() if question_id is not None else ""
+            vqe_question = verified_vqe_by_id.get(normalized_qid)
+            if vqe_question and vqe_question.get("skill_id") in math_taxonomy.SKILLS:
+                skill_id = vqe_question["skill_id"]
+                skill_label = vqe_question.get("skill_label") or _mastery_question_skill(question, lesson)
+            else:
+                skill_id = None
+                skill_label = _mastery_question_skill(question, lesson)
+            skill = ensure_skill(skill_label, lesson_title, skill_id=skill_id)
+            if normalized_qid:
+                question_map[normalized_qid] = skill["_key"]
+                skill["_question_ids"].add(normalized_qid)
 
             mistake_tag = question.get("mistake_tag")
             mistake_key = _mastery_normalize(mistake_tag)
@@ -360,11 +385,21 @@ def mastery_receipt_for_course(progress, course_id):
                     question_id = result.get("question_id")
                     normalized_qid = str(question_id).strip() if question_id is not None else ""
                     mapped_key = question_map.get(normalized_qid)
-                    if mapped_key:
+                    recorded_skill_id = result.get("skill_id")
+                    if isinstance(recorded_skill_id, str) and recorded_skill_id in math_taxonomy.SKILLS:
+                        # New result records carry the stable VQE skill ID.
+                        # This takes precedence over mutable human-readable tags.
+                        skill = ensure_skill(
+                            math_taxonomy.SKILLS[recorded_skill_id]["label"],
+                            lesson_title,
+                            skill_id=recorded_skill_id,
+                        )
+                    elif mapped_key:
+                        # Historical records without skill_id resolve through
+                        # the current question map, preserving old progress.
                         skill = skill_records[mapped_key]
                     else:
-                        # Handles old question IDs and well-formed future course
-                        # items whose schema carries a skill tag in the result.
+                        # Legacy and future non-VQE items retain tag-based mapping.
                         skill = ensure_skill(
                             result.get("skill_tag") or result.get("mistake_tag") or lesson_title,
                             lesson_title,
@@ -473,6 +508,7 @@ def mastery_receipt_for_course(progress, course_id):
 
         skill_items.append({
             "skill": record["skill"],
+            "skill_id": record.get("skill_id"),
             "status": status,
             "practice_performance_percent": practice_percent,
             "practice_answers": len(practice),
