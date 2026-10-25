@@ -46,6 +46,7 @@ import chemistry_grading
 import math_grading
 import quadratics_visuals
 import logic
+import question_engine
 import state
 from . import revision_sprint as revision_sprint_section
 
@@ -556,30 +557,61 @@ def _render_lesson_hub(course, lesson, flow, diagnostic_result, attempts) -> Non
             st.rerun()
 
 
-def _select_structured_questions(lesson, diagnostic_result):
-    """Select a short open-response practice set and optional diagnostic pathway item."""
+def _select_structured_questions(lesson, diagnostic_result, course_id=None):
+    """Select authored questions, using verified-only VQE retrieval for pilot lessons."""
+    if course_id is None:
+        # Keep the historical two-argument helper usable by tests and callers.
+        course_id = next(
+            (
+                course.get("id")
+                for course in data.all_courses_in_order()
+                if any(item.get("id") == lesson.get("id") for item in course.get("lessons", []))
+            ),
+            None,
+        )
+
+    route = "standard"
+    if lesson.get("diagnostic") and diagnostic_result:
+        route = diagnostic_result.get(
+            "selected_pathway",
+            diagnostic_result.get("outcome_key", "level_1"),
+        )
+        if route == "prerequisite":
+            route = "level_1"
+
+    if course_id and question_engine.is_vqe_pilot_lesson(course_id, lesson.get("id", "")):
+        # "standard"/Level 1 uses the reviewed core bank. Higher routes add
+        # only the reviewed pathway items for that route; entry diagnostics
+        # are never mixed into routine practice.
+        selected_pathway = route if route in ("level_2", "level_3", "project") else "standard"
+        records = question_engine.select_questions(
+            course_id=course_id,
+            lesson_id=lesson["id"],
+            pathway=selected_pathway,
+            verified_only=True,
+            include_pathways=True,
+        )
+        return [record["question"] for record in records], route
+
     authored = lesson.get("practice_questions") or []
     if not authored and lesson.get("interactive_question"):
         authored = [lesson["interactive_question"]]
     candidates = [item for item in authored if isinstance(item, dict)]
-    route = "standard"
-    if lesson.get("diagnostic") and diagnostic_result:
-        route = diagnostic_result.get("outcome_key", "level_1")
-        if route == "prerequisite":
-            route = "level_1"
-        if route not in ("level_1", "standard"):
-            pathway_questions = diagnostics.get_pathway_questions(lesson, route)
-            known_ids = {item.get("id") for item in candidates}
-            candidates.extend(
-                item for item in pathway_questions
-                if isinstance(item, dict) and item.get("id") not in known_ids
-            )
+    if lesson.get("diagnostic") and diagnostic_result and route not in ("level_1", "standard"):
+        pathway_questions = diagnostics.get_pathway_questions(lesson, route)
+        known_ids = {item.get("id") for item in candidates}
+        candidates.extend(
+            item for item in pathway_questions
+            if isinstance(item, dict) and item.get("id") not in known_ids
+        )
     return candidates, route
 
 
-def _select_structured_question(lesson, diagnostic_result):
+def _select_structured_question(lesson, diagnostic_result, course_id=None):
     """Backward-compatible helper returning the first question in a practice set."""
-    candidates, route = _select_structured_questions(lesson, diagnostic_result)
+    candidates, route = _select_structured_questions(
+        lesson, diagnostic_result, course_id=course_id
+    )
     return (candidates[0] if candidates else None), route
 
 
@@ -652,7 +684,7 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
                 "active_questions": [],
             })
         else:
-            questions, route = _select_structured_questions(lesson, diagnostic_result)
+            questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
             question_id = checkpoint.get("question_id")
             question_index = next(
                 (i for i, item in enumerate(questions) if item.get("id") == question_id),
@@ -846,7 +878,13 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
         if st.button(next_practice_label, type="primary", key=f"screen2_next_{lesson['id']}"):
             questions, route = _select_structured_questions(lesson, diagnostic_result)
             if not questions:
-                st.error("This lesson needs at least one practice question before it can continue.")
+                if question_engine.is_vqe_pilot_lesson(course_id, lesson["id"]):
+                    st.error(
+                        "No eligible verified questions are available for this route. "
+                        "The lesson will not fall back to unverified content; review the VQE bank audit."
+                    )
+                else:
+                    st.error("This lesson needs at least one practice question before it can continue.")
                 return
             question = questions[0]
 
@@ -1552,6 +1590,13 @@ def _render_question(
             "correct": is_correct,
             "explanation": question["explanation"],
         }
+        # Store the exact reviewed question provenance alongside each new
+        # practice result. Older result records remain valid without these keys.
+        result_record.update(question_engine.attempt_metadata(
+            question.get("id"),
+            course_id=course_id,
+            lesson_id=lesson["id"],
+        ))
         if marking_result is not None:
             result_record.update({
                 "score": marking_result["score"],
