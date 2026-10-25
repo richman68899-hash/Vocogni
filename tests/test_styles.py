@@ -5,18 +5,18 @@ import styles
 
 def test_light_theme_uses_consistent_brand_tokens():
     css = styles.build_css({"appearance": "Light"})
-    assert "--vc-bg: #F7F8F6;" in css
-    assert "--vc-accent: #17675F;" in css
-    assert "--vc-nav-active-bg: #E6F1EC;" in css
-    assert "--vc-nav-active-text: #155A52;" in css
+    assert "--vc-bg: #F7F8F5;" in css
+    assert "--vc-accent: #176B5B;" in css
+    assert "--vc-nav-active-bg: #E7F1EB;" in css
+    assert "--vc-nav-active-text: #15594B;" in css
     assert "$" not in css
 
 
 def test_dark_theme_uses_readable_dark_tokens():
     css = styles.build_css({"appearance": "Dark"})
-    assert "--vc-bg: #111916;" in css
-    assert "--vc-surface: #18221E;" in css
-    assert "--vc-text: #EDF3EF;" in css
+    assert "--vc-bg: #101A17;" in css
+    assert "--vc-surface: #17231E;" in css
+    assert "--vc-text: #F0F4F0;" in css
     assert "--vc-nav-active-bg: #20372F;" in css
     assert "$" not in css
 
@@ -33,3 +33,12 @@ def test_display_preferences_still_control_type_and_motion():
     assert "line-height: 1.82;" in css
     assert "transition: none !important;" in css
     assert "scroll-behavior: auto;" in css
+
+
+def test_icon_text_and_empty_state_alignment_rules_are_present():
+    css = styles.build_css({"appearance": "Light"})
+    assert ".vc-icon-text" in css
+    assert "align-items: center" in css
+    assert ".vc-status__icon" in css
+    assert ".vc-empty-state" in css
+    assert ".vc-login-hero" in css
