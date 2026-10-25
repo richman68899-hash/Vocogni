@@ -78,7 +78,7 @@ def _progress_section(section_id, title):
 
 
 def render():
-    st.markdown("<h2>Progress</h2>", unsafe_allow_html=True)
+    st.markdown("<h1>Progress</h1>", unsafe_allow_html=True)
     st.markdown(
         "<p class='vc-page-intro'>Review your learning activity, inspect question-level evidence, and choose a useful next step.</p>",
         unsafe_allow_html=True,
