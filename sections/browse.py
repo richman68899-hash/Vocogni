@@ -147,7 +147,10 @@ def _render_grid():
 
     if not filtered:
         st.markdown(
-            "<div class='vc-card'>No courses found. Clear a filter or try a different search.</div>",
+            "<div class='vc-card vc-empty-state'>"
+            "<strong>No courses found</strong>"
+            "<p>Clear a filter or try a different search.</p>"
+            "</div>",
             unsafe_allow_html=True,
         )
         return

@@ -501,16 +501,21 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
             f"<div style='height:5px;background:{color};border-radius:8px;margin-bottom:12px'></div>",
             unsafe_allow_html=True,
         )
-        icon_col, title_col, date_col = st.columns([0.75, 3.8, 1.7], vertical_alignment="center")
+        icon_col, title_col, date_col = st.columns(
+            [0.75, 3.8, 1.7],
+            vertical_alignment="center",
+        )
         with icon_col:
             st.markdown(
-                f"<div style='font-size:2.35rem;line-height:1.1;text-align:center'>{emoji}</div>",
+                f"<div class='vc-milestone-icon' aria-hidden='true'>{emoji}</div>",
                 unsafe_allow_html=True,
             )
         with title_col:
             st.markdown(
-                f"<div style='font-size:1.15rem;font-weight:700;line-height:1.25'>{safe_title}</div>"
-                f"<div style='color:{color};font-size:.85rem;margin-top:4px;font-weight:600'>{safe_section}</div>",
+                f"<div class='vc-milestone-title'>"
+                f"<div class='vc-milestone-name'>{safe_title}</div>"
+                f"<div class='vc-milestone-section' style='color:{color}'>{safe_section}</div>"
+                f"</div>",
                 unsafe_allow_html=True,
             )
         with date_col:
@@ -521,8 +526,10 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                 due_label = "Date not set"
                 parsed_due = None
             st.markdown(
-                "<div style='text-align:right;font-size:.82rem;opacity:.8'>END DATE</div>"
-                f"<div style='text-align:right;font-weight:600'>{html.escape(due_label)}</div>",
+                "<div class='vc-milestone-date'>"
+                "<span class='vc-milestone-date-label'>END DATE</span>"
+                f"<span class='vc-milestone-date-value'>{html.escape(due_label)}</span>"
+                "</div>",
                 unsafe_allow_html=True,
             )
 
@@ -563,7 +570,7 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                 safe_item_text = html.escape(str(item.get("text") or "Checklist item"))
                 style = "text-decoration:line-through;opacity:.55" if item.get("done") else "font-weight:500"
                 st.markdown(
-                    f"<div style='padding:5px 0;{style}'>{safe_item_text}</div>",
+                    f"<div class='vc-checklist-item-text' style='{style}'>{safe_item_text}</div>",
                     unsafe_allow_html=True,
                 )
             with edit_col:

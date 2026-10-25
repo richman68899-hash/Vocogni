@@ -657,6 +657,189 @@ button[data-testid="stBaseButton-secondary"] {
     .vc-card { padding: 0.95rem; }
 }
 
+
+/* ---------------------------------------------------------------
+   CONTENT ALIGNMENT
+   Keep icons optically centred with their labels and give key
+   empty states and the sign-in entry a deliberate focal point.
+   --------------------------------------------------------------- */
+.vc-icon-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    vertical-align: middle;
+    line-height: 1.45;
+}
+.vc-icon-text__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1.15em;
+    width: 1.15em;
+    line-height: 1;
+    vertical-align: middle;
+}
+.vc-status {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.4rem;
+    line-height: 1.45;
+    min-height: 1.35rem;
+}
+.vc-status__icon {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 1.15rem;
+    height: 1.15rem;
+    justify-content: center;
+    line-height: 1;
+    text-align: center;
+}
+.vc-status--complete { color: var(--vc-success); }
+.vc-status--locked { color: var(--vc-subtext); }
+
+/* Native Streamlit icon-bearing controls should share a baseline. */
+.stButton > button,
+.stFormSubmitButton > button,
+[data-testid="stDownloadButton"] > button {
+    align-items: center !important;
+    display: flex !important;
+    gap: 0.42rem;
+    justify-content: center;
+}
+.stButton > button [data-testid="stIconMaterial"],
+.stFormSubmitButton > button [data-testid="stIconMaterial"],
+[data-testid="stDownloadButton"] > button [data-testid="stIconMaterial"] {
+    align-items: center;
+    display: inline-flex;
+    flex-shrink: 0;
+    justify-content: center;
+    line-height: 1;
+    margin: 0;
+}
+.stButton > button svg,
+.stFormSubmitButton > button svg,
+[data-testid="stDownloadButton"] > button svg {
+    display: block;
+    flex-shrink: 0;
+}
+[data-testid="stAlert"] [data-testid="stIconMaterial"] {
+    align-self: center;
+    flex-shrink: 0;
+    margin-top: 0;
+}
+[data-testid="stSidebar"] .stButton > button {
+    justify-content: flex-start !important;
+}
+
+/* Sign-in is the one screen where a centred composition is appropriate. */
+.vc-login-hero {
+    margin: 0 auto 1.1rem;
+    max-width: 34rem;
+    text-align: center;
+}
+.vc-login-hero h1 {
+    margin-bottom: 0.7rem !important;
+}
+.vc-login-hero .vc-page-intro {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Milestone icon, title and date use the same vertical centre line. */
+.vc-milestone-icon {
+    align-items: center;
+    display: flex;
+    font-size: 2.2rem;
+    justify-content: center;
+    line-height: 1;
+    min-height: 3.2rem;
+    text-align: center;
+}
+.vc-milestone-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.22rem;
+    min-height: 3.2rem;
+}
+.vc-milestone-name {
+    font-size: 1.08rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.vc-milestone-section {
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+.vc-milestone-date {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    justify-content: center;
+    min-height: 3.2rem;
+    text-align: right;
+}
+.vc-milestone-date-label {
+    color: var(--vc-subtext);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    line-height: 1.3;
+}
+.vc-milestone-date-value {
+    font-size: 0.88rem;
+    font-weight: 650;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+}
+.vc-checklist-item-text {
+    align-items: center;
+    display: flex;
+    line-height: 1.5;
+    min-height: 2.6rem;
+    overflow-wrap: anywhere;
+    padding: 0.1rem 0;
+}
+.vc-empty-state {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+.vc-empty-state strong {
+    font-size: 1.03rem;
+    line-height: 1.4;
+}
+.vc-empty-state p {
+    color: var(--vc-subtext);
+    margin: 0;
+    max-width: 32rem;
+    line-height: 1.6;
+}
+@media (max-width: 800px) {
+    .vc-milestone-date {
+        align-items: flex-start;
+        min-height: 0;
+        margin-top: 0.4rem;
+        text-align: left;
+    }
+    .vc-milestone-icon {
+        min-height: 2.7rem;
+    }
+    .vc-milestone-title {
+        min-height: 2.7rem;
+    }
+    .vc-checklist-item-text {
+        min-height: 2.8rem;
+    }
+}
+
 </style>
 """)
 
