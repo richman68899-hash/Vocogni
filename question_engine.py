@@ -741,7 +741,7 @@ def normalise_question(record: dict[str, Any]) -> dict[str, Any]:
         question.update({
             "skill_id": None,
             "question_version": 1,
-            "verification_status": "legacy",
+            "verification_status": status,
             "verification_issues": list(issues),
             "verification_engine_version": ENGINE_VERSION,
             "source_course_id": record["course_id"],
