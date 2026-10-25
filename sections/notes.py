@@ -83,7 +83,7 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 def render() -> None:
     st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Organize lesson notes, track learning milestones, and work through ideas on the whiteboard.</p>",
+        "<p class='vc-page-intro'>Keep lesson notes organized, plan learning milestones, and sketch ideas on the whiteboard.</p>",
         unsafe_allow_html=True,
     )
     if st.session_state.get("note_editor_open", False):
@@ -121,7 +121,7 @@ def _render_folder_index() -> None:
     folders = st.session_state.note_folders
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
 
-    st.markdown("### Your folders")
+    st.markdown("### Folders")
     with st.expander("Create a folder", expanded=not folders):
         with st.form("create_note_folder", clear_on_submit=True):
             name = st.text_input("Folder title", placeholder="e.g. Algebra")
@@ -243,7 +243,7 @@ def _render_notes_list(
                 folder = next((f for f in st.session_state.note_folders if f.get("name") == selected), None)
                 selected_id = folder.get("id") if folder else None
         else:
-            st.caption("Showing notes in this folder.")
+            st.caption("Notes in this folder.")
             selected_id = selected_folder_id
     with col_new:
         if st.button("＋ New note", type="primary", use_container_width=True, key=f"new_note_{selected_folder_id}_{show_all}"):
@@ -259,7 +259,7 @@ def _render_notes_list(
 
     visible.sort(key=lambda n: n.get("updated_at", ""), reverse=True)
     if not visible:
-        st.info("No notes here yet. Create a note or choose another folder.")
+        st.info("No notes here yet. Create one or choose another folder.")
         return
 
     for note in visible:
@@ -341,7 +341,7 @@ def _render_editor() -> None:
         st.session_state.note_editor_open = False
         st.session_state.selected_note_id = None
         st.session_state.note_draft_folder_id = None
-        st.success("Note saved. Saving changes…")
+        st.success("Note saved. Syncing changes…")
         st.rerun()
 
     if delete_clicked and existing:
@@ -349,7 +349,7 @@ def _render_editor() -> None:
         _mark_changed()
         st.session_state.note_editor_open = False
         st.session_state.selected_note_id = None
-        st.info("Note deleted. Saving changes…")
+        st.info("Note deleted. Syncing changes…")
         st.rerun()
 
 
