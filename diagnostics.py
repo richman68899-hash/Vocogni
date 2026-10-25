@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import logic
+import question_engine
 
 REQUIRED_STAGES = ("prerequisite", "level_1", "level_2", "level_3", "project")
 
@@ -91,6 +92,14 @@ def validate_diagnostic_config(config: Any) -> list[str]:
         if not isinstance(question, dict):
             errors.append(f"Question {index} must be a dictionary.")
             continue
+        # Apply the shared VQE structural checks, then retain diagnostic-
+        # specific stage/skill/pathway rules below. The default grader matches
+        # the pre-existing diagnostic convention for chemistry items.
+        default_grader = "math" if question.get("grader") == "math" else "chemistry"
+        for item_error in question_engine.validate_question(
+            question, default_grader=default_grader
+        ):
+            errors.append(f"Question {index}: {item_error}.")
         for field in ("id", "prompt", "type", "answer", "stage", "skill_tag", "explanation"):
             if field not in question:
                 errors.append(f"Question {index} is missing '{field}'.")
