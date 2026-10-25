@@ -52,11 +52,11 @@ from sections import settings as settings_section
 # ============================================================
 
 NAV_ITEMS = [
-    "Profile",
-    "Progress",
-    "Browse",
-    "Notes",
-    "Settings",
+    ("Profile", "Profile"),
+    ("Progress", "Progress"),
+    ("Learn", "Browse"),
+    ("Notes", "Notes"),
+    ("Settings", "Settings"),
 ]
 
 
@@ -81,14 +81,16 @@ def _render_login() -> None:
     Streamlit handles the OIDC callback and session.
     """
 
-    st.title("Welcome to Vocogni")
+    st.title("Learn with clarity.")
 
-    st.write(
-        "Log in to save and restore your learning progress."
+    st.markdown(
+        "<p class='vc-page-intro'>Sign in to keep your courses, notes, and learning progress together, so you can pick up where you left off.</p>",
+        unsafe_allow_html=True,
     )
 
     st.button(
-        "Log in with Auth0",
+        "Continue to Vocogni",
+        type="primary",
         on_click=st.login,
         args=["auth0"],
         use_container_width=True,
@@ -131,10 +133,9 @@ def _render_logo() -> None:
 
         # Preserve the original fallback behavior.
         st.sidebar.markdown(
-            "<div class='vc-logo-text'>Vocogni</div>"
-            "<div class='vc-logo-tag'>"
-            "Understand → Solve → Apply → Advance"
-            "</div>",
+            "<div class='vc-logo-row'><span class='vc-logo-mark'>V</span>"
+            "<div><div class='vc-logo-text'>Vocogni</div>"
+            "<div class='vc-logo-tag'>Understand · Apply · Advance</div></div></div>",
             unsafe_allow_html=True,
         )
 
@@ -160,15 +161,15 @@ def _render_nav() -> None:
     any pending learner-state changes before the next run begins.
     """
 
-    for item in NAV_ITEMS:
+    for label, route in NAV_ITEMS:
 
         active = (
-            st.session_state.nav == item
+            st.session_state.nav == route
         )
 
         if st.sidebar.button(
-            item,
-            key=f"nav_{item}",
+            label,
+            key=f"nav_{route}",
             type=(
                 "primary"
                 if active
@@ -177,12 +178,11 @@ def _render_nav() -> None:
             use_container_width=True,
         ):
 
-            st.session_state.nav = item
+            st.session_state.nav = route
 
             # Do NOT call st.rerun().
-            #
-            # The button interaction already causes Streamlit to rerun.
-            # Continuing this run allows autosave to execute at the end.
+            # Streamlit reruns after the button interaction, then the
+            # current execution can complete its autosave flow.
 
     # --------------------------------------------------------
     # Authenticated user identity
