@@ -80,7 +80,7 @@ def _progress_section(section_id, title):
 def render():
     st.markdown("<h1>Progress</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Review your learning activity, inspect question-level evidence, and choose a useful next step.</p>",
+        "<p class='vc-page-intro'>See what you have practised, where errors recur, and which step to take next.</p>",
         unsafe_allow_html=True,
     )
 
@@ -117,7 +117,7 @@ def _stat_block(label, value):
 
 
 def _render_overview(progress):
-    st.caption("A concise snapshot of course activity, completed lessons, answers, and recorded results.")
+    st.caption("A snapshot of courses, completed lessons, attempts, and recorded results.")
     stats = logic.overall_stats(progress)
 
     row1 = st.columns(3)
@@ -165,7 +165,7 @@ def _render_overview(progress):
         _stat_block("Average baseline", f"{avg_baseline}%" if diagnostic_records else "—")
     with row3[2]:
         _stat_block("Average post-lesson practice", f"{avg_post}%" if lesson_assessments else "—")
-    st.caption("Diagnostic results are tracked separately from regular practice. Baseline and post-lesson scores are descriptive, not a validated learning-gain measure.")
+    st.caption("Diagnostics are shown separately from regular practice. Baseline and post-lesson scores summarize these questions; they are not a validated measure of learning gain.")
 
 
 _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge--warn", "Developing": ""}
@@ -173,7 +173,7 @@ _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge-
 
 
 def _render_topic_detail(progress):
-    st.caption("Choose a course to review lesson completion, practice accuracy, and recurring mistakes.")
+    st.caption("Choose a course to review lesson progress, answer accuracy, and recurring mistakes.")
     courses = data.all_courses_in_order()
     labels = [c["topic_label"] for c in courses]
     selected_label = st.selectbox("Select a topic", labels, key="progress_topic_select")
@@ -252,9 +252,8 @@ def _render_mastery_receipt(progress):
     receipt = logic.mastery_receipt_for_course(progress, course["id"])
 
     st.caption(
-        f"A course-specific summary built automatically from {course.get('title', course['id'])}'s "
-        "published questions, saved practice attempts, and diagnostic reviews. "
-        "No course-specific receipt configuration is required."
+        "A skill-by-skill view of evidence from practice questions and course diagnostics. "
+        "Results reflect the evidence recorded so far, not a guarantee of long-term mastery."
     )
 
     if not receipt or not receipt["skills"]:

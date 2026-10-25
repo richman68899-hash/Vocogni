@@ -92,7 +92,7 @@ def render() -> None:
     _ensure_widget_state(settings)
 
     st.title("Settings")
-    st.caption("Personalize the interface and learning support. Changes save automatically.")
+    st.caption("Adjust the interface and learning support to suit your study preferences. Changes save automatically.")
     st.markdown(f"<div class='vc-muted'>{_current_summary(_current_widget_values(settings))}</div>", unsafe_allow_html=True)
 
     # Quick setups are just shortcuts over existing controls. Learners can
@@ -103,9 +103,9 @@ def render() -> None:
 
         preset_cols = st.columns(3, gap="medium")
         presets = [
-            ("Focused study", "Fewer transitions, no answer sounds, and combined feedback at the end of a lesson."),
-            ("Reading comfort", "Larger text, more line spacing, and reduced motion."),
-            ("Gentle practice", "Immediate feedback, with hints shown automatically where supported."),
+            ("Focused study", "Reduced motion, no answer sounds, and one feedback summary at the end of a lesson."),
+            ("Reading comfort", "Larger text, more line spacing, and less motion."),
+            ("Gentle practice", "Immediate feedback, with available hints shown automatically."),
         ]
         for column, (name, description) in zip(preset_cols, presets):
             with column:
@@ -149,7 +149,7 @@ def render() -> None:
     with learning_col:
         with st.container(border=True):
             st.subheader("Learning preferences")
-            st.caption("Choose when feedback appears and how much hint support is available.")
+            st.caption("Choose when to see feedback and when to use hints.")
             st.radio(
                 "Feedback timing",
                 SETTING_OPTIONS["feedback_timing"],
@@ -202,7 +202,7 @@ def render() -> None:
     with reading_col:
         with st.container(border=True):
             st.subheader("Reading comfort")
-            st.caption("Improve readability without changing lesson content.")
+            st.caption("Make lesson text easier to read without changing its content.")
             st.toggle(
                 "Larger text",
                 key=SETTING_WIDGET_KEYS["larger_text"],

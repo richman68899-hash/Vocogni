@@ -132,7 +132,7 @@ def render() -> None:
 
     st.markdown(
         "<p class='vc-muted'>"
-        "Set preferences that make your learning experience more relevant. "
+        "Your profile is optional. Add only the details that help personalize your learning workspace. "
         "Every field is optional."
         "</p>",
         unsafe_allow_html=True,
@@ -165,8 +165,8 @@ def _render_read_only(
 
         st.markdown(
             "<div class='vc-card'>"
-            "Your profile is optional. Add a few goals or preferences to personalize your workspace, "
-            "or leave it as it is and start learning."
+            "Add a goal or preference to personalize your workspace, "
+            "or start learning without filling in your profile."
             "</div>",
             unsafe_allow_html=True,
         )
@@ -192,7 +192,7 @@ def _render_read_only(
 
     with st.container(border=True):
         st.markdown(
-            "<span class='vc-muted'>Basic info</span>",
+            "<span class='vc-muted'>About you</span>",
             unsafe_allow_html=True,
         )
 
@@ -379,7 +379,7 @@ def _render_edit_form(
         # -------------------------------------------------------------------
 
         st.markdown(
-            "<span class='vc-muted'>Basic info</span>",
+            "<span class='vc-muted'>About you</span>",
             unsafe_allow_html=True,
         )
 

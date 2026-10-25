@@ -51,7 +51,7 @@ def _status_for_course(course_id, progress):
 def _render_grid():
     st.markdown("<h1>Course library</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>Explore a topic, continue your current path, or revisit a lesson to strengthen your understanding.</p>",
+        "<p class='vc-page-intro'>Choose a course, continue where you left off, or revisit a concept. Your progress stays with you.</p>",
         unsafe_allow_html=True,
     )
 
@@ -61,11 +61,11 @@ def _render_grid():
         return
     coach = logic.get_mistake_coach(progress)
     if coach:
-        st.markdown("### Recommended next step")
+        st.markdown("### Suggested next step")
         st.markdown(
             f"""
             <div class='vc-card vc-card--current'>
-              <div class='vc-eyebrow'>Recommended next step</div>
+              <div class='vc-eyebrow'>Based on your recent practice</div>
               <div style='font-weight:650;font-size:1.05rem;'>{html.escape(str(coach.get('skill', '')))}</div>
               <div style='margin:.45rem 0;'>{html.escape(str(coach.get('why', '')))}</div>
               <div style='margin:.4rem 0;'><strong>Evidence:</strong> {html.escape(str(coach.get('evidence_label', '')))}</div>
@@ -89,7 +89,7 @@ def _render_grid():
 
     recs = logic.generate_recommendations(progress)
     if recs:
-        st.markdown("<span class='vc-muted'>Additional recommendations</span>", unsafe_allow_html=True)
+        st.markdown("<span class='vc-muted'>Other useful topics</span>", unsafe_allow_html=True)
         chips = "".join(f"<span class='vc-recommend-chip'>{html.escape(str(r))}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
@@ -97,7 +97,7 @@ def _render_grid():
     with col_search:
         search = st.text_input(
             "Search courses", value=st.session_state.browse_search,
-            placeholder="Search by title, subject, or topic",
+            placeholder="Search courses, subjects, or topics",
         )
     with col_status:
         status_filter = st.selectbox(
@@ -147,7 +147,7 @@ def _render_grid():
 
     if not filtered:
         st.markdown(
-            "<div class='vc-card'>No courses match your search or filters.</div>",
+            "<div class='vc-card'>No courses match these filters. Try a broader search or choose a different filter.</div>",
             unsafe_allow_html=True,
         )
         return

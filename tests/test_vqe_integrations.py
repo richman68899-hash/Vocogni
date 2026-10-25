@@ -27,7 +27,7 @@ class VQEIntegrationTests(unittest.TestCase):
 
     def test_pilot_lesson_has_no_silent_unverified_fallback(self):
         self.assertIn(
-            "The lesson will not fall back to unverified content",
+            "Vocogni has paused the lesson rather than show unreviewed questions",
             COURSE_SOURCE,
         )
         self.assertIn("if question_engine.is_vqe_pilot_lesson(course_id, lesson[\"id\"]):", COURSE_SOURCE)

@@ -64,7 +64,7 @@ COURSES = {
     "fractions": {
         "id": "fractions",
         "title": "Simple Fractions",
-        "short_description": "Build a clear understanding of fractions and use them to solve basic operations and comparison problems.",
+        "short_description": "Understand how fractions represent parts of a whole, then use them to calculate and compare quantities.",
         "difficulty": "Beginner",
         "topic_label": "Fractions",
         "lessons": [
@@ -447,7 +447,7 @@ COURSES = {
     "algebra": {
         "id": "algebra",
         "title": "Algebra Basics",
-        "short_description": "Work confidently with variables, expressions, and simple equations.",
+        "short_description": "Build the foundations of algebra by working with variables, simplifying expressions, and solving equations.",
         "difficulty": "Beginner",
         "topic_label": "Algebra",
         "lessons": [
@@ -827,7 +827,7 @@ COURSES = {
     "word_problems": {
         "id": "word_problems",
         "title": "Word Problems",
-        "short_description": "Translate everyday situations into mathematical expressions and interpret what the results mean.",
+        "short_description": "Turn everyday situations into mathematical expressions, solve them, and interpret what the results mean.",
         "difficulty": "Beginner",
         "topic_label": "Word Problems",
         "lessons": [
