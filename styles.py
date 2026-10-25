@@ -9,7 +9,7 @@ from string import Template
 
 _CSS_TEMPLATE = Template("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
     color-scheme: $color_scheme;
@@ -76,7 +76,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 h1, h2, h3, h4, .vc-heading {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
     color: var(--vc-text) !important;
     font-weight: 650 !important;
     letter-spacing: -0.035em;
@@ -419,7 +419,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 h1, h2, h3, h4, .vc-heading {
-    font-weight: 600 !important;
+    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-weight: 650 !important;
     letter-spacing: -0.028em;
 }
 
@@ -547,6 +548,115 @@ textarea:focus-visible,
     }
 }
 
+
+/* ---------------------------------------------------------------
+   VOCGONI PRODUCT FINISH
+   A restrained editorial system: clear hierarchy, calm surfaces,
+   deliberate spacing and accessible interaction states.
+   --------------------------------------------------------------- */
+.vc-page-intro {
+    max-width: 680px;
+    color: var(--vc-subtext) !important;
+    font-size: 1rem;
+    line-height: 1.72;
+    margin: 0.15rem 0 1.65rem;
+}
+h1, h2, h3, h4, .vc-heading {
+    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    letter-spacing: -0.035em;
+    line-height: 1.22;
+}
+h1 { font-size: clamp(1.9rem, 3vw, 2.35rem) !important; font-weight: 750 !important; }
+h2 { font-size: clamp(1.55rem, 2.5vw, 1.85rem) !important; font-weight: 700 !important; }
+h3 { font-size: 1.16rem !important; font-weight: 700 !important; }
+h4 { font-size: 1rem !important; font-weight: 700 !important; }
+.vc-eyebrow {
+    color: var(--vc-subtext);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.085em;
+    margin-bottom: 0.5rem;
+}
+.vc-card, .vc-lesson-row, .vc-summary-box, .vc-challenge-box,
+.vc-feedback, [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stMetric"], [data-testid="stExpander"] {
+    box-shadow: none !important;
+}
+.vc-card, .vc-lesson-row, .vc-summary-box, .vc-challenge-box, .vc-feedback,
+[data-testid="stVerticalBlockBorderWrapper"], [data-testid="stMetric"],
+[data-testid="stExpander"] {
+    border-radius: 10px !important;
+}
+.vc-card { padding: 1.15rem 1.2rem; }
+.vc-card--current { border-color: var(--vc-border); border-left: 3px solid var(--vc-accent); }
+.vc-stat-number {
+    font-family: 'Manrope', 'Inter', sans-serif !important;
+    font-size: 1.55rem;
+    font-weight: 750;
+    letter-spacing: -0.04em;
+}
+.vc-stat-label { font-size: 0.78rem; line-height: 1.5; }
+.stButton > button, .stFormSubmitButton > button,
+[data-testid="stDownloadButton"] > button {
+    min-height: 2.65rem;
+    border-radius: 8px !important;
+    font-weight: 650 !important;
+}
+.stButton > button[kind="primary"],
+.stFormSubmitButton > button[kind="primary"],
+button[data-testid="stBaseButton-primary"] {
+    background: var(--vc-accent) !important;
+    border-color: var(--vc-accent) !important;
+}
+.stButton > button[kind="primary"]:hover,
+.stFormSubmitButton > button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover {
+    filter: brightness(0.92);
+    transform: translateY(-1px);
+}
+.stButton > button[kind="secondary"],
+.stFormSubmitButton > button[kind="secondary"],
+button[data-testid="stBaseButton-secondary"] {
+    background: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+}
+[data-testid="stSidebar"] .stButton > button {
+    min-height: 2.55rem;
+    padding-left: 0.9rem;
+    border-radius: 8px !important;
+}
+[data-testid="stSidebar"] .stButton > button[kind="primary"],
+[data-testid="stSidebar"] button[data-testid="stBaseButton-primary"] {
+    background: var(--vc-nav-active-bg) !important;
+    border-color: transparent !important;
+    color: var(--vc-nav-active-text) !important;
+}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] hr,
+[data-testid="stSidebar"] hr { margin: 1rem 0; }
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stNumberInput"] input,
+[data-baseweb="select"] > div {
+    border-radius: 8px !important;
+}
+[data-testid="stAlert"] {
+    border: 1px solid var(--vc-border);
+    border-radius: 9px;
+    box-shadow: none;
+}
+[data-testid="stProgressBar"] > div { background: var(--vc-surface-alt) !important; }
+[data-testid="stProgressBar"] > div > div { background: var(--vc-accent) !important; }
+[data-testid="stTabs"] button[role="tab"] { font-weight: 650; }
+[data-testid="stCaptionContainer"] p { line-height: 1.55; }
+::selection { background: var(--vc-accent); color: var(--vc-on-accent); }
+@media (max-width: 800px) {
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding: 1.25rem 0.9rem 2rem;
+    }
+    .vc-page-intro { font-size: 0.94rem; margin-bottom: 1.25rem; }
+    .vc-card { padding: 0.95rem; }
+}
+
 </style>
 """)
 
@@ -567,16 +677,16 @@ def build_css(settings: dict) -> str:
         tokens = dict(
             color_scheme="dark",
             on_accent="#14241F",
-            bg="#111916",
-            surface="#18221E",
-            surface_alt="#202C27",
-            text="#EDF3EF",
-            subtext="#AFBDB5",
-            border="#34433B",
-            accent="#78C8B4",
-            apply_accent="#E4BC78",
-            success="#8BD6A6",
-            error="#F09B91",
+            bg="#101A17",
+            surface="#17231E",
+            surface_alt="#202D27",
+            text="#F0F4F0",
+            subtext="#B1BDB5",
+            border="#34443B",
+            accent="#79C8AD",
+            apply_accent="#DDBB78",
+            success="#8FD1A4",
+            error="#F09A8E",
             success_bg="#1D382B",
             error_bg="#3B2725",
             nav_active_bg="#20372F",
@@ -586,20 +696,20 @@ def build_css(settings: dict) -> str:
         tokens = dict(
             color_scheme="light",
             on_accent="#FFFFFF",
-            bg="#F7F8F6",
+            bg="#F7F8F5",
             surface="#FFFFFF",
-            surface_alt="#F1F4F1",
-            text="#1A2D29",
-            subtext="#5D6D67",
-            border="#DEE6E0",
-            accent="#17675F",
-            apply_accent="#875B22",
+            surface_alt="#EFF3EF",
+            text="#1B2925",
+            subtext="#586760",
+            border="#DFE6E0",
+            accent="#176B5B",
+            apply_accent="#805A2A",
             success="#246B4A",
             error="#A53C36",
             success_bg="#EAF4ED",
             error_bg="#FCEFED",
-            nav_active_bg="#E6F1EC",
-            nav_active_text="#155A52",
+            nav_active_bg="#E7F1EB",
+            nav_active_text="#15594B",
         )
 
     tokens.update(
