@@ -1,6 +1,6 @@
 """Vocogni visual system.
 
-A quiet, high-clarity interface for learning: one type family, one primary
+A quiet, high-clarity interface for learning: clear type roles, one primary
 accent, restrained surfaces, consistent spacing, and strong focus states.
 Theme, text scale, readability spacing, and motion remain learner-controlled.
 """
@@ -393,6 +393,8 @@ table {
 * { scroll-behavior: $scroll_behavior; }
 
 
+.vc-streak-mark { color: var(--vc-accent); font-size: 0.68rem; vertical-align: middle; }
+
 /* Refined controls and dependable native-widget styling. */
 .stTextInput input, .stTextArea textarea, .stNumberInput input,
 [data-baseweb="select"] > div, [data-baseweb="input"] > div {
@@ -484,7 +486,7 @@ def build_css(settings: dict) -> str:
             success="#8ED0A4",
             error="#F09A8F",
             success_bg="#1B392D",
-            error_bg="#422A28", 
+            error_bg="#422A28",
         )
     else:
         tokens = dict(
