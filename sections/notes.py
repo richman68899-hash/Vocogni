@@ -81,7 +81,7 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 
 
 def render() -> None:
-    st.markdown("## Notes")
+    st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
         "<p class='vc-page-intro'>Keep study notes organized, track learning milestones, or sketch an idea on the whiteboard.</p>",
         unsafe_allow_html=True,
@@ -122,7 +122,7 @@ def _render_folder_index() -> None:
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
 
     st.markdown("### Folders")
-    with st.expander("＋ Create a folder", expanded=not folders):
+    with st.expander("Create a folder", expanded=not folders):
         with st.form("create_note_folder", clear_on_submit=True):
             name = st.text_input("Folder title", placeholder="e.g. Algebra")
             color_name = st.selectbox("Folder color", list(PALETTE))
@@ -158,7 +158,7 @@ def _render_folder_index() -> None:
                     f"<div style='color:var(--vc-subtext);font-size:.85rem;margin-top:7px'>{count} {'note' if count == 1 else 'notes'}</div></div>",
                     unsafe_allow_html=True,
                 )
-                if st.button("Open folder →", key=f"open_folder_{folder['id']}", use_container_width=True):
+                if st.button("Open folder", key=f"open_folder_{folder['id']}", use_container_width=True):
                     st.session_state.selected_note_folder_id = folder["id"]
                     st.rerun()
 
@@ -170,7 +170,7 @@ def _render_folder_view(folder: dict[str, Any]) -> None:
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
     color = _resolved_color(folder)
     safe_name = html.escape(str(folder.get("name", "Folder")))
-    st.button("← All folders", key="back_to_folder_index", on_click=_go_to_folder_index)
+    st.button("All folders", key="back_to_folder_index", on_click=_go_to_folder_index)
     st.markdown(
         f"<div style='border-left:6px solid {color};padding:6px 0 6px 14px;margin:6px 0 16px 0'>"
         f"<div style='font-size:1.5rem;font-weight:700'>{safe_name}</div>"
