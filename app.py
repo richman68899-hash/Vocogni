@@ -84,7 +84,7 @@ def _render_login() -> None:
     st.title("Learn with clarity.")
 
     st.markdown(
-        "<p class='vc-page-intro'>Sign in to keep your courses, notes, and learning progress together, so you can pick up where you left off.</p>",
+        "<p class='vc-page-intro'>Sign in to return to your courses, notes, and saved progress from one workspace.</p>",
         unsafe_allow_html=True,
     )
 
@@ -119,7 +119,7 @@ def _render_logo() -> None:
 
     st.sidebar.markdown(
         "<div class='vc-logo-wrap'>"
-        "<div class='vc-logo-row'><span class='vc-logo-mark'>V</span>"
+        "<div class='vc-logo-row'><span class='vc-logo-mark'>v</span>"
         "<div><div class='vc-logo-text'>Vocogni</div>"
         "<div class='vc-logo-tag'>Understand · Apply · Advance</div></div></div>"
         "</div>",
