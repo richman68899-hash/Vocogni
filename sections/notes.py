@@ -172,9 +172,9 @@ def _render_folder_view(folder: dict[str, Any]) -> None:
     safe_name = html.escape(str(folder.get("name", "Folder")))
     st.button("All folders", key="back_to_folder_index", on_click=_go_to_folder_index)
     st.markdown(
-        f"<div style='border-left:6px solid {color};padding:6px 0 6px 14px;margin:6px 0 16px 0'>"
-        f"<div style='font-size:1.5rem;font-weight:700'>{safe_name}</div>"
-        f"<div style='opacity:.75'>{_folder_count(folder.get('id'), notes)} Notes</div></div>",
+        f"<div style='border-left:3px solid {color};padding:8px 0 8px 12px;margin:6px 0 16px 0'>"
+        f"<div style='font-size:1.4rem;font-weight:650'>{safe_name}</div>"
+        f"<div style='color:var(--vc-subtext);font-size:.86rem'>{_folder_count(folder.get('id'), notes)} {'note' if _folder_count(folder.get('id'), notes) == 1 else 'notes'}</div></div>",
         unsafe_allow_html=True,
     )
 
