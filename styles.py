@@ -181,7 +181,13 @@ hr, [data-testid="stDivider"] {
 }
 
 .vc-card--apply { border-left: 3px solid var(--vc-apply); }
-.vc-card--current { border-color: var(--vc-accent); }
+.vc-card--current { border-color: var(--vc-accent); background: var(--vc-surface); }
+
+.vc-course-card-title { margin: 0 !important; font-size: 1.13rem !important; }
+.vc-course-card-description { margin: 0.65rem 0 0.55rem; min-height: 4.2rem; color: var(--vc-subtext); }
+.vc-progress-caption { color: var(--vc-subtext); font-size: 0.78rem; font-weight: 600; margin-top: 0.35rem; }
+.vc-empty-state { margin-top: 0.65rem; padding: 1.35rem; }
+.vc-empty-state p { color: var(--vc-subtext); margin: 0.35rem 0 0; }
 
 [data-testid="stVerticalBlockBorderWrapper"] {
     background: var(--vc-surface) !important;
