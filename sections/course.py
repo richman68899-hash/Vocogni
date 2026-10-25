@@ -876,7 +876,7 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
 
         next_practice_label = "Begin post-test" if lesson.get("kind") == "assessment" else "Next: Practice questions"
         if st.button(next_practice_label, type="primary", key=f"screen2_next_{lesson['id']}"):
-            questions, route = _select_structured_questions(lesson, diagnostic_result)
+            questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
             if not questions:
                 if question_engine.is_vqe_pilot_lesson(course_id, lesson["id"]):
                     st.error(
