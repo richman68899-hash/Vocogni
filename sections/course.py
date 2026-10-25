@@ -225,18 +225,24 @@ def _render_course_diagnostic_row(course_id, progress) -> None:
     result = course_progress.get("diagnostics", {}).get(diagnostic_lesson_id)
     done = result is not None
     row_class = "vc-lesson-row" if done else "vc-lesson-row vc-lesson-row--current"
+    status_icon = "✓" if done else ""
     status_text = (
-        "✓ Completed — baseline result saved"
+        "Completed — baseline result saved"
         if done
         else "Up next — complete this before starting new lessons"
     )
+    status_class = "vc-status--complete" if done else ""
+    icon_markup = (
+        f"<span class='vc-status__icon' aria-hidden='true'>{status_icon}</span>"
+        if status_icon else ""
+    )
 
-    col_info, col_action = st.columns([3, 1])
+    col_info, col_action = st.columns([3, 1], vertical_alignment="center")
     with col_info:
         st.markdown(
             f"<div class='{row_class}'><div>"
             f"<strong>1. Diagnostic — {course['title']}</strong><br>"
-            f"<span class='vc-muted'>{status_text}</span>"
+            f"<span class='vc-status {status_class}'>{icon_markup}<span>{status_text}</span></span>"
             f"</div></div>",
             unsafe_allow_html=True,
         )
@@ -303,25 +309,37 @@ def _render_lesson_row(
     # Status
     # -----------------------------------------------------------------------
 
-    if is_done:
+    status_icon = ""
+    status_class = ""
 
-        status_text = "✓ Completed"
+    if is_done:
+        status_icon = "✓"
+        status_class = "vc-status--complete"
+        status_text = "Completed"
 
     elif not unlocked:
-
+        status_icon = "🔒"
+        status_class = "vc-status--locked"
         status_text = (
-            "🔒 Complete the diagnostic first"
+            "Complete the diagnostic first"
             if diagnostic_lesson_id and not diagnostic_done
-            else "🔒 Locked — finish the previous lesson first"
+            else "Locked — finish the previous lesson first"
         )
 
     elif is_current:
-
         status_text = "Up next"
 
     else:
-
         status_text = ""
+
+    icon_markup = (
+        f"<span class='vc-status__icon' aria-hidden='true'>{status_icon}</span>"
+        if status_icon else ""
+    )
+    status_markup = (
+        f"<span class='vc-status {status_class}'>{icon_markup}<span>{status_text}</span></span>"
+        if status_text else ""
+    )
 
     # -----------------------------------------------------------------------
     # Kind badge
@@ -340,7 +358,8 @@ def _render_lesson_row(
     # -----------------------------------------------------------------------
 
     col_info, col_action = st.columns(
-        [3, 1]
+        [3, 1],
+        vertical_alignment="center",
     )
 
     with col_info:
@@ -350,7 +369,7 @@ def _render_lesson_row(
             f"<div>"
             f"<strong>{display_index}. {lesson['title']}</strong> "
             f"{kind_badge}<br>"
-            f"<span class='vc-muted'>{status_text}</span>"
+            f"{status_markup}"
             f"</div>"
             f"</div>",
             unsafe_allow_html=True,
