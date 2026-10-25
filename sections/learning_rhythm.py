@@ -123,7 +123,7 @@ def _render_learning_maintenance(progress, profile):
     with row[0]:
         _maintenance_stat_block("Current streak", f"{_STREAK_MARK} {summary['current_streak']} {_plural_word(summary['current_streak'], 'day')}")
     with row[1]:
-        _maintenance_stat_block("Longest streak", f"{_RED_FLAME} {summary['longest_streak']} {_plural_word(summary['longest_streak'], 'day')}")
+        _maintenance_stat_block("Longest streak", f"{_STREAK_MARK} {summary['longest_streak']} {_plural_word(summary['longest_streak'], 'day')}")
     with row[2]:
         _maintenance_stat_block(
             period_label,
@@ -145,7 +145,7 @@ def _render_learning_maintenance(progress, profile):
         )
 
     week_status = "   ·   ".join(
-        f"{day['label']} {_RED_FLAME if day['active'] else ('—' if not day['future'] else '&nbsp;')}"
+        f"{day['label']} {_STREAK_MARK if day['active'] else ('—' if not day['future'] else '&nbsp;')}"
         for day in summary["week_day_cards"]
     )
     st.markdown("**This week's activity**")
