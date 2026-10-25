@@ -20,6 +20,7 @@ _CSS_TEMPLATE = Template("""
     --vc-subtext: $subtext;
     --vc-border: $border;
     --vc-accent: $accent;
+    --vc-on-accent: $on_accent;
     --vc-apply: $apply_accent;
     --vc-success: $success;
     --vc-error: $error;
@@ -144,7 +145,7 @@ hr, [data-testid="stDivider"] {
     align-items: center;
     background: var(--vc-accent);
     border-radius: 8px;
-    color: #FFFFFF;
+    color: var(--vc-on-accent);
     display: inline-flex;
     flex: 0 0 36px;
     font-size: 1.03rem;
@@ -289,7 +290,7 @@ hr, [data-testid="stDivider"] {
 button[data-testid="stBaseButton-primary"] {
     background: var(--vc-accent) !important;
     border: 1px solid var(--vc-accent) !important;
-    color: #FFFFFF !important;
+    color: var(--vc-on-accent) !important;
 }
 
 .stButton > button[kind="primary"]:hover,
@@ -417,6 +418,7 @@ def build_css(settings: dict) -> str:
     if dark:
         tokens = dict(
             color_scheme="dark",
+            on_accent="#10231F",
             bg="#101A20",
             surface="#18252C",
             surface_alt="#202F35",
@@ -433,6 +435,7 @@ def build_css(settings: dict) -> str:
     else:
         tokens = dict(
             color_scheme="light",
+            on_accent="#FFFFFF",
             bg="#F6F8F9",
             surface="#FFFFFF",
             surface_alt="#F0F4F4",
