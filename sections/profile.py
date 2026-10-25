@@ -132,7 +132,7 @@ def render() -> None:
 
     st.markdown(
         "<p class='vc-muted'>"
-        "Your profile is optional. Add only the details that help personalize your learning workspace. "
+        "Personalize your learning workspace with the details you choose to share. "
         "Every field is optional."
         "</p>",
         unsafe_allow_html=True,
@@ -165,7 +165,7 @@ def _render_read_only(
 
         st.markdown(
             "<div class='vc-card'>"
-            "Add a goal or preference to personalize your workspace, "
+            "Add a learning goal or preference to personalize your workspace, "
             "or start learning without filling in your profile."
             "</div>",
             unsafe_allow_html=True,
