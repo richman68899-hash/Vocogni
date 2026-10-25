@@ -285,19 +285,22 @@ hr, [data-testid="stDivider"] {
 }
 
 .stButton > button[kind="primary"],
-.stFormSubmitButton > button[kind="primary"] {
+.stFormSubmitButton > button[kind="primary"],
+button[data-testid="stBaseButton-primary"] {
     background: var(--vc-accent) !important;
     border: 1px solid var(--vc-accent) !important;
     color: #FFFFFF !important;
 }
 
 .stButton > button[kind="primary"]:hover,
-.stFormSubmitButton > button[kind="primary"]:hover {
+.stFormSubmitButton > button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover {
     filter: brightness(0.94);
 }
 
 .stButton > button[kind="secondary"],
-.stFormSubmitButton > button[kind="secondary"] {
+.stFormSubmitButton > button[kind="secondary"],
+button[data-testid="stBaseButton-secondary"] {
     background: var(--vc-surface) !important;
     border: 1px solid var(--vc-border) !important;
     color: var(--vc-text) !important;
