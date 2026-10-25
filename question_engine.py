@@ -491,7 +491,7 @@ def validate_question(question: Any, *, default_grader: str = "math") -> list[st
         else:
             if any(not isinstance(option, str) or not option.strip() for option in options):
                 errors.append("Every multiple-choice option must be a non-empty string.")
-            if len(options) != len(set(options)):
+            if all(isinstance(option, str) for option in options) and len(options) != len(set(options)):
                 errors.append("Multiple-choice options must be unique.")
             if question.get("answer") not in options:
                 errors.append("Multiple-choice answer must match one option exactly.")
@@ -612,6 +612,7 @@ def _catalogue(
     keyed: dict[tuple[str, str, str], dict[str, Any]] = {}
     duplicate_issues: list[dict[str, Any]] = []
     seen_global: dict[str, tuple[str, str, str]] = {}
+    conflicted_ids: set[str] = set()
 
     for row in occurrences:
         question = row["question"]
@@ -636,6 +637,7 @@ def _catalogue(
             continue
 
         if qid in seen_global and seen_global[qid] != key:
+            conflicted_ids.add(qid)
             duplicate_issues.append({
                 "question_id": qid,
                 "severity": "error",
@@ -661,6 +663,12 @@ def _catalogue(
         }
         keyed[key] = record
         records.append(record)
+
+    # A globally reused ID is ambiguous even when the duplicated question
+    # text is identical, so every occurrence is excluded from strict VQE use.
+    for record in records:
+        if record["question_id"] in conflicted_ids:
+            record["catalogue_conflict"] = True
 
     return records, duplicate_issues, len(occurrences)
 
