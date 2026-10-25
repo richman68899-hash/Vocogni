@@ -92,20 +92,20 @@ def render() -> None:
     _ensure_widget_state(settings)
 
     st.title("Settings")
-    st.caption("Personalize the interface and learning support. Changes save automatically.")
+    st.caption("Adjust the interface and learning support to suit your preferences. Changes save automatically.")
     st.markdown(f"<div class='vc-muted'>{_current_summary(_current_widget_values(settings))}</div>", unsafe_allow_html=True)
 
     # Quick setups are just shortcuts over existing controls. Learners can
     # change any individual setting afterwards.
     with st.container(border=True):
         st.subheader("Quick setups")
-        st.caption("Start with a preset, then fine-tune individual preferences.")
+        st.caption("Choose a starting point, then adjust any setting below.")
 
         preset_cols = st.columns(3, gap="medium")
         presets = [
-            ("Focused study", "Fewer transitions, no answer sounds, and combined feedback at the end of a lesson."),
-            ("Reading comfort", "Larger text, more line spacing, and reduced motion."),
-            ("Gentle practice", "Immediate feedback, with hints shown automatically where supported."),
+            ("Focused study", "Reduce motion and sounds, and review feedback after each lesson."),
+            ("Reading comfort", "Increase text size and line spacing, with fewer motion effects."),
+            ("Gentle practice", "Get immediate feedback and automatic hints where supported."),
         ]
         for column, (name, description) in zip(preset_cols, presets):
             with column:
