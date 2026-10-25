@@ -132,8 +132,8 @@ def render() -> None:
 
     st.markdown(
         "<p class='vc-muted'>"
-        "Tell Vocogni a little about yourself. Every field "
-        "here is optional — skip anything you'd rather not share."
+        "Set preferences that make your learning experience more relevant. "
+        "Every field is optional."
         "</p>",
         unsafe_allow_html=True,
     )
@@ -165,10 +165,8 @@ def _render_read_only(
 
         st.markdown(
             "<div class='vc-card'>"
-            "You haven't set up your profile yet. "
-            "Add your name, goals, and preferences to help "
-            "personalize your Vocogni experience — or skip it "
-            "entirely and start learning."
+            "Your profile is optional. Add a few goals or preferences to personalize your workspace, "
+            "or leave it as it is and start learning."
             "</div>",
             unsafe_allow_html=True,
         )
