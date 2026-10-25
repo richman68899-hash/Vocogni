@@ -80,7 +80,7 @@ def _progress_section(section_id, title):
 def render():
     st.markdown("<h1>Progress</h1>", unsafe_allow_html=True)
     st.markdown(
-        "<p class='vc-page-intro'>See what you have practised, where errors recur, and which step to take next.</p>",
+        "<p class='vc-page-intro'>Review your practice, spot recurring mistakes, and choose a useful next step.</p>",
         unsafe_allow_html=True,
     )
 
@@ -117,7 +117,7 @@ def _stat_block(label, value):
 
 
 def _render_overview(progress):
-    st.caption("A snapshot of courses, completed lessons, attempts, and recorded results.")
+    st.caption("A concise view of your learning activity and recorded results.")
     stats = logic.overall_stats(progress)
 
     row1 = st.columns(3)
@@ -165,7 +165,7 @@ def _render_overview(progress):
         _stat_block("Average baseline", f"{avg_baseline}%" if diagnostic_records else "—")
     with row3[2]:
         _stat_block("Average post-lesson practice", f"{avg_post}%" if lesson_assessments else "—")
-    st.caption("Diagnostics are shown separately from regular practice. Baseline and post-lesson scores summarize these questions; they are not a validated measure of learning gain.")
+    st.caption("Entry diagnostics and practice are reported separately. Score changes are descriptive only; they do not establish learning gain.")
 
 
 _STRENGTH_BADGE_CLASS = {"Strength": "vc-badge--success", "Weakness": "vc-badge--warn", "Developing": ""}
@@ -373,7 +373,7 @@ def _render_lesson_diagnostics(progress):
                     f"({assessment.get('post_practice_percent', 0)}%); descriptive difference "
                     f"{assessment.get('percentage_point_difference', 0):+d} percentage points."
                 )
-    st.caption("The current diagnostic is a rule-based prototype. Results identify areas to investigate; they are not a clinical, psychometric, or validated mastery assessment.")
+    st.caption("These prototype diagnostics highlight topics to review. They are not a validated measure of ability or mastery.")
 
 def _render_recommendations(progress):
     st.caption("Turns saved activity into suggested next actions, so you know what to practise next.")
