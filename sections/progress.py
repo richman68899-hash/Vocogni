@@ -394,7 +394,7 @@ def _render_ai_summary(profile, progress):
     st.markdown(
         "<span class='vc-muted'>A transparent summary of your recorded activity. "
         "It uses saved results and rules; no external AI model is called. "
-        "to connect a real one later.</span>",
+        "</span>",
         unsafe_allow_html=True,
     )
     if st.button("Create learning summary", type="primary"):
