@@ -81,20 +81,22 @@ def _render_login() -> None:
     Streamlit handles the OIDC callback and session.
     """
 
-    st.title("Learning that moves you forward.")
-
-    st.markdown(
-        "<p class='vc-page-intro'>Sign in to continue learning, revisit your notes, and pick up where you left off.</p>",
-        unsafe_allow_html=True,
-    )
-
-    st.button(
-        "Continue to Vocogni",
-        type="primary",
-        on_click=st.login,
-        args=["auth0"],
-        use_container_width=True,
-    )
+    left, hero, right = st.columns([1, 2, 1], gap="small")
+    with hero:
+        st.markdown(
+            "<div class='vc-login-hero'>"
+            "<h1>Learning that moves you forward.</h1>"
+            "<p class='vc-page-intro'>Sign in to continue learning, revisit your notes, and pick up where you left off.</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        st.button(
+            "Continue to Vocogni",
+            type="primary",
+            on_click=st.login,
+            args=["auth0"],
+            use_container_width=True,
+        )
 
     # Do not render the application while unauthenticated.
     st.stop()
