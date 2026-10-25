@@ -31,5 +31,5 @@ def test_display_preferences_still_control_type_and_motion():
     })
     assert "font-size: 19px;" in css
     assert "line-height: 1.82;" in css
-    assert "transition: none;" in css
+    assert "transition: none !important;" in css
     assert "scroll-behavior: auto;" in css
