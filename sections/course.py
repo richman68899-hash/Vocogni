@@ -113,12 +113,12 @@ def render_course_detail() -> None:
     # -----------------------------------------------------------------------
 
     st.markdown(
-        f"<h2>{course['title']}</h2>",
+        f"<h1>{course['title']}</h1>",
         unsafe_allow_html=True,
     )
 
     st.markdown(
-        f"<p class='vc-muted'>{course['short_description']}</p>",
+        f"<p class='vc-page-intro'>{course['short_description']}</p>",
         unsafe_allow_html=True,
     )
     st.caption(
@@ -2022,7 +2022,7 @@ def _render_complete(
     # -----------------------------------------------------------------------
 
     if st.button(
-        "📝 Add a Note About This Lesson",
+        "Add a lesson note",
         use_container_width=True,
         key="add_lesson_note",
     ):
