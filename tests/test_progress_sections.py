@@ -50,16 +50,18 @@ class ProgressSectionsTests(unittest.TestCase):
             "Choose a course to review lesson completion",
             "A course-specific summary built automatically",
             "Turns saved activity into suggested next actions",
-            "Focused practice for this lesson",
+            "Practise a specific lesson with questions from the course",
             "Shows the selected topic's entry-diagnostic baseline",
-            "A prototype simulation built from your own stored",
+            "A transparent summary of your recorded activity",
         ):
             with self.subTest(description=description):
                 self.assertTrue(
                     description in PROGRESS_SOURCE
-                    or (description == "Focused practice for this lesson"
-                        and "Focused practice for this lesson" in (ROOT / "coach.py").read_text(encoding="utf-8"))
+                    or (description == "Practise a specific lesson with questions from the course"
+                        and description in (ROOT / "coach.py").read_text(encoding="utf-8"))
                 )
+        self.assertIn("no external AI model is called", PROGRESS_SOURCE)
+        self.assertNotIn('"AI progress summary"', PROGRESS_SOURCE)
 
     def test_mastery_receipt_does_not_nest_expanders(self):
         self.assertEqual(PROGRESS_SOURCE.count("st.expander("), 1)
