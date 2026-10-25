@@ -1029,6 +1029,43 @@ html {
     color: var(--vc-on-accent);
 }
 
+
+/* Date/time popovers and multi-select chips also need runtime theme colours. */
+[data-baseweb="calendar"],
+[data-baseweb="calendar"] div,
+[data-baseweb="calendar"] span,
+[data-baseweb="calendar"] button,
+[data-baseweb="timepicker"],
+[data-baseweb="timepicker"] button {
+    color: var(--vc-text) !important;
+    border-color: var(--vc-border) !important;
+}
+
+[data-baseweb="calendar"] button:hover,
+[data-baseweb="timepicker"] button:hover {
+    background-color: var(--vc-surface-alt) !important;
+}
+
+[data-baseweb="calendar"] [aria-selected="true"],
+[data-baseweb="calendar"] button[aria-pressed="true"] {
+    background-color: var(--vc-accent) !important;
+    color: var(--vc-on-accent) !important;
+}
+
+[data-baseweb="tag"] {
+    background-color: var(--vc-surface-alt) !important;
+    border: 1px solid var(--vc-border) !important;
+    color: var(--vc-text) !important;
+}
+
+[data-baseweb="tag"] span {
+    color: var(--vc-text) !important;
+}
+
+[data-baseweb="tag"] svg {
+    color: var(--vc-subtext) !important;
+}
+
 </style>
 """)
 
