@@ -21,7 +21,7 @@ def render(course, progress):
         return
 
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("<h3>Personalized Revision Sprint</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>Revision sprint</h3>", unsafe_allow_html=True)
     st.caption(
         "A focused practice set drawn from this course. "
         "It prioritizes skills that need work, gives feedback, and "
@@ -131,7 +131,7 @@ def render_browse_entry(progress):
     session = st.session_state.get(_SESSION_KEY)
     if isinstance(session, dict) and session.get("stage") in ("active", "results"):
         with st.container(border=True):
-            st.markdown("### Personalized Revision Sprint")
+            st.markdown("### Revision sprint")
             st.caption(
                 f"Your session for {session.get('course_title', 'this course')}. "
                 "Finish here, then use the results to choose your next step."
@@ -155,7 +155,7 @@ def render_browse_entry(progress):
             banks[course_id] = bank
 
     with st.container(border=True):
-        st.markdown("### Personalized Revision Sprint")
+        st.markdown("### Revision sprint")
         st.caption(
             "Start a focused practice set directly from Browse. Vocogni prioritizes "
             "previous mistakes and skills that need review, then explains your result."
