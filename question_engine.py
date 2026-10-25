@@ -677,12 +677,16 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
     question = record["question"]
     qid = record["question_id"]
     metadata = VERIFICATION_REGISTRY.get(qid)
-    if metadata is None:
-        return "legacy", ["No VQE review record exists for this question."]
-
     issues = validate_question(question)
     if record.get("catalogue_conflict"):
         issues.append("Question ID has conflicting authored content.")
+
+    if metadata is None:
+        if issues:
+            issues.append("No VQE review record exists for this question.")
+            return "needs_review", issues
+        return "legacy", ["No VQE review record exists for this question."]
+
     if not _snapshot_matches(question, metadata):
         issues.append("Question content differs from the reviewed snapshot; review evidence is stale.")
     missing_checks = _REQUIRED_REVIEW_CHECKS - set(metadata.get("review_checks", []))
@@ -773,6 +777,29 @@ def get_question_record(
         if record["question_id"] == str(question_id)
     ]
     return matches[0] if len(matches) == 1 else None
+
+
+def get_question_by_id(
+    question_id: str,
+    *,
+    course_id: str | None = None,
+    lesson_id: str | None = None,
+    require_verified: bool = False,
+) -> dict[str, Any] | None:
+    """Return a normalised question copy, optionally requiring current verification."""
+    record = get_question_record(
+        question_id, course_id=course_id, lesson_id=lesson_id
+    )
+    if record is None:
+        return None
+    if require_verified and record["verification_status"] != "verified":
+        return None
+    return deepcopy(record["question"])
+
+
+def normalize_question(record: dict[str, Any]) -> dict[str, Any]:
+    """US-spelling alias for the canonical normaliser."""
+    return normalise_question(record)
 
 
 def get_questions(
