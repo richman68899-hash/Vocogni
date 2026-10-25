@@ -2,7 +2,7 @@
 
 **Status:** Proposed implementation blueprint  
 **Scope:** Product and technical foundation for the next learning-platform evolution  
-**Repo baseline checked:** `main` at `7f368eef1090873ff79b4930ad436f94e3a0020c`  
+**Repo baseline checked:** `main` at `9de0355178580e849b7a83e30c312b378418587f` (25 October 2026)  
 **Decision:** Phase 0 defines and tests the shared contracts. It does not attempt to ship every planned feature.
 
 ---
@@ -39,7 +39,7 @@ These are patterns to learn from, not instructions to copy interfaces or proprie
 
 | Reference pattern | Useful learning mechanism | Vocogni decision |
 |---|---|---|
-| Gemini Notebook / NotebookLM | Answers grounded in uploaded sources; citations; source-derived study materials, quizzes and flashcards | Build a source-and-evidence layer first. Generated materials must retain source provenance and must be checked before being treated as authoritative. |
+| Gemini Notebook (formerly NotebookLM) | Source-grounded answers and citations; source-derived study materials; interactive learning overviews that combine summaries, slides/infographics, quizzes and flashcards; short video overviews; expanded quiz formats | Build a source-and-evidence layer first. Keep outputs grounded in selected sources, preserve provenance, distinguish drafts from approved content, and prioritize source-backed usefulness over media volume. Defer audio/video generation until core source accuracy and learner demand are demonstrated. |
 | Khan Academy / Khanmigo | Skill-level progression, practice-linked feedback, prerequisite awareness, guided rather than answer-dumping tutoring | Keep learning objectives and question-to-skill links explicit. Tutor behavior should promote learner reasoning. Treat mastery as accumulated evidence, not a decorative percentage. |
 | Gemini Guided Learning / Study Notebooks | Diagnostic baseline, bite-sized personalized lessons, follow-up checks, progress dashboard and visual explanations | Make the diagnosis-to-next-step loop coherent. Add generated lessons only after the course and evaluation contracts exist. |
 | Coursera-style structured courses | Clear modules, sequenced instruction, graded/practice assessments and completion criteria | Make course structure, activity purpose, checkpoint rules and completion semantics explicit. Avoid implying certificates or accreditation that Vocogni does not provide. |
@@ -110,6 +110,68 @@ The current architecture should remain the baseline until measured evidence just
 - VQE remains the source of truth for question verification and strict verified-only retrieval in pilot lessons.
 - UI copy must distinguish prototype heuristics from externally validated assessment.
 - If the hosted app or signed-in save/reload path has not been tested for a release, report that gap explicitly.
+
+---
+
+
+### 4.1 Repository-level implementation structure
+
+**Keep the current file layout stable during Phase 0.** The existing codebase already has clear responsibility boundaries; a large folder migration would add risk without improving the learning journey. This is the working ownership map for the next increments.
+
+```text
+Vocogni/
+├── app.py                         # startup, authentication, navigation, top-level lifecycle
+├── state.py                       # session state + durable-save coordination
+├── persistence.py                 # Supabase persistence boundary
+├── logic.py                       # deterministic recommendations, evidence summaries, mastery receipt
+├── question_engine.py             # the single question validation/review/selection authority (VQE)
+├── math_taxonomy.py               # stable math skill IDs and prerequisite metadata
+├── diagnostics.py                 # diagnostic contracts, scoring and routing checks
+├── *_grading.py                   # subject-specific scoring rules
+├── data.py + *_course.py          # authored course/lesson content
+├── revision_sprint.py             # shared revision-session orchestration
+├── sections/
+│   ├── browse.py                  # course library + entry into a course
+│   ├── course.py                  # lesson/diagnostic/practice learner flow
+│   ├── progress.py                # progress and evidence presentation
+│   ├── notes.py                   # learner notes and milestones
+│   ├── profile.py                 # profile
+│   └── settings.py                # learner-controlled display/learning preferences
+├── styles.py + .streamlit/        # shared visual system and base theme
+├── components/                    # focused reusable front-end components (currently whiteboard)
+├── tests/                         # deterministic tests and compatibility/integration checks
+└── docs/
+    ├── phase-0-master-implementation-structure.md  # canonical blueprint
+    ├── features/                  # bounded feature specifications
+    └── testing/                   # acceptance and manual verification checklists
+```
+
+Treat this as an ownership map, not a mandate to move files. New modules should be added only when a real feature needs a separately testable boundary.
+
+#### Proposed future modules (do not create them just to match this diagram)
+
+Only when the corresponding phase begins and its acceptance tests are defined, consider:
+
+- `source_records.py` or a small `sources/` package for source metadata, versions, access control and extraction status.
+- `ai_provider.py` or `services/ai_provider.py` for one provider-neutral model boundary, schema validation, timeout handling and deterministic fallback.
+- `next_step_policy.py` for a pure, testable next-activity policy if that policy becomes more complex than the current `logic.py` responsibilities.
+- A separate retrieval/index module only when an actual source-grounded feature is ready to be implemented and its privacy boundary is specified.
+
+Do not move existing files into new packages as a cleanup exercise. If a module is moved later, keep the PR narrowly scoped and run import, unit, persistence-compatibility and hosted smoke tests.
+
+#### Phase 0 artifact map
+
+Phase 0 should produce a small, reviewable set of artifacts rather than a large documentation tree:
+
+| Artifact | Canonical location | Purpose |
+|---|---|---|
+| Master plan, boundaries, phases, cross-cutting contracts | `docs/phase-0-master-implementation-structure.md` | Single source of truth for what is proposed and why |
+| Feature-specific behavior and acceptance requirements | `docs/features/<feature>.md` | Contract for one bounded implementation |
+| Manual and end-to-end verification | `docs/testing/<flow>-acceptance.md` | Reproducible UI, persistence and failure checks |
+| Automated checks | `tests/` and `.github/workflows/` | Catch regressions without requiring the hosted UI |
+| Architecture decisions | Add short ADR files only as decisions actually need durable records | Capture context, decision, trade-offs and revisit trigger; avoid speculative ADR bureaucracy |
+
+**Definition of a code change:** a feature PR must cite the relevant contract and state its scope, tests, manual checks, persistence/security impact, limitations and rollback/disable path. The master blueprint itself is not a substitute for implementation or live verification.
 
 ---
 
@@ -544,6 +606,8 @@ Official product sources reviewed on 25 October 2026. Feature availability can v
 - Google, **Gemini Notebook for students** — source-grounded answers with citations; study materials, flashcards and quizzes: https://notebook.google/students?hl=en-US
 - Google, **6 NotebookLM features to help students learn** — source-grounded study guides, customized materials and Learning Guide: https://blog.google/innovation-and-ai/models-and-research/google-labs/notebooklm-student-features/
 - Google, **Study notebooks in the Gemini app** — diagnostic knowledge-gap checks, tailored lessons, quizzes and a skill-focused progress dashboard (published 25 June 2026): https://blog.google/innovation-and-ai/products/gemini-app/gemini-study-notebooks/
+- Google, **New study tools for Gemini Notebook** — interactive learning overviews, short video overviews and expanded quiz formats (September 2026): https://blog.google/innovation-and-ai/products/gemini-notebook/new-study-tools-september-2026/
+- Google, **Three new ways to study with Gemini Notebook** — updates to short video and interactive learning overviews (published 16 October 2026): https://blog.google/innovation-and-ai/products/gemini-notebook/three-tips-study-gemini-notebook/
 - Google, **Guided Learning with Gemini** — step-by-step help, questions, explanations, visuals and recap/next steps: https://blog.google/products-and-platforms/products/gemini/guided-learning-google-gemini/
 - Khan Academy, **Khanmigo** — tutor behavior focused on reasoning rather than simply giving answers: https://www.khanacademy.org/khanmigo
 - Khan Academy Help Center, **What is self-paced Mastery?** — skill progression, course challenge and practice-linked feedback: https://support.khanacademy.org/hc/en-us/articles/360007253831-Using-self-paced-practice-and-Mastery-in-the-classroom
