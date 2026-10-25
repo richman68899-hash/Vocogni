@@ -81,10 +81,10 @@ def _render_login() -> None:
     Streamlit handles the OIDC callback and session.
     """
 
-    st.title("Learn with clarity.")
+    st.title("Learning that moves you forward.")
 
     st.markdown(
-        "<p class='vc-page-intro'>Sign in to continue your courses and keep your notes and learning progress in one place.</p>",
+        "<p class='vc-page-intro'>Sign in to continue learning, revisit your notes, and pick up where you left off.</p>",
         unsafe_allow_html=True,
     )
 
