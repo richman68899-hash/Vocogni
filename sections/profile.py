@@ -7,7 +7,7 @@ All profile fields are optional.
 
 Persistence behavior:
 - The learner edits the profile inside a form.
-- Clicking "Save Profile" updates durable session state.
+- Clicking "Save profile" updates durable session state.
 - The profile is marked dirty with state.mark_persistent_dirty().
 - app.py flushes the pending save to Supabase at the end of the run.
 - No manual rerun is performed after saving, so the autosave flush can
@@ -83,18 +83,94 @@ def _display(
     return html.escape(text)
 
 
+def _icon_svg(name: str) -> str:
+    """Return a small, consistent, decorative line icon for profile sections."""
+    icons = {
+        "user": (
+            '<circle cx="12" cy="8" r="3.5"/>'
+            '<path d="M5 20c.6-3.2 3-5 7-5s6.4 1.8 7 5"/>'
+        ),
+        "book": (
+            '<path d="M3.5 5.5A2.5 2.5 0 0 1 6 3h5v17H6a2.5 2.5 0 0 0-2.5 2z"/>'
+            '<path d="M20.5 5.5A2.5 2.5 0 0 0 18 3h-5v17h5a2.5 2.5 0 0 1 2.5 2z"/>'
+        ),
+        "target": (
+            '<circle cx="12" cy="12" r="8.5"/>'
+            '<circle cx="12" cy="12" r="4.8"/>'
+            '<circle cx="12" cy="12" r="1.3"/>'
+        ),
+        "spark": (
+            '<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'
+            '<path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>'
+        ),
+        "shield": (
+            '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/>'
+            '<path d="m9 12 2 2 4-4"/>'
+        ),
+    }
+    paths = icons.get(name, icons["spark"])
+    return (
+        '<svg class="vc-profile-icon-art" viewBox="0 0 24 24" '
+        'fill="none" stroke="currentColor" stroke-width="1.7" '
+        'stroke-linecap="round" stroke-linejoin="round" '
+        'aria-hidden="true" focusable="false">'
+        + paths + '</svg>'
+    )
+
+
+def _initials(name: Any) -> str:
+    """Create a stable, privacy-light avatar monogram from the display name."""
+    clean = str(name or "").strip()
+    if not clean:
+        return "L"
+    parts = clean.split()
+    if len(parts) >= 2:
+        return (parts[0][0] + parts[-1][0]).upper()
+    return clean[:1].upper()
+
+
+def _section_heading(icon: str, title: str, subtitle: str = "") -> None:
+    """Render a consistent icon-led heading for a profile section."""
+    detail = (
+        f"<p class='vc-profile-section-subtitle'>{html.escape(subtitle)}</p>"
+        if subtitle else ""
+    )
+    st.markdown(
+        "<div class='vc-profile-section-heading'>"
+        f"<span class='vc-profile-section-icon'>{_icon_svg(icon)}</span>"
+        "<div class='vc-profile-section-copy'>"
+        f"<div class='vc-profile-section-title'>{html.escape(title)}</div>"
+        f"{detail}"
+        "</div></div>",
+        unsafe_allow_html=True,
+    )
+
+
 def _field_row(
     label: str,
     value: Any,
 ) -> None:
-    """
-    Render one profile field/value pair.
-    """
+    """Render a profile value with a clear label/value hierarchy."""
+    empty = value is None or value == "" or value == []
+    if isinstance(value, list) and value:
+        rendered = (
+            "<div class='vc-profile-tags'>"
+            + "".join(
+                f"<span class='vc-profile-tag'>{html.escape(str(item))}</span>"
+                for item in value
+                if str(item).strip()
+            )
+            + "</div>"
+        )
+    else:
+        rendered = _display(value)
 
+    value_class = " vc-profile-value--empty" if empty else ""
     st.markdown(
-        f"<div style='margin-bottom:0.55rem;'>"
-        f"<span class='vc-muted'>{html.escape(label)}</span>"
-        f"<br>{_display(value)}</div>",
+        "<div class='vc-profile-field'>"
+        f"<div class='vc-profile-field-label'>{html.escape(label)}</div>"
+        f"<div class='vc-profile-field-value{value_class}'>{rendered}</div>"
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -121,20 +197,14 @@ def _clean_pref(
 # ===========================================================================
 
 def render() -> None:
-    """
-    Render the learner profile page.
-    """
-
+    """Render the learner profile and the learner's existing review rhythm."""
     st.markdown(
-        "<h1>Profile</h1>",
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        "<p class='vc-muted'>"
-        "Personalize your learning workspace with the details you choose to share. "
-        "Every field is optional."
-        "</p>",
+        "<div class='vc-profile-page-heading'>"
+        "<div class='vc-eyebrow'>YOUR SPACE</div>"
+        "<h1>Your learning profile</h1>"
+        "<p class='vc-page-intro'>A few details can make your learning space more relevant. "
+        "Share only what is useful to you; every field is optional.</p>"
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -142,11 +212,10 @@ def render() -> None:
 
     if st.session_state.editing_profile:
         _render_edit_form(profile)
-
     else:
         _render_read_only(profile)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    st.divider()
     learning_rhythm.render(st.session_state.progress, profile)
 
 
@@ -154,199 +223,109 @@ def render() -> None:
 # READ-ONLY PROFILE
 # ===========================================================================
 
-def _render_read_only(
-    profile: dict[str, Any],
-) -> None:
-    """
-    Render the saved learner profile.
-    """
-
-    if not profile.get("saved"):
-
-        st.markdown(
-            "<div class='vc-card'>"
-            "Add a learning goal or preference to personalize your workspace, "
-            "or start learning without filling in your profile."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-    name = html.escape(
-        str(
-            profile.get(
-                "name",
-                "",
-            )
-        ).strip()
-        or "Learner"
+def _render_identity_card(profile: dict[str, Any]) -> None:
+    """Render a calm identity header with a generated monogram avatar."""
+    raw_name = str(profile.get("name", "") or "").strip() or "Learner"
+    name = html.escape(raw_name)
+    initials = html.escape(_initials(raw_name))
+    status = (
+        "<span class='vc-profile-status'>"
+        + _icon_svg("shield")
+        + "<span>Profile saved</span></span>"
+        if profile.get("saved")
+        else "<span class='vc-profile-status vc-profile-status--quiet'>Optional profile</span>"
     )
-
     st.markdown(
-        f"<h3>{name}</h3>",
+        "<div class='vc-profile-hero'>"
+        f"<div class='vc-profile-avatar' aria-label='Avatar initials {initials}'>{initials}</div>"
+        "<div class='vc-profile-identity-copy'>"
+        f"<div class='vc-profile-name'>{name}</div>"
+        "<div class='vc-profile-identity-subtitle'>Your preferences, interests and learning goals.</div>"
+        f"{status}"
+        "</div></div>",
         unsafe_allow_html=True,
     )
 
-    # -----------------------------------------------------------------------
-    # Basic information
-    # -----------------------------------------------------------------------
 
-    with st.container(border=True):
-        st.markdown(
-            "<span class='vc-muted'>About you</span>",
-            unsafe_allow_html=True,
+def _start_editing_profile() -> None:
+    """Open the existing edit form without changing durable learner data."""
+    st.session_state.editing_profile = True
+    st.rerun()
+
+
+def _render_read_only(profile: dict[str, Any]) -> None:
+    """Render the saved profile as a small set of clearly grouped cards."""
+    if not profile.get("saved"):
+        with st.container(border=True):
+            st.markdown(
+                "<div class='vc-profile-empty'>"
+                "<div class='vc-profile-empty-icon'>" + _icon_svg("user") + "</div>"
+                "<div class='vc-profile-empty-title'>Make this space yours</div>"
+                "<p class='vc-profile-empty-copy'>Add a name, a learning goal or a few preferences. "
+                "Vocogni can still be used without a completed profile.</p>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            st.button(
+                "Personalize profile",
+                type="primary",
+                key="create_profile",
+                on_click=_start_editing_profile,
+            )
+        return
+
+    identity_col, action_col = st.columns([5, 1.25], vertical_alignment="center", gap="medium")
+    with identity_col:
+        _render_identity_card(profile)
+    with action_col:
+        st.button(
+            "Edit profile",
+            type="primary",
+            key="edit_profile",
+            use_container_width=True,
+            on_click=_start_editing_profile,
         )
 
-        col1, col2, col3 = st.columns(3)
-
+    with st.container(border=True):
+        _section_heading("user", "About you", "Basic details you choose to share.")
+        col1, col2, col3 = st.columns(3, gap="large")
         with col1:
-
-            _field_row(
-                "Age",
-                profile.get("age"),
-            )
-
-            _field_row(
-                "Gender",
-                profile.get("gender", data.GENDER_OPTIONS[2]),
-            )
-
-            _field_row(
-                "Grade",
-                _clean_pref(
-                    profile.get("grade")
-                ),
-            )
-
+            _field_row("Age", profile.get("age"))
+            _field_row("Gender", profile.get("gender", data.GENDER_OPTIONS[2]))
         with col2:
-
-            _field_row(
-                "Country",
-                profile.get("country"),
-            )
-
-            _field_row(
-                "Timezone",
-                _clean_pref(
-                    profile.get("timezone")
-                ),
-            )
-
+            _field_row("Grade", _clean_pref(profile.get("grade")))
+            _field_row("Country", profile.get("country"))
         with col3:
-
-            _field_row(
-                "Preferred language",
-                _clean_pref(
-                    profile.get("preferred_language")
-                ),
-            )
-
-
-    # -----------------------------------------------------------------------
-    # Learning preferences
-    # -----------------------------------------------------------------------
+            _field_row("Timezone", _clean_pref(profile.get("timezone")))
+            _field_row("Preferred language", _clean_pref(profile.get("preferred_language")))
 
     with st.container(border=True):
-        st.markdown(
-            "<span class='vc-muted'>Learning preferences</span>",
-            unsafe_allow_html=True,
-        )
-
-        col1, col2 = st.columns(2)
-
+        _section_heading("book", "How you learn", "Preferences that help shape your learning experience.")
+        col1, col2 = st.columns(2, gap="large")
         with col1:
-
-            _field_row(
-                "Preferred learning style",
-                _clean_pref(
-                    profile.get("learning_style")
-                ),
-            )
-
-            _field_row(
-                "Preferred difficulty",
-                profile.get(
-                    "preferred_difficulty"
-                ),
-            )
-
+            _field_row("Learning style", _clean_pref(profile.get("learning_style")))
+            _field_row("Preferred difficulty", profile.get("preferred_difficulty"))
         with col2:
-
-            _field_row(
-                "Preferred session length",
-                _clean_pref(
-                    profile.get("preferred_session_length")
-                ),
-            )
-
-            _field_row(
-                "Preferred feedback style",
-                _clean_pref(
-                    profile.get("preferred_feedback_style")
-                ),
-            )
-
-
-    # -----------------------------------------------------------------------
-    # Subjects and goals
-    # -----------------------------------------------------------------------
+            _field_row("Session length", _clean_pref(profile.get("preferred_session_length")))
+            _field_row("Feedback style", _clean_pref(profile.get("preferred_feedback_style")))
 
     with st.container(border=True):
-        st.markdown(
-            "<span class='vc-muted'>Subjects & goals</span>",
-            unsafe_allow_html=True,
-        )
+        _section_heading("target", "Subjects & goals", "Keep your priorities visible; you can change them at any time.")
+        subject_cols = st.columns(3, gap="medium")
+        with subject_cols[0]:
+            _field_row("Favorite subjects", profile.get("favorite_subjects"))
+        with subject_cols[1]:
+            _field_row("Subjects you feel confident in", profile.get("strong_subjects"))
+        with subject_cols[2]:
+            _field_row("Subjects to work on", profile.get("weak_subjects"))
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            _field_row(
-                "Favorite subjects",
-                profile.get("favorite_subjects"),
-            )
-
-            _field_row(
-                "Strong subjects",
-                profile.get("strong_subjects"),
-            )
-
-            _field_row(
-                "Subjects you find difficult",
-                profile.get("weak_subjects"),
-            )
-
-        with col2:
-
-            _field_row(
-                "Learning goals",
-                profile.get("learning_goals"),
-            )
-
-            _field_row(
-                "Interests",
-                profile.get("interests"),
-            )
-
-            _field_row(
-                "Career / vocational interests",
-                profile.get("career_interests"),
-            )
-
-
-    # -----------------------------------------------------------------------
-    # Edit button
-    # -----------------------------------------------------------------------
-
-    if st.button(
-        "Edit Profile",
-        type="primary",
-        key="edit_profile",
-    ):
-
-        st.session_state.editing_profile = True
-
-        # This is UI-only state, so an explicit rerun is safe.
-        st.rerun()
+        goal_cols = st.columns(3, gap="medium")
+        with goal_cols[0]:
+            _field_row("Learning goals", profile.get("learning_goals"))
+        with goal_cols[1]:
+            _field_row("Interests", profile.get("interests"))
+        with goal_cols[2]:
+            _field_row("Career interests", profile.get("career_interests"))
 
 
 # ===========================================================================
@@ -369,6 +348,15 @@ def _render_edit_form(
     Therefore the modified profile can be saved before the next run.
     """
 
+    st.markdown(
+        "<div class='vc-profile-form-note'>"
+        + _icon_svg("shield")
+        + "<span><strong>Your details stay under your control.</strong> "
+        + "Every field is optional. Save only the information you want in your learner profile.</span>"
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
     with st.form(
         "profile_form",
         clear_on_submit=False,
@@ -378,10 +366,7 @@ def _render_edit_form(
         # Basic information
         # -------------------------------------------------------------------
 
-        st.markdown(
-            "<span class='vc-muted'>About you</span>",
-            unsafe_allow_html=True,
-        )
+        _section_heading("user", "About you", "Only share details you are comfortable saving.")
 
         c1, c2 = st.columns(2)
 
@@ -466,10 +451,7 @@ def _render_edit_form(
         # Learning preferences
         # -------------------------------------------------------------------
 
-        st.markdown(
-            "<span class='vc-muted'>Learning preferences</span>",
-            unsafe_allow_html=True,
-        )
+        _section_heading("book", "How you learn", "Choose the support and pace that suit you.")
 
         c3, c4 = st.columns(2)
 
@@ -529,10 +511,7 @@ def _render_edit_form(
         # Subjects and goals
         # -------------------------------------------------------------------
 
-        st.markdown(
-            "<span class='vc-muted'>Subjects & goals</span>",
-            unsafe_allow_html=True,
-        )
+        _section_heading("target", "Subjects & goals", "Tell Vocogni what you are working toward.")
 
         c5, c6 = st.columns(2)
 
@@ -671,7 +650,7 @@ def _render_edit_form(
         # persistence state after that flush.
 
         st.info(
-            "Profile updated. Saving your changes..."
+            "Profile updated. Saving your changes…"
         )
 
     # =========================================================================
