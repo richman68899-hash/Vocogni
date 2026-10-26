@@ -249,8 +249,8 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
 
 def _start_editing_profile() -> None:
     """Open the existing edit form without changing durable learner data."""
+    # Streamlit runs this callback before the next script execution.
     st.session_state.editing_profile = True
-    st.rerun()
 
 
 def _render_read_only(profile: dict[str, Any]) -> None:
