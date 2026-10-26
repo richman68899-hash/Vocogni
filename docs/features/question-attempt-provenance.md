@@ -6,6 +6,10 @@
 
 ## Why this exists
 
+## Scope of this increment
+
+This first slice is wired into the core course lesson-practice result path through `sections/course.py`. The Revision Sprint and Coach currently record attempts through separate existing paths; they are intentionally left unchanged here and should adopt the contract in follow-up increments after their generated-question and source-question semantics are reconciled.
+
 New answers are used by practice history, the revision sprint, coaching and the Mastery Receipt. These consumers need a consistent record of *which question version was answered* and what review/skill context was attached at the time. Without a versioned shared shape, later content edits can make old evidence ambiguous.
 
 ## Contract version 1
@@ -43,7 +47,7 @@ The contract is structural; it does **not** decide whether a question is mathema
 - [x] Schema validation catches malformed metadata without re-verifying the question.
 - [x] Existing attempt history can still be read by the Mastery Receipt.
 - [x] Unit tests are framework-free and use no secrets or database.
-- [ ] Full Python test workflow passes on the PR.
+- [x] Full Python test workflow passes on the PR (run 40283200949).
 - [ ] Hosted lesson/practice flow and signed-in save/reload are manually smoke-tested.
 
 ## Limits
