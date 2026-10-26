@@ -32,7 +32,7 @@ QUESTION_PURPOSES = (
     "reasoning",
 )
 # The contract owns the allowed metadata enum; VQE owns the review decision.
-VERIFICATION_STATUSES = tuple(sorted(learning_contracts.VERIFICATION_STATUSES))
+VERIFICATION_STATUSES = learning_contracts.VERIFICATION_STATUSES
 GRADE_BANDS = (7, 8, 9)
 
 # Only these lessons are opted into strict verified-only retrieval in this
