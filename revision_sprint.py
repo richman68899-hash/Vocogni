@@ -341,23 +341,19 @@ def record_sprint_attempt(progress, course_id, graded_items, completed_at=None):
         full_credit += int(is_correct)
 
         logic.record_answer(progress, course_id, question, is_correct)
+        source_question_id = str(item.get("question_id") or question.get("id", ""))
+        provenance = question_engine.attempt_metadata(
+            source_question_id,
+            course_id=course_id,
+            lesson_id=str(item.get("lesson_id") or ""),
+        )
         result = {
-            "question_id": str(question["id"]),
+            **provenance,
             "correct": is_correct,
             "score": score,
             "max_marks": maximum,
             "skill_tag": item["skill"],
             "mistake_tag": question.get("mistake_tag", item["skill"]),
-            "question_version": item.get("question_version", question.get("question_version", 1)),
-            "skill_id": item.get("skill_id", question.get("skill_id")),
-            "question_purpose": item.get("question_purpose", question.get("purpose")),
-            "verification_status": item.get(
-                "verification_status", question.get("verification_status", "legacy")
-            ),
-            "verification_engine_version": item.get(
-                "verification_engine_version",
-                question.get("verification_engine_version", question_engine.ENGINE_VERSION),
-            ),
         }
         grouped_results.setdefault(item["lesson_id"], []).append(result)
 
