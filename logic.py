@@ -970,11 +970,12 @@ def _wrap_summary(body):
 
 
 # ---------------------------------------------------------------------------
-# Optional sound cue — generated on the fly with the standard library only,
-# so Version 1 needs no bundled audio asset.
+# Optional answer-feedback sounds — generated with the standard library only.
+# They are short, low-volume cues, and are never required for scoring.
 # ---------------------------------------------------------------------------
 
 def _generate_beep_wav_bytes(frequency=880.0, duration_ms=150, volume=0.25, sample_rate=22050):
+    """Keep the original simple beep generator available for compatibility."""
     n_samples = int(sample_rate * duration_ms / 1000)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wf:
@@ -984,13 +985,67 @@ def _generate_beep_wav_bytes(frequency=880.0, duration_ms=150, volume=0.25, samp
         frames = bytearray()
         for i in range(n_samples):
             t = i / sample_rate
-            fade = 1.0 - (i / n_samples)  # avoid a click at the tail
+            fade = 1.0 - (i / n_samples)
             sample = volume * fade * math.sin(2 * math.pi * frequency * t)
             frames += struct.pack("<h", int(sample * 32767))
         wf.writeframes(bytes(frames))
     return buf.getvalue()
 
 
+def _feedback_tone(age, duration, frequency, decay=13.0):
+    """Return a soft, quickly-attacked sine tone with an exponential decay."""
+    if age < 0 or age >= duration:
+        return 0.0
+    attack = min(1.0, age / 0.006)
+    release = max(0.0, 1.0 - age / duration) ** 1.5
+    return math.sin(2 * math.pi * frequency * age) * attack * release * math.exp(-decay * age * 0.12)
+
+
+def _generate_feedback_wav_bytes(kind, sample_rate=22050):
+    """Synthesize a short, volume-limited cue for correct or incorrect answers."""
+    is_correct = kind == "correct"
+    duration = 0.30 if is_correct else 0.24
+    volume = 0.20 if is_correct else 0.14
+    n_samples = int(sample_rate * duration)
+    buf = io.BytesIO()
+
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        frames = bytearray()
+
+        for index in range(n_samples):
+            t = index / sample_rate
+            if is_correct:
+                # Low, rounded note with upward harmonics: a compact bass-chime.
+                sample = (
+                    0.46 * _feedback_tone(t, 0.245, 174.61, 9.0)
+                    + 0.27 * _feedback_tone(t - 0.022, 0.205, 349.23, 11.0)
+                    + 0.17 * _feedback_tone(t - 0.052, 0.165, 523.25, 13.0)
+                    + 0.06 * _feedback_tone(t - 0.064, 0.105, 1046.50, 15.0)
+                )
+            else:
+                # A restrained, descending double bell with metallic partials.
+                sample = (
+                    0.47 * _feedback_tone(t, 0.19, 880.00, 6.0)
+                    + 0.17 * _feedback_tone(t, 0.16, 1760.00, 6.0)
+                    + 0.42 * _feedback_tone(t - 0.065, 0.17, 698.46, 7.0)
+                    + 0.13 * _feedback_tone(t - 0.065, 0.14, 1396.92, 7.0)
+                )
+            # Keep peak amplitude comfortably below full scale to reduce harshness.
+            sample = max(-0.32, min(0.32, sample * volume))
+            frames += struct.pack("<h", int(sample * 32767))
+
+        wf.writeframes(bytes(frames))
+    return buf.getvalue()
+
+
 def get_correct_answer_beep_base64():
-    """Base64-encoded short WAV beep, used for the Settings > Sound option."""
-    return base64.b64encode(_generate_beep_wav_bytes()).decode("ascii")
+    """Base64 WAV for the optional warm bass-and-chime correct-answer cue."""
+    return base64.b64encode(_generate_feedback_wav_bytes("correct")).decode("ascii")
+
+
+def get_wrong_answer_beep_base64():
+    """Base64 WAV for the optional descending-bell incorrect-answer cue."""
+    return base64.b64encode(_generate_feedback_wav_bytes("incorrect")).decode("ascii")

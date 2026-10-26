@@ -35,6 +35,14 @@ def test_display_preferences_still_control_type_and_motion():
     assert "scroll-behavior: auto;" in css
 
 
+def test_wrong_answer_shake_is_subtle_and_respects_reduced_motion():
+    css = styles.build_css({"appearance": "Light"})
+    assert ".vc-feedback--shake" in css
+    assert "animation: vc-answer-shake 280ms ease-in-out both;" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert "animation: none !important;" in css
+
+
 def test_icon_text_and_empty_state_alignment_rules_are_present():
     css = styles.build_css({"appearance": "Light"})
     assert ".vc-icon-text" in css
