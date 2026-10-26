@@ -7,9 +7,11 @@ that are not implemented yet.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import streamlit as st
+import styles
 
 from version import APP_VERSION
 import state
@@ -31,10 +33,21 @@ def _ensure_widget_state(settings: dict[str, Any]) -> None:
             setting_key,
             settings.get(setting_key, DEFAULT_SETTINGS[setting_key]),
         )
-        if widget_key not in st.session_state or st.session_state[widget_key] not in (
-            SETTING_OPTIONS.get(setting_key, [False, True])
-        ):
+        if widget_key not in st.session_state:
             st.session_state[widget_key] = valid_value
+            continue
+
+        current_value = st.session_state[widget_key]
+        allowed_values = SETTING_OPTIONS.get(setting_key)
+        if allowed_values is not None and current_value not in allowed_values:
+            st.session_state[widget_key] = valid_value
+            continue
+
+        # Normalize malformed saved/widget values (notably custom hex colours),
+        # while preserving valid choices already made in the current rerun.
+        normalized = _safe_value(setting_key, current_value)
+        if normalized != current_value:
+            st.session_state[widget_key] = normalized
 
 
 def _apply_values(values: dict[str, Any]) -> None:
@@ -119,12 +132,14 @@ def render() -> None:
                     args=(name,),
                 )
 
-    appearance_col, learning_col = st.columns(2, gap="large")
+    # Keep decorative controls in a full-width panel rather than an overly tall
+    # half-width column. Group the controls by what they change.
+    with st.container(border=True):
+        st.subheader("Appearance")
+        st.caption("Personalize the typeface, colour mood, and shape of your workspace.")
+        theme_col, style_col, accent_col = st.columns([1, 1, 1.05], gap="large")
 
-    with appearance_col:
-        with st.container(border=True):
-            st.subheader("Appearance")
-            st.caption("Set the interface theme and text size.")
+        with theme_col:
             st.radio(
                 "Theme",
                 SETTING_OPTIONS["appearance"],
@@ -137,19 +152,78 @@ def render() -> None:
                 horizontal=True,
                 key=SETTING_WIDGET_KEYS["text_size"],
             )
-            st.markdown("**Preview**")
-            st.markdown(
-                "<div class='vc-summary-box'>"
-                "<strong>Example lesson note</strong><br>"
-                "Read the idea, solve a question, then apply it to a new problem."
-                "</div>",
-                unsafe_allow_html=True,
+
+        with style_col:
+            st.selectbox(
+                "Interface font",
+                SETTING_OPTIONS["font_family"],
+                key=SETTING_WIDGET_KEYS["font_family"],
+                help="Changes the typeface throughout lessons, navigation, and settings.",
+            )
+            st.selectbox(
+                "Background tone",
+                SETTING_OPTIONS["background_tone"],
+                key=SETTING_WIDGET_KEYS["background_tone"],
+                help="Choose a neutral, warm paper-like, or cool blue-grey workspace.",
+            )
+            st.selectbox(
+                "Corner style",
+                SETTING_OPTIONS["corner_style"],
+                key=SETTING_WIDGET_KEYS["corner_style"],
+                help="Changes the shape of cards, inputs, and buttons across the app.",
             )
 
-    with learning_col:
-        with st.container(border=True):
-            st.subheader("Learning preferences")
-            st.caption("Choose when to see feedback and when to use hints.")
+        with accent_col:
+            st.toggle(
+                "Use a custom accent colour",
+                key=SETTING_WIDGET_KEYS["use_custom_accent"],
+                help="Customize buttons, links, progress indicators, and active navigation.",
+            )
+            st.color_picker(
+                "Accent colour",
+                key=SETTING_WIDGET_KEYS["custom_accent_color"],
+                disabled=not st.session_state[SETTING_WIDGET_KEYS["use_custom_accent"]],
+                help="Low-contrast colours are adjusted automatically to keep controls readable.",
+            )
+
+        st.caption("Your choices apply across Vocogni and save automatically.")
+        st.markdown("**Preview**")
+        custom_enabled = bool(st.session_state[SETTING_WIDGET_KEYS["use_custom_accent"]])
+        selected_accent = _safe_value(
+            "custom_accent_color",
+            st.session_state[SETTING_WIDGET_KEYS["custom_accent_color"]],
+        )
+        preview_css = styles.build_css({
+            "appearance": st.session_state[SETTING_WIDGET_KEYS["appearance"]],
+            "background_tone": st.session_state[SETTING_WIDGET_KEYS["background_tone"]],
+            "use_custom_accent": custom_enabled,
+            "custom_accent_color": selected_accent,
+        })
+        accent_match = re.search(r"--vc-accent: (#[0-9A-F]{6});", preview_css)
+        text_match = re.search(r"--vc-on-accent: (#[0-9A-F]{6});", preview_css)
+        preview_accent = accent_match.group(1) if accent_match else selected_accent
+        preview_text = text_match.group(1) if text_match else "#FFFFFF"
+        st.markdown(
+            "<div class='vc-summary-box' style='border-left-color:"
+            + preview_accent
+            + ";'>"
+            "<strong>Example lesson note</strong><br>"
+            "Read the idea, solve a question, then apply it to a new problem.<br>"
+            "<span style='display:inline-block;margin-top:.55rem;padding:.18rem .5rem;"
+            "border-radius:5px;background:"
+            + preview_accent
+            + ";color:"
+            + preview_text
+            + ";font-size:.78rem;font-weight:600;'>Accent preview</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    with st.container(border=True):
+        st.subheader("Learning preferences")
+        st.caption("Choose when to see feedback and when to use hints.")
+        feedback_col, hint_col = st.columns(2, gap="large")
+        with feedback_col:
             st.radio(
                 "Feedback timing",
                 SETTING_OPTIONS["feedback_timing"],
@@ -159,6 +233,7 @@ def render() -> None:
                     "After submission shows a combined summary at the end of the lesson."
                 ),
             )
+        with hint_col:
             st.selectbox(
                 "Hint assistance",
                 SETTING_OPTIONS["difficulty"],
@@ -213,7 +288,7 @@ def render() -> None:
                 key=SETTING_WIDGET_KEYS["high_readability"],
                 help="Increases line spacing to make longer text blocks easier to track.",
             )
-            st.caption("These options change display and motion only, not lesson content.")
+            st.caption("These options change display and motion only, not lesson content. Typography, colour, and card shape are controlled above.")
 
     st.divider()
     reset_col, info_col = st.columns([1, 3], gap="medium")

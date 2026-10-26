@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 
 DEFAULT_SETTINGS: dict[str, Any] = {
@@ -14,6 +15,12 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "reduced_motion": False,
     "larger_text": False,
     "high_readability": False,
+    # Decorative preferences are saved in the same backward-compatible bundle.
+    "font_family": "Inter",
+    "background_tone": "Neutral",
+    "corner_style": "Standard",
+    "use_custom_accent": False,
+    "custom_accent_color": "#176B5B",
 }
 
 SETTING_WIDGET_KEYS = {
@@ -25,6 +32,11 @@ SETTING_WIDGET_KEYS = {
     "sound": "settings_sound",
     "larger_text": "settings_larger_text",
     "high_readability": "settings_high_readability",
+    "font_family": "settings_font_family",
+    "background_tone": "settings_background_tone",
+    "corner_style": "settings_corner_style",
+    "use_custom_accent": "settings_use_custom_accent",
+    "custom_accent_color": "settings_custom_accent_color",
 }
 
 SETTING_OPTIONS = {
@@ -32,6 +44,9 @@ SETTING_OPTIONS = {
     "text_size": ["Small", "Medium", "Large"],
     "feedback_timing": ["Immediate", "After submission"],
     "difficulty": ["Adaptive", "Easy", "Hard"],
+    "font_family": ["Inter", "Manrope", "Atkinson Hyperlegible", "Source Serif 4"],
+    "background_tone": ["Neutral", "Warm", "Cool"],
+    "corner_style": ["Standard", "Rounded", "Square"],
 }
 
 PRESETS: dict[str, dict[str, Any]] = {
@@ -62,6 +77,11 @@ def safe_value(key: str, value: Any) -> Any:
     # had no distinct behavior. Map it to the existing on-request behavior.
     if key == "difficulty" and value == "Medium":
         return "Adaptive"
+    if key == "custom_accent_color":
+        # Keep arbitrary persisted values from becoming CSS or HTML injection.
+        if isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", value.strip()):
+            return value.strip().upper()
+        return DEFAULT_SETTINGS[key]
     if key in SETTING_OPTIONS:
         return value if value in SETTING_OPTIONS[key] else DEFAULT_SETTINGS[key]
     if key not in DEFAULT_SETTINGS:
@@ -93,4 +113,12 @@ def current_summary(settings: dict[str, Any]) -> str:
         else "Motion enabled"
     )
     sound = "Sound on" if settings.get("sound", True) else "Sound off"
-    return f"{theme} theme  ·  {text} text  ·  {feedback.lower()} feedback  ·  {motion}  ·  {sound}"
+    font = settings.get("font_family", "Inter")
+    tone = settings.get("background_tone", "Neutral")
+    corners = settings.get("corner_style", "Standard")
+    accent = "custom accent" if settings.get("use_custom_accent", False) else "theme accent"
+    return (
+        f"{theme} theme  ·  {font} font  ·  {text} text  ·  "
+        f"{tone.lower()} background  ·  {corners.lower()} corners  ·  "
+        f"{feedback.lower()} feedback  ·  {motion}  ·  {sound}  ·  {accent}"
+    )

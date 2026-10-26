@@ -28,6 +28,11 @@ class SettingsPageTests(unittest.TestCase):
                 "sound",
                 "larger_text",
                 "high_readability",
+                "font_family",
+                "background_tone",
+                "corner_style",
+                "use_custom_accent",
+                "custom_accent_color",
             },
         )
         self.assertTrue(
@@ -43,6 +48,10 @@ class SettingsPageTests(unittest.TestCase):
         self.assertEqual(settings_model.SETTING_OPTIONS["difficulty"], ["Adaptive", "Easy", "Hard"])
         self.assertFalse(settings_model.safe_value("sound", "false"))
         self.assertTrue(settings_model.safe_value("sound", "true"))
+        self.assertEqual(settings_model.safe_value("font_family", "Not a font"), "Inter")
+        self.assertEqual(settings_model.safe_value("custom_accent_color", "#aabbcc"), "#AABBCC")
+        self.assertEqual(settings_model.safe_value("custom_accent_color", "bad-colour"), "#176B5B")
+        self.assertEqual(settings_model.safe_value("custom_accent_color", "#FFF"), "#176B5B")
 
     def test_setup_summary_reflects_real_setting_labels(self):
         summary = settings_model.current_summary(settings_model.DEFAULT_SETTINGS)
@@ -58,6 +67,11 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("Learning preferences", source)
         self.assertIn("Focus & interaction", source)
         self.assertIn("Reading comfort", source)
+        self.assertIn("Interface font", source)
+        self.assertIn("Background tone", source)
+        self.assertIn("Corner style", source)
+        self.assertIn("st.color_picker(", source)
+        self.assertIn("Use a custom accent colour", source)
         lowered = source.lower()
         self.assertNotIn("neurodivergence", lowered)
         self.assertNotIn("adhd", lowered)

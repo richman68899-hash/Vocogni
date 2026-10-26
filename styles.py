@@ -1,15 +1,16 @@
 """Vocogni visual system.
 
-A quiet, high-clarity interface for learning: one type family, one primary
-accent, restrained surfaces, consistent spacing, and strong focus states.
-Theme, text scale, readability spacing, and motion remain learner-controlled.
+A restrained, high-clarity interface for learning. Learners can personalize
+type, accent colour, surface tone, corner shape, scale, spacing, and motion
+without changing the learning content or durable progress model.
 """
+import re
 from string import Template
 
 
 _CSS_TEMPLATE = Template("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;500;600;700&display=swap');
 
 :root {
     color-scheme: $color_scheme;
@@ -28,10 +29,14 @@ _CSS_TEMPLATE = Template("""
     --vc-error-bg: $error_bg;
     --vc-nav-active-bg: $nav_active_bg;
     --vc-nav-active-text: $nav_active_text;
+    --vc-font-family: $font_family;
+    --vc-heading-font-family: $heading_font_family;
+    --vc-radius-control: $radius_control;
+    --vc-radius-card: $radius_card;
 }
 
 html, body, .stApp, [data-testid="stAppViewContainer"] {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: var(--vc-font-family) !important;
     background: var(--vc-bg) !important;
     color: var(--vc-text) !important;
     font-size: $base_px;
@@ -76,7 +81,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 h1, h2, h3, h4, .vc-heading {
-    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: var(--vc-heading-font-family) !important;
     color: var(--vc-text) !important;
     font-weight: 650 !important;
     letter-spacing: -0.035em;
@@ -89,7 +94,7 @@ h3 { font-size: 1.22rem !important; margin: 1.25rem 0 0.6rem 0 !important; }
 h4 { font-size: 1.02rem !important; margin: 0 0 0.5rem 0 !important; }
 
 p, li, label, input, textarea, button, select {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: var(--vc-font-family) !important;
 }
 
 a, [data-testid="stMarkdownContainer"] a {
@@ -209,7 +214,7 @@ hr, [data-testid="stDivider"] {
 
 .vc-stat-number {
     color: var(--vc-text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: var(--vc-font-family) !important;
     font-size: 1.55rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
@@ -419,7 +424,7 @@ html, body, .stApp, [data-testid="stAppViewContainer"] {
 }
 
 h1, h2, h3, h4, .vc-heading {
-    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: var(--vc-heading-font-family) !important;
     font-weight: 650 !important;
     letter-spacing: -0.028em;
 }
@@ -562,7 +567,7 @@ textarea:focus-visible,
     margin: 0.15rem 0 1.65rem;
 }
 h1, h2, h3, h4, .vc-heading {
-    font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-family: var(--vc-heading-font-family) !important;
     letter-spacing: -0.035em;
     line-height: 1.22;
 }
@@ -590,7 +595,7 @@ h4 { font-size: 1rem !important; font-weight: 700 !important; }
 .vc-card { padding: 1.15rem 1.2rem; }
 .vc-card--current { border-color: var(--vc-border); border-left: 3px solid var(--vc-accent); }
 .vc-stat-number {
-    font-family: 'Manrope', 'Inter', sans-serif !important;
+    font-family: var(--vc-heading-font-family) !important;
     font-size: 1.55rem;
     font-weight: 750;
     letter-spacing: -0.04em;
@@ -1066,8 +1071,75 @@ html {
     color: var(--vc-subtext) !important;
 }
 
+/* Learner-selected personalization, applied after component defaults. */
+.vc-card, .vc-lesson-row, .vc-summary-box, .vc-challenge-box, .vc-feedback,
+.vc-badge, .vc-recommend-chip,
+[data-testid="stVerticalBlockBorderWrapper"], [data-testid="stMetric"],
+[data-testid="stExpander"], [data-testid="stAlert"] {
+    border-radius: var(--vc-radius-card) !important;
+}
+.stButton > button, .stFormSubmitButton > button,
+[data-testid="stDownloadButton"] > button,
+.stApp input:not([type="checkbox"]):not([type="radio"]),
+.stApp textarea, .stApp [data-baseweb="select"] > div {
+    border-radius: var(--vc-radius-control) !important;
+}
 </style>
 """)
+
+
+def _hex_rgb(value: str) -> tuple[int, int, int]:
+    """Parse a validated six-digit hexadecimal colour."""
+    value = value.lstrip("#")
+    return tuple(int(value[index:index + 2], 16) for index in (0, 2, 4))
+
+
+def _rgb_hex(rgb: tuple[int, int, int]) -> str:
+    return "#" + "".join(f"{max(0, min(255, round(channel))):02X}" for channel in rgb)
+
+
+def _relative_luminance(value: str) -> float:
+    channels = [channel / 255 for channel in _hex_rgb(value)]
+    linear = [
+        channel / 12.92 if channel <= 0.04045
+        else ((channel + 0.055) / 1.055) ** 2.4
+        for channel in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast_ratio(first: str, second: str) -> float:
+    high, low = sorted((_relative_luminance(first), _relative_luminance(second)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def _contrast_safe_accent(value: str, surface: str, dark: bool) -> str:
+    """Adjust a custom accent only as much as needed for readable links and controls."""
+    if _contrast_ratio(value, surface) >= 4.5:
+        return value
+    original = _hex_rgb(value)
+    target = (255, 255, 255) if dark else (0, 0, 0)
+    for step in range(1, 101):
+        amount = step / 100
+        candidate = _rgb_hex(tuple(
+            original[i] + (target[i] - original[i]) * amount
+            for i in range(3)
+        ))
+        if _contrast_ratio(candidate, surface) >= 4.5:
+            return candidate
+    return _rgb_hex(target)
+
+
+def _best_button_text(background: str) -> str:
+    """Select whichever of white or deep ink has the stronger contrast."""
+    light = "#FFFFFF"
+    dark = "#14241F"
+    return light if _contrast_ratio(light, background) >= _contrast_ratio(dark, background) else dark
+
+
+def _tint(surface: str, accent: str, amount: float) -> str:
+    base_rgb, accent_rgb = _hex_rgb(surface), _hex_rgb(accent)
+    return _rgb_hex(tuple(base_rgb[i] * (1 - amount) + accent_rgb[i] * amount for i in range(3)))
 
 
 def build_css(settings: dict) -> str:
@@ -1081,6 +1153,21 @@ def build_css(settings: dict) -> str:
 
     line_height = 1.82 if settings.get("high_readability") else 1.62
     no_motion = (not settings.get("animations", True)) or settings.get("reduced_motion", False)
+    font_choices = {
+        "Inter": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        "Manrope": "'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        "Atkinson Hyperlegible": "'Atkinson Hyperlegible', 'Inter', sans-serif",
+        "Source Serif 4": "'Source Serif 4', Georgia, serif",
+    }
+    font_family = font_choices.get(settings.get("font_family", "Inter"), font_choices["Inter"])
+    background_tone = settings.get("background_tone", "Neutral")
+    corner_style = settings.get("corner_style", "Standard")
+    radius_choices = {
+        "Standard": ("8px", "10px"),
+        "Rounded": ("13px", "16px"),
+        "Square": ("3px", "4px"),
+    }
+    radius_control, radius_card = radius_choices.get(corner_style, radius_choices["Standard"])
 
     if dark:
         tokens = dict(
@@ -1121,10 +1208,44 @@ def build_css(settings: dict) -> str:
             nav_active_text="#15594B",
         )
 
+    # Optional surface palettes preserve the selected light/dark theme while
+    # allowing a warmer paper-like canvas or a cooler blue-grey workspace.
+    palettes = {
+        "Light": {
+            "Warm": dict(bg="#FAF7F2", surface="#FFFCF7", surface_alt="#F3EDE3", border="#E6DCCF", nav_active_bg="#EFE5D6", nav_active_text="#684B27"),
+            "Cool": dict(bg="#F4F7FA", surface="#FFFFFF", surface_alt="#EAF0F6", border="#D9E3EC", nav_active_bg="#E0EAF3", nav_active_text="#254B69"),
+        },
+        "Dark": {
+            "Warm": dict(bg="#181512", surface="#211D19", surface_alt="#2B251F", border="#463B31", nav_active_bg="#30271E", nav_active_text="#E4C8A0"),
+            "Cool": dict(bg="#141920", surface="#1C242D", surface_alt="#252F3A", border="#364654", nav_active_bg="#263845", nav_active_text="#B7D9F2"),
+        },
+    }
+    tone_palette = palettes.get("Dark" if dark else "Light", {}).get(background_tone)
+    if tone_palette:
+        tokens.update(tone_palette)
+
+    if settings.get("use_custom_accent", False):
+        selected = settings.get("custom_accent_color", "#176B5B")
+        if not isinstance(selected, str) or not re.fullmatch(r"#[0-9A-Fa-f]{6}", selected):
+            selected = "#79C8AD" if dark else "#176B5B"
+        # Keep customized colour legible on the chosen surface. Extreme light
+        # or dark picks are nudged toward a WCAG AA contrast-safe shade.
+        accent = _contrast_safe_accent(selected.upper(), tokens["surface"], dark)
+        tokens["accent"] = accent
+        tokens["on_accent"] = _best_button_text(accent)
+        tokens["nav_active_bg"] = _tint(tokens["surface"], accent, 0.12 if dark else 0.08)
+        tokens["nav_active_text"] = _contrast_safe_accent(
+            accent, tokens["nav_active_bg"], dark
+        )
+
     tokens.update(
         base_px=f"{base_px}px",
         line_height=line_height,
         transition="none" if no_motion else "all 0.16s ease",
         scroll_behavior="auto" if no_motion else "smooth",
+        font_family=font_family,
+        heading_font_family=font_family,
+        radius_control=radius_control,
+        radius_card=radius_card,
     )
     return _CSS_TEMPLATE.substitute(tokens)
