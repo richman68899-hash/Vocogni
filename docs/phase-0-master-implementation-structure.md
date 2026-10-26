@@ -348,7 +348,7 @@ The product should present one connected journey rather than a collection of unr
 - **Learn:** course library, course map, lessons, diagnostics and practice.
 - **Study materials:** learner-owned sources, notes and source-grounded study resources.
 - **Tutor:** guided help tied to the current course, skill, or selected source.
-- **Create Course** (author-only route): create and revise private course drafts. Keep it hidden until the manual authoring, validation and save/reload path is functional; shared publishing is a later capability.
+- **Create Course** (private-draft route): create and revise owner-only course drafts. Keep it hidden until the manual authoring, validation and save/reload path is functional; shared publishing requires explicit reviewer permissions.
 - **Progress:** evidence by skill, course completion, recent attempts, review schedule and the next recommended action.
 - **Settings / Profile:** learner preferences, identity, privacy and account controls.
 
@@ -591,7 +591,7 @@ The recommended immediate post-Phase-0 order is:
 6. **Source-workspace spike:** test one source type, one source citation format and one learner task before implementing a generic ingestion pipeline.
 7. **AI adapter spike:** only after the source contract and test set exist; keep provider-specific behavior behind one interface and retain deterministic fallback.
 
-Each backlog item should be delivered as a bounded PR with tests and evidence. Do not stack all six into one enormous merge.
+Each backlog item should be delivered as a bounded PR with tests and evidence. Do not stack all seven into one enormous merge.
 
 ---
 
