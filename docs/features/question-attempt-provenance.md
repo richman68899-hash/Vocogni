@@ -58,7 +58,7 @@ The contract is structural; it does **not** decide whether a question is mathema
 - [x] Schema validation catches malformed metadata without re-verifying the question.
 - [x] Existing attempt history can still be read by the Mastery Receipt; historical records are not rewritten.
 - [x] Unit tests are framework-free and use no secrets or database.
-- [ ] CI on this increment must pass before merge.
+- [x] Python test workflow passed on PR run 40284596861; diagnostics workflow passed on run 40284596858.
 - [ ] Hosted lesson/practice, Coach, Revision Sprint, and signed-in save/reload are manually smoke-tested.
 
 ## Limits
