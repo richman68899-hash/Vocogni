@@ -48,6 +48,10 @@ class SettingsPageTests(unittest.TestCase):
         self.assertEqual(settings_model.SETTING_OPTIONS["difficulty"], ["Adaptive", "Easy", "Hard"])
         self.assertFalse(settings_model.safe_value("sound", "false"))
         self.assertTrue(settings_model.safe_value("sound", "true"))
+        self.assertEqual(settings_model.safe_value("font_family", "Not a font"), "Inter")
+        self.assertEqual(settings_model.safe_value("custom_accent_color", "#aabbcc"), "#AABBCC")
+        self.assertEqual(settings_model.safe_value("custom_accent_color", "bad-colour"), "#176B5B")
+        self.assertEqual(settings_model.safe_value("custom_accent_color", "#FFF"), "#176B5B")
 
     def test_setup_summary_reflects_real_setting_labels(self):
         summary = settings_model.current_summary(settings_model.DEFAULT_SETTINGS)
