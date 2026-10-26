@@ -132,3 +132,47 @@ def test_dark_mode_styles_calendar_and_multiselect_chip_text():
     assert '[data-baseweb="tag"] span' in css
     assert '[data-baseweb="tag"] svg' in css
     assert "$" not in css
+
+
+
+def test_custom_appearance_preferences_change_the_rendered_css():
+    css = styles.build_css({
+        "appearance": "Dark",
+        "font_family": "Source Serif 4",
+        "background_tone": "Cool",
+        "corner_style": "Rounded",
+        "use_custom_accent": True,
+        "custom_accent_color": "#FFF000",
+    })
+    assert "--vc-bg: #141920;" in css
+    assert "--vc-font-family: 'Source Serif 4', Georgia, serif;" in css
+    assert "--vc-heading-font-family: 'Source Serif 4', Georgia, serif;" in css
+    assert "--vc-radius-control: 13px;" in css
+    assert "--vc-radius-card: 16px;" in css
+    assert "$" not in css
+
+
+def test_custom_accent_is_adjusted_for_contrast_and_keeps_button_text_readable():
+    css = styles.build_css({
+        "appearance": "Light",
+        "use_custom_accent": True,
+        "custom_accent_color": "#FFFFFF",
+    })
+    accent = _theme_color(css, "accent")
+    surface = _theme_color(css, "surface")
+    button_text = _theme_color(css, "on_accent")
+    nav_bg = _theme_color(css, "nav_active_bg")
+    nav_text = _theme_color(css, "nav_active_text")
+    assert _contrast_ratio(accent, surface) >= 4.5
+    assert _contrast_ratio(button_text, accent) >= 4.5
+    assert _contrast_ratio(nav_text, nav_bg) >= 4.5
+
+
+def test_invalid_custom_accent_falls_back_safely():
+    css = styles.build_css({
+        "appearance": "Light",
+        "use_custom_accent": True,
+        "custom_accent_color": "javascript:alert(1)",
+    })
+    assert "--vc-accent: #176B5B;" in css
+    assert "$" not in css
