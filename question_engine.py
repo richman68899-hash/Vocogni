@@ -18,6 +18,7 @@ from typing import Any
 import data
 import math_grading
 import math_taxonomy
+import learning_contracts
 
 
 ENGINE_VERSION = "vqe-prototype-1"
@@ -975,28 +976,39 @@ def attempt_metadata(
     course_id: str | None = None,
     lesson_id: str | None = None,
 ) -> dict[str, Any]:
-    """Return stable provenance fields to attach to a new saved answer record."""
+    """Return the versioned provenance contract for a new saved answer.
+
+    VQE remains the authority for question verification. This adapter adds the
+    stable question/course/lesson identity and returns the same schema for
+    registered and legacy questions, without changing historical records.
+    """
     record = get_question_record(
         question_id, course_id=course_id, lesson_id=lesson_id
     )
     if record is None:
-        return {
-            "question_version": 1,
-            "skill_id": None,
-            "question_purpose": None,
-            "verification_status": "legacy",
-            "verification_engine_version": ENGINE_VERSION,
-        }
+        return learning_contracts.build_question_provenance(
+            question_id,
+            course_id=course_id,
+            lesson_id=lesson_id,
+            question_version=1,
+            skill_id=None,
+            question_purpose=None,
+            verification_status="legacy",
+            verification_engine_version=ENGINE_VERSION,
+        )
+
     question = record["question"]
-    return {
-        "question_version": question.get("question_version", 1),
-        "skill_id": question.get("skill_id"),
-        "question_purpose": question.get("purpose"),
-        "verification_status": record.get("verification_status", "legacy"),
-        "verification_engine_version": ENGINE_VERSION,
-    }
-
-
+    return learning_contracts.build_question_provenance(
+        question_id,
+        course_id=record.get("course_id") or course_id,
+        lesson_id=record.get("lesson_id") or lesson_id,
+        question_version=question.get("question_version", 1),
+        skill_id=question.get("skill_id"),
+        question_purpose=question.get("purpose"),
+        verification_status=record.get("verification_status", "legacy"),
+        verification_engine_version=ENGINE_VERSION,
+        question_source_field=record.get("source_field"),
+    )
 def validate_registry() -> list[str]:
     """Validate registry consistency without reading course content."""
     errors = []
