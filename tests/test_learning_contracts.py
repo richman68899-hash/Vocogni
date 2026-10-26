@@ -7,6 +7,12 @@ import question_engine
 
 
 class QuestionProvenanceContractTests(unittest.TestCase):
+    def test_contract_statuses_match_vqe_allowed_statuses(self):
+        self.assertEqual(
+            set(learning_contracts.VERIFICATION_STATUSES),
+            set(question_engine.VERIFICATION_STATUSES),
+        )
+
     def test_verified_question_metadata_uses_common_versioned_contract(self):
         metadata = question_engine.attempt_metadata(
             "fractions_l1_q1",
