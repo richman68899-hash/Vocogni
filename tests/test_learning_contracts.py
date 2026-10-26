@@ -68,7 +68,7 @@ class QuestionProvenanceContractTests(unittest.TestCase):
         corrupted = copy.deepcopy(metadata)
         corrupted["provenance_schema_version"] = 2
         corrupted["question_version"] = 0
-        corrupted["verification_status"] = "approved-by-ai"
+        corrupted["verification_status"] = []
         corrupted["question_id"] = "  "
 
         issues = learning_contracts.validate_question_provenance(corrupted)
