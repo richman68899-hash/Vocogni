@@ -6,6 +6,7 @@ runs without the Streamlit UI dependency installed.
 import unittest
 from pathlib import Path
 
+import learning_contracts
 import logic
 import math_taxonomy
 import question_engine
@@ -40,6 +41,10 @@ class VQEIntegrationTests(unittest.TestCase):
             COACH_SOURCE,
         )
         self.assertIn('coach_data.setdefault("attempts", [])', COACH_SOURCE)
+        self.assertIn("question_engine.attempt_metadata(", COACH_SOURCE)
+        self.assertIn("learning_contracts.add_presentation_context(", COACH_SOURCE)
+        self.assertIn('question_origin = (', COACH_SOURCE)
+        self.assertIn('content_modified=generated_variant', COACH_SOURCE)
 
     def test_revision_sprint_uses_verified_pilot_and_preserves_legacy_lessons(self):
         bank = revision_sprint.question_bank_for_course("fractions")
@@ -78,6 +83,14 @@ class VQEIntegrationTests(unittest.TestCase):
         self.assertEqual(result["skill_id"], "math.number.fraction_representation")
         self.assertEqual(result["verification_status"], "verified")
         self.assertEqual(result["question_purpose"], "conceptual")
+        self.assertEqual(
+            result["provenance_schema_version"],
+            learning_contracts.PROVENANCE_SCHEMA_VERSION,
+        )
+        self.assertEqual(result["course_id"], "fractions")
+        self.assertEqual(result["lesson_id"], "fractions_l1")
+        self.assertTrue(result["question_source_field"])
+        self.assertEqual(learning_contracts.validate_question_provenance(result), [])
 
     def test_mastery_receipt_groups_vqe_attempts_by_stable_skill_id(self):
         progress = {"fractions": logic.blank_course_progress()}

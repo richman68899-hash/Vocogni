@@ -8,6 +8,7 @@ import streamlit as st
 
 import data
 import logic
+import learning_contracts
 import question_engine
 import state
 
@@ -114,11 +115,13 @@ def _randomized_question(course_id, lesson_id, index):
         question["explanation"] = f"Find two numbers that multiply to {c} and add to {a + b}: {a} and {b}."
         question["id"] = f"coach_factor_{index}_{a}_{b}"
         question["verification_status"] = "generated_template"
+        question["_coach_generated_variant"] = True
         question["verification_engine_version"] = question_engine.ENGINE_VERSION
     else:
         if question["type"] == "mc" and question["options"]:
             random.shuffle(question["options"])
         question["id"] = f"coach_{index}_{question.get('id', 'question')}"
+        question["_coach_generated_variant"] = False
     question["coach_source_lesson"] = lesson.get("title", "Lesson practice")
     return question
 
@@ -213,16 +216,29 @@ def render(progress, show_heading=True):
                 "total_mistakes": 0,
             })
             coach_data["questions_attempted"] = int(coach_data.get("questions_attempted", 0)) + 1
+            source_question_id = str(
+                question.get("_vqe_source_question_id", question.get("id", ""))
+            )
+            provenance = question_engine.attempt_metadata(
+                source_question_id,
+                course_id=course_id,
+                lesson_id=lesson_id,
+            )
+            generated_variant = bool(question.get("_coach_generated_variant"))
+            question_origin = (
+                "generated_template"
+                if generated_variant
+                else "authored_option_shuffle" if question.get("type") == "mc"
+                else "authored_reuse"
+            )
+            attempt_provenance = learning_contracts.add_presentation_context(
+                provenance,
+                presented_question_id=str(question.get("id", "")),
+                question_origin=question_origin,
+                content_modified=generated_variant,
+            )
             coach_data.setdefault("attempts", []).append({
-                "question_id": str(question.get("_vqe_source_question_id", question.get("id", ""))),
-                "presented_question_id": str(question.get("id", "")),
-                "question_version": question.get("question_version", 1),
-                "skill_id": question.get("skill_id"),
-                "question_purpose": question.get("purpose"),
-                "verification_status": question.get("verification_status", "legacy"),
-                "verification_engine_version": question.get(
-                    "verification_engine_version", question_engine.ENGINE_VERSION
-                ),
+                **attempt_provenance,
                 "user_answer": answer,
                 "correct": bool(is_correct),
                 "completed_at": datetime.now(timezone.utc).isoformat(),

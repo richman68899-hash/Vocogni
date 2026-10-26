@@ -96,6 +96,55 @@ class QuestionProvenanceContractTests(unittest.TestCase):
             )
         )
 
+    def test_generated_presentation_does_not_inherit_verified_status(self):
+        source = question_engine.attempt_metadata(
+            "fractions_l1_q1",
+            course_id="fractions",
+            lesson_id="fractions_l1",
+        )
+        presented = learning_contracts.add_presentation_context(
+            source,
+            presented_question_id="coach_factor_3_2_4",
+            question_origin="generated_template",
+            content_modified=True,
+        )
+
+        self.assertEqual(presented["question_id"], "fractions_l1_q1")
+        self.assertEqual(presented["presented_question_id"], "coach_factor_3_2_4")
+        self.assertEqual(presented["question_origin"], "generated_template")
+        self.assertEqual(presented["verification_status"], "needs_review")
+        self.assertEqual(learning_contracts.validate_question_provenance(presented), [])
+
+    def test_reused_authored_presentation_preserves_source_verification(self):
+        source = question_engine.attempt_metadata(
+            "fractions_l1_q1",
+            course_id="fractions",
+            lesson_id="fractions_l1",
+        )
+        presented = learning_contracts.add_presentation_context(
+            source,
+            presented_question_id="coach_0_fractions_l1_q1",
+            question_origin="authored_option_shuffle",
+        )
+
+        self.assertEqual(presented["question_id"], "fractions_l1_q1")
+        self.assertEqual(presented["presented_question_id"], "coach_0_fractions_l1_q1")
+        self.assertEqual(presented["verification_status"], "verified")
+        self.assertEqual(learning_contracts.validate_question_provenance(presented), [])
+
+    def test_retired_source_is_never_promoted_by_presentation_helper(self):
+        retired = learning_contracts.build_question_provenance(
+            "retired-q",
+            verification_status="retired",
+        )
+        presented = learning_contracts.add_presentation_context(
+            retired,
+            presented_question_id="derived-retired-q",
+            question_origin="generated_template",
+            content_modified=True,
+        )
+        self.assertEqual(presented["verification_status"], "retired")
+
     def test_legacy_attempts_without_contract_fields_remain_readable_by_mastery_receipt(self):
         # Historical results predate provenance versioning. They remain valid
         # inputs to the existing receipt builder and are not force-migrated.

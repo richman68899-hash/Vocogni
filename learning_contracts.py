@@ -97,3 +97,38 @@ def validate_question_provenance(record: Any) -> list[str]:
         )
 
     return issues
+
+
+def add_presentation_context(
+    provenance: dict[str, Any],
+    *,
+    presented_question_id: str,
+    question_origin: str,
+    content_modified: bool = False,
+) -> dict[str, Any]:
+    """Attach display-instance context without confusing it with source identity.
+
+    ``question_id`` continues to identify the canonical source item. Consumers
+    that render a derived or reshuffled presentation can record its separate ID.
+    When the displayed content was materially changed, it must not inherit a
+    source item's verified status. A retired source remains retired.
+    """
+    issues = validate_question_provenance(provenance)
+    if issues:
+        raise ValueError("Invalid question provenance: " + "; ".join(issues))
+
+    presented_id = _optional_text(presented_question_id)
+    origin = _optional_text(question_origin)
+    if presented_id is None:
+        raise ValueError("presented_question_id must be a non-empty string.")
+    if origin is None:
+        raise ValueError("question_origin must be a non-empty string.")
+
+    result = dict(provenance)
+    result["presented_question_id"] = presented_id
+    result["question_origin"] = origin
+
+    if content_modified and result["verification_status"] != "retired":
+        result["verification_status"] = "needs_review"
+
+    return result
