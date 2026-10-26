@@ -7,9 +7,11 @@ that are not implemented yet.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import streamlit as st
+import styles
 
 from version import APP_VERSION
 import state
@@ -184,9 +186,16 @@ def render() -> None:
                 "custom_accent_color",
                 st.session_state[SETTING_WIDGET_KEYS["custom_accent_color"]],
             )
-            preview_accent = selected_accent if custom_enabled else (
-                "#79C8AD" if st.session_state[SETTING_WIDGET_KEYS["appearance"]] == "Dark" else "#176B5B"
-            )
+            preview_css = styles.build_css({
+                "appearance": st.session_state[SETTING_WIDGET_KEYS["appearance"]],
+                "background_tone": st.session_state[SETTING_WIDGET_KEYS["background_tone"]],
+                "use_custom_accent": custom_enabled,
+                "custom_accent_color": selected_accent,
+            })
+            accent_match = re.search(r"--vc-accent: (#[0-9A-F]{6});", preview_css)
+            text_match = re.search(r"--vc-on-accent: (#[0-9A-F]{6});", preview_css)
+            preview_accent = accent_match.group(1) if accent_match else selected_accent
+            preview_text = text_match.group(1) if text_match else "#FFFFFF"
             st.markdown(
                 "<div class='vc-summary-box' style='border-left-color:"
                 + preview_accent
@@ -196,7 +205,9 @@ def render() -> None:
                 "<span style='display:inline-block;margin-top:.55rem;padding:.18rem .5rem;"
                 "border-radius:5px;background:"
                 + preview_accent
-                + ";color:#fff;font-size:.78rem;font-weight:600;'>Accent preview</span>"
+                + ";color:"
+                + preview_text
+                + ";font-size:.78rem;font-weight:600;'>Accent preview</span>"
                 "</div>",
                 unsafe_allow_html=True,
             )
