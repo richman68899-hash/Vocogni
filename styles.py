@@ -1,11 +1,11 @@
 """Vocogni visual system.
 
-A quiet, high-clarity interface for learning: one type family, one primary
-accent, restrained surfaces, consistent spacing, and strong focus states.
-Theme, text scale, readability spacing, and motion remain learner-controlled.
+A restrained, high-clarity interface for learning. Learners can personalize
+type, accent colour, surface tone, corner shape, scale, spacing, and motion
+without changing the learning content or durable progress model.
 """
-from string import Template
 import re
+from string import Template
 
 
 _CSS_TEMPLATE = Template("""
