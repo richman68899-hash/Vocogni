@@ -14,12 +14,7 @@ from typing import Any
 
 
 PROVENANCE_SCHEMA_VERSION = 1
-VERIFICATION_STATUSES = frozenset({
-    "legacy",
-    "needs_review",
-    "verified",
-    "retired",
-})
+VERIFICATION_STATUSES = ("legacy", "needs_review", "verified", "retired")
 
 
 def _optional_text(value: Any) -> str | None:
