@@ -2,7 +2,7 @@
 
 **Status:** Proposed implementation blueprint  
 **Scope:** Product and technical foundation for the next learning-platform evolution  
-**Repo baseline checked:** `main` at `9de0355178580e849b7a83e30c312b378418587f` (25 October 2026)  
+**Repository baseline:** `main` at `0db4954ca5702240374840597a60da4af1eca57e` (26 October 2026)  
 **Decision:** Phase 0 defines and tests the shared contracts. It does not attempt to ship every planned feature.
 
 ---
@@ -348,6 +348,7 @@ The product should present one connected journey rather than a collection of unr
 - **Learn:** course library, course map, lessons, diagnostics and practice.
 - **Study materials:** learner-owned sources, notes and source-grounded study resources.
 - **Tutor:** guided help tied to the current course, skill, or selected source.
+- **Create Course** (author-only route): create and revise private course drafts. Keep it hidden until the manual authoring, validation and save/reload path is functional; shared publishing is a later capability.
 - **Progress:** evidence by skill, course completion, recent attempts, review schedule and the next recommended action.
 - **Settings / Profile:** learner preferences, identity, privacy and account controls.
 
@@ -367,6 +368,36 @@ This navigation is a target. Do not add empty destinations just to match the pro
 Phase 0 should create a page-by-page audit and shared design tokens in `styles.py`; it should not rewrite all pages in one risky patch.
 
 ---
+
+
+### Create Course — course-authoring experience
+
+**Decision: applicable, but ship it in stages.** Vocogni needs a controlled way to create personal courses because learner goals, school materials and subject coverage vary. The first release should create **private, editable drafts**; a public catalog, shared publishing and a fully autonomous course generator are later capabilities.
+
+The authoring journey is: **Goal → Outline → Lessons → Validate → Preview → Save**.
+
+- **Goal:** title, subject, level/grade band, learner goal, intended outcome and any selected source material.
+- **Outline:** an editable sequence of modules, lessons, observable objectives and prerequisites.
+- **Lessons:** concise explanations, worked examples, supported practice, transfer/application tasks and checks for understanding. AI suggestions are drafts that the author can edit or reject.
+- **Validate:** deterministic checks for stable IDs, objective coverage, references, question/grader structure, prerequisites, activity types and source provenance.
+- **Preview:** show the actual learner-facing sequence before it is saved for use.
+- **Save and revise:** keep a private draft, reopen it, and preserve content versions so historic attempts do not silently point at changed questions.
+
+**Important authority boundaries**
+
+- The course builder does not replace VQE. Generated questions stay unverified until they pass the existing review process.
+- It does not create a competing skill taxonomy, scoring engine or direct Supabase write path.
+- Use the current learner-state dirty/flush flow; decide storage limits before persisting large draft bodies. No database migration is part of Phase 0.
+- Distinguish course structural readiness from question verification and from validated learning outcomes.
+- A learner can create a blank course manually without an AI API key. AI-assisted drafting is an optional accelerator, not a dependency.
+
+**Access and release model**
+
+Start with owner-only private drafts. Do not expose a universal Create Course route until the basic flow works end to end. Shared publishing requires a separate permission model, review workflow, versioning, archive/rollback behavior and account-isolation tests.
+
+**Phase placement:** define the contracts in Phase 0; pilot a small private Create Course workflow after source provenance, core lesson flow and bounded persistence are reliable; keep reusable authoring, educator review and shared publishing in the wider authoring phase.
+
+Detailed flow, data contract, validation rules, UX requirements and acceptance tests: [Create Course feature specification](features/create-course.md).
 
 ## 10. Persistence, security and privacy
 
@@ -521,13 +552,14 @@ This is a proposed sequence, not a promise that every feature will be built. Eac
 
 **Exit criterion:** recommendations are reproducible from the documented policy and traceable evidence.
 
-### Phase 5 — Study-material generation
+### Phase 5 — Study-material generation and a private Create Course pilot
 - Generate draft flashcards, quizzes, study guides and lesson summaries from approved sources/course material.
 - Link each item to its source and target skill.
-- Require review for generated questions before verified use.
-- Measure error rates and reviewer effort before expanding volume.
+- Pilot a bounded private course-draft workflow: editable outline, objectives, lesson order, validation, preview and save/reload.
+- Require review for generated questions before verified use; keep course readiness separate from question verification.
+- Measure source/assessment error rates, author effort and learner usefulness before expanding scope.
 
-**Exit criterion:** materials meet predefined accuracy/provenance thresholds and do not pollute the verified bank with unreviewed items.
+**Exit criterion:** generated study materials meet predefined accuracy/provenance thresholds, a small private course can be created and reopened reliably, and no unreviewed questions enter the verified bank.
 
 ### Phase 6 — Transfer, retention and visual explanation
 - Interactive diagrams/visual explanations where a visual improves understanding.
@@ -537,13 +569,13 @@ This is a proposed sequence, not a promise that every feature will be built. Eac
 
 **Exit criterion:** a small set of visual/transfer/retention activities demonstrates utility in user testing.
 
-### Phase 7 — Course authoring and wider scale
-- Reusable course authoring pipeline.
-- Teacher/expert review tools and content-quality reporting.
+### Phase 7 — Shared course publishing and authoring at scale
+- Expand beyond the private Create Course pilot into reusable authoring and release workflows.
+- Add explicit reviewer/educator permissions, review queues, course versioning, release notes, archive/rollback and content-quality reporting.
 - Add subjects only when the taxonomy, question contracts, rubrics and review process can support them.
-- Consider more durable normalized event/data architecture only when scale or analysis needs justify migration.
+- Consider more durable normalized event/data architecture only when measured scale or analysis needs justify migration; include backup and rollback planning.
 
-**Exit criterion:** a new course can be authored, validated, reviewed, released and monitored without changing shared engine code for each course.
+**Exit criterion:** a new course can be authored, validated, reviewed, released, revised and monitored without changing shared engine code for each course; access controls and historical attempt versions remain correct.
 
 ---
 
@@ -555,8 +587,9 @@ The recommended immediate post-Phase-0 order is:
 2. **VQE contract hardening:** document the verified-question authoring/review lifecycle and ensure every new learner-facing attempt retains question version and skill evidence.
 3. **End-to-end test harness:** test diagnostic → lesson route → verified practice → result → mastery receipt → durable save/reload.
 4. **Page/visual audit:** map every page to one purpose and one primary action; consolidate styling in the shared design system.
-5. **Source-workspace spike:** test one source type, one source citation format and one learner task before implementing a generic ingestion pipeline.
-6. **AI adapter spike:** only after the source contract and test set exist; keep provider-specific behavior behind one interface and retain deterministic fallback.
+5. **Create Course contract and storage spike:** use the feature spec to validate the private-draft model, stable IDs, VQE rules and save/reload limits before building the UI.
+6. **Source-workspace spike:** test one source type, one source citation format and one learner task before implementing a generic ingestion pipeline.
+7. **AI adapter spike:** only after the source contract and test set exist; keep provider-specific behavior behind one interface and retain deterministic fallback.
 
 Each backlog item should be delivered as a bounded PR with tests and evidence. Do not stack all six into one enormous merge.
 
@@ -592,6 +625,7 @@ Phase 0 is ready to sign off when:
 - [ ] The target navigation and shared visual system are documented.
 - [ ] Security, account isolation, privacy and persistence requirements are listed.
 - [ ] Every proposed later-phase feature has a user outcome, dependencies and acceptance criteria.
+- [ ] Create Course has an explicit private-draft scope, VQE boundary, version/provenance rules, storage decision gate and release criteria.
 - [ ] A bounded Phase 1 backlog is prioritized.
 - [ ] The team can clearly distinguish what is currently implemented, proposed, automatically tested, manually tested and still unverified.
 
