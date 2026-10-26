@@ -1009,6 +1009,8 @@ def attempt_metadata(
         verification_engine_version=ENGINE_VERSION,
         question_source_field=record.get("source_field"),
     )
+
+
 def validate_registry() -> list[str]:
     """Validate registry consistency without reading course content."""
     errors = []
