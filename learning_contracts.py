@@ -94,7 +94,7 @@ def validate_question_provenance(record: Any) -> list[str]:
             issues.append(f"{field} must be a non-empty string or None.")
 
     status = record.get("verification_status")
-    if status not in VERIFICATION_STATUSES:
+    if not isinstance(status, str) or status not in VERIFICATION_STATUSES:
         issues.append(
             "verification_status must be one of: "
             + ", ".join(sorted(VERIFICATION_STATUSES))
