@@ -28,6 +28,11 @@ class SettingsPageTests(unittest.TestCase):
                 "sound",
                 "larger_text",
                 "high_readability",
+                "font_family",
+                "background_tone",
+                "corner_style",
+                "use_custom_accent",
+                "custom_accent_color",
             },
         )
         self.assertTrue(
@@ -58,6 +63,11 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("Learning preferences", source)
         self.assertIn("Focus & interaction", source)
         self.assertIn("Reading comfort", source)
+        self.assertIn("Interface font", source)
+        self.assertIn("Background tone", source)
+        self.assertIn("Corner style", source)
+        self.assertIn("st.color_picker(", source)
+        self.assertIn("Use a custom accent colour", source)
         lowered = source.lower()
         self.assertNotIn("neurodivergence", lowered)
         self.assertNotIn("adhd", lowered)
