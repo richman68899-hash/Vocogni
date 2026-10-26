@@ -1720,6 +1720,15 @@ def _render_feedback(
         if is_correct
         else "vc-feedback--incorrect"
     )
+    display_settings = st.session_state.get("settings", {})
+    shake_enabled = (
+        not is_correct
+        and bool(display_settings.get("answer_shake", False))
+        and bool(display_settings.get("animations", True))
+        and not bool(display_settings.get("reduced_motion", False))
+    )
+    if shake_enabled:
+        feedback_class += " vc-feedback--shake"
 
     headline = (
         f"Full marks — {marking.get('score', 0)}/{marking.get('max_marks', 0)}."
@@ -1756,17 +1765,13 @@ def _render_feedback(
         st.write(question.get("explanation", ""))
 
     # -----------------------------------------------------------------------
-    # Correct-answer sound
+    # Optional answer-specific sound cues. Both are off by default.
     # -----------------------------------------------------------------------
 
-    if (
-        is_correct
-        and st.session_state.settings.get(
-            "sound"
-        )
-    ):
-
+    if is_correct and display_settings.get("sound", False):
         _play_beep_once()
+    elif not is_correct and display_settings.get("wrong_answer_sound", False):
+        _play_wrong_answer_ting_once()
 
     # -----------------------------------------------------------------------
     # Next question
@@ -2078,27 +2083,25 @@ def _box_class(
     )
 
 
-def _play_beep_once() -> None:
-    """
-    Play the correct-answer beep without allowing sound failure
-    to break the lesson.
-    """
-
+def _render_audio_cue(sound_b64: str) -> None:
+    """Render one optional audio cue; unsupported playback must never break a lesson."""
     try:
-
-        beep_b64 = (
-            logic.get_correct_answer_beep_base64()
-        )
-
         st.markdown(
-            f'<audio autoplay="true">'
-            f'<source src="data:audio/wav;base64,'
-            f'{beep_b64}" type="audio/wav">'
+            f'<audio autoplay="true" playsinline>'
+            f'<source src="data:audio/wav;base64,{sound_b64}" type="audio/wav">'
             f'</audio>',
             unsafe_allow_html=True,
         )
-
     except Exception:
-
-        # Sound is optional.
+        # Sound is an optional enhancement.
         pass
+
+
+def _play_beep_once() -> None:
+    """Play the short, warm correct-answer cue."""
+    _render_audio_cue(logic.get_correct_answer_beep_base64())
+
+
+def _play_wrong_answer_ting_once() -> None:
+    """Play the short descending bell cue for an incorrect answer."""
+    _render_audio_cue(logic.get_wrong_answer_beep_base64())

@@ -271,8 +271,24 @@ def render() -> None:
             st.toggle(
                 "Correct-answer sound",
                 key=SETTING_WIDGET_KEYS["sound"],
-                help="Plays a short tone after a correct answer. Browser audio settings may still block it.",
+                help="Plays a brief, warm bass-and-chime cue after a fully correct lesson answer. Off by default.",
             )
+            st.toggle(
+                "Incorrect-answer cue",
+                key=SETTING_WIDGET_KEYS["wrong_answer_sound"],
+                help="Plays a short descending bell cue after an incorrect lesson answer. Off by default.",
+            )
+            st.toggle(
+                "Wrong-answer shake",
+                key=SETTING_WIDGET_KEYS["answer_shake"],
+                help="Adds a brief horizontal shake to incorrect-answer feedback. Off by default.",
+            )
+            if st.session_state[SETTING_WIDGET_KEYS["answer_shake"]]:
+                st.warning(
+                    "Motion warning: incorrect answers will briefly shake the feedback card. "
+                    "This may be uncomfortable if you are sensitive to motion. "
+                    "Keep it off if you experience discomfort; reduced-motion system settings disable the effect."
+                )
 
     with reading_col:
         with st.container(border=True):

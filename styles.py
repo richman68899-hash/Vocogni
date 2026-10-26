@@ -268,6 +268,19 @@ hr, [data-testid="stDivider"] {
 .vc-feedback--correct { background: var(--vc-success-bg); border-color: var(--vc-success-bg); }
 .vc-feedback--incorrect { background: var(--vc-error-bg); border-color: var(--vc-error-bg); }
 
+/* Optional, restrained wrong-answer motion: only attached when the learner enables it. */
+@keyframes vc-answer-shake {
+    0%, 100% { transform: translateX(0); }
+    18%, 54%, 82% { transform: translateX(-3px); }
+    36%, 70%, 92% { transform: translateX(3px); }
+}
+.vc-feedback--shake {
+    animation: vc-answer-shake 280ms ease-in-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+    .vc-feedback--shake { animation: none !important; }
+}
+
 .vc-recommend-chip {
     background: var(--vc-surface-alt);
     border: 1px solid var(--vc-border);

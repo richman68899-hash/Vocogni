@@ -9,7 +9,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "appearance": "Light",
     "text_size": "Medium",
     "animations": True,
-    "sound": True,
+    "sound": False,
+    "wrong_answer_sound": False,
+    "answer_shake": False,
     "feedback_timing": "Immediate",
     "difficulty": "Adaptive",
     "reduced_motion": False,
@@ -30,6 +32,8 @@ SETTING_WIDGET_KEYS = {
     "difficulty": "settings_difficulty",
     "animations": "settings_animations",
     "sound": "settings_sound",
+    "wrong_answer_sound": "settings_wrong_answer_sound",
+    "answer_shake": "settings_answer_shake",
     "larger_text": "settings_larger_text",
     "high_readability": "settings_high_readability",
     "font_family": "settings_font_family",
@@ -53,6 +57,8 @@ PRESETS: dict[str, dict[str, Any]] = {
     "Focused study": {
         "animations": False,
         "sound": False,
+        "wrong_answer_sound": False,
+        "answer_shake": False,
         "reduced_motion": True,
         "feedback_timing": "After submission",
     },
@@ -62,11 +68,14 @@ PRESETS: dict[str, dict[str, Any]] = {
         "high_readability": True,
         "reduced_motion": True,
         "animations": False,
+        "answer_shake": False,
     },
     "Gentle practice": {
         "difficulty": "Easy",
         "feedback_timing": "Immediate",
         "sound": False,
+        "wrong_answer_sound": False,
+        "answer_shake": False,
     },
 }
 
@@ -112,7 +121,9 @@ def current_summary(settings: dict[str, Any]) -> str:
         if settings.get("reduced_motion") or not settings.get("animations", True)
         else "Motion enabled"
     )
-    sound = "Sound on" if settings.get("sound", True) else "Sound off"
+    correct_sound = "Correct cue on" if settings.get("sound", False) else "Correct cue off"
+    wrong_sound = "Incorrect cue on" if settings.get("wrong_answer_sound", False) else "Incorrect cue off"
+    shake = "Wrong-answer shake on" if settings.get("answer_shake", False) else "Wrong-answer shake off"
     font = settings.get("font_family", "Inter")
     tone = settings.get("background_tone", "Neutral")
     corners = settings.get("corner_style", "Standard")
@@ -120,5 +131,6 @@ def current_summary(settings: dict[str, Any]) -> str:
     return (
         f"{theme} theme  ·  {font} font  ·  {text} text  ·  "
         f"{tone.lower()} background  ·  {corners.lower()} corners  ·  "
-        f"{feedback.lower()} feedback  ·  {motion}  ·  {sound}  ·  {accent}"
+        f"{feedback.lower()} feedback  ·  {motion}  ·  {correct_sound}  ·  "
+        f"{wrong_sound}  ·  {shake}  ·  {accent}"
     )
