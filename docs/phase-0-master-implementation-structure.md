@@ -252,6 +252,8 @@ Phase 0 should document and validate contracts before adding new integrations. A
 
 ### 6.3 Question-to-skill contract
 
+The first implemented shared-record slice is the [Question-attempt provenance contract](features/question-attempt-provenance.md). It versions new question provenance metadata while leaving historical learner records untouched; this is a narrow implementation of the broader domain-contract work, not completion of P0.3.
+
 A question should be linked to the skill it actually assesses, not merely the broad lesson topic. The VQE metadata is authoritative for reviewed questions. For legacy history, preserve compatibility and label evidence quality honestly. If a question is retired, changed, or its review snapshot becomes stale, previous attempts remain historical evidence but must not be silently treated as an attempt on the new version.
 
 ---
