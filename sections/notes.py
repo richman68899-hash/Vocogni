@@ -215,10 +215,27 @@ def render() -> None:
 
 
 def _render_folder_index() -> None:
-    folders = st.session_state.note_folders
+    folders = [f for f in st.session_state.note_folders if isinstance(f, dict)]
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
+    bulk_mode = bool(st.session_state.get("folders_bulk_select_mode", False))
 
-    st.markdown("### Folders")
+    title_col, menu_col = st.columns([5, 0.7], vertical_alignment="center")
+    with title_col:
+        st.markdown("### Folders")
+    with menu_col:
+        with st.popover("⋮", help="Folder actions", use_container_width=True):
+            if not bulk_mode:
+                if st.button("Select multiple", key="folder_menu_bulk_select", use_container_width=True):
+                    _begin_asset_selection("folders")
+                    st.rerun()
+                if st.button("Select all folders", key="folder_menu_select_all", use_container_width=True):
+                    _begin_asset_selection("folders", [f.get("id") for f in folders])
+                    st.rerun()
+            else:
+                if st.button("Stop selecting", key="folder_menu_stop_select", use_container_width=True):
+                    _clear_asset_selection("folders")
+                    st.rerun()
+
     with st.expander("Create a folder", expanded=not folders):
         with st.form("create_note_folder", clear_on_submit=True):
             name = st.text_input("Folder title", placeholder="e.g. Algebra")
@@ -237,31 +254,96 @@ def _render_folder_index() -> None:
                     "id": folder_id, "name": clean, "color": color_name,
                     "created_at": _now(),
                 })
+                st.session_state.note_folders = folders
                 _mark_changed()
                 st.rerun()
+
+    if bulk_mode:
+        selected_ids = list(st.session_state.get("selected_folders_ids", []))
+        action_col, cancel_col = st.columns([3, 1], vertical_alignment="center")
+        with action_col:
+            st.caption(f"{len(selected_ids)} folder(s) selected")
+            if st.button("Delete selected folders", key="delete_selected_folders", type="primary", disabled=not selected_ids):
+                st.session_state["confirm_bulk_delete_folders"] = True
+        with cancel_col:
+            if st.button("Cancel selection", key="cancel_folder_selection", use_container_width=True):
+                _clear_asset_selection("folders")
+                st.session_state["confirm_bulk_delete_folders"] = False
+                st.rerun()
+        if st.session_state.get("confirm_bulk_delete_folders"):
+            st.warning("Delete the selected folders? Notes inside them will be kept and moved to Unfiled.")
+            confirm_col, keep_col = st.columns(2)
+            with confirm_col:
+                if st.button("Confirm delete", key="confirm_bulk_delete_folders_button", type="primary"):
+                    _delete_folders(list(st.session_state.get("selected_folders_ids", [])))
+                    st.session_state["confirm_bulk_delete_folders"] = False
+                    st.rerun()
+            with keep_col:
+                if st.button("Keep folders", key="cancel_bulk_delete_folders_button"):
+                    st.session_state["confirm_bulk_delete_folders"] = False
+                    st.rerun()
 
     if folders:
         cols = st.columns(2, gap="medium")
         for i, folder in enumerate(folders):
+            folder_id = folder.get("id")
             with cols[i % 2]:
-                color = _resolved_color(folder)
-                safe_name = html.escape(str(folder.get("name", "Untitled folder")))
-                count = _folder_count(folder.get("id"), notes)
-                st.markdown(
-                    f"<div style='border:1px solid var(--vc-border);border-left:3px solid {color};"
-                    f"border-radius:10px;padding:14px;margin:4px 0 8px 0;"
-                    f"background:var(--vc-surface);min-height:84px'>"
-                    f"<div style='font-size:1.05rem;font-weight:650'>{safe_name}</div>"
-                    f"<div style='color:var(--vc-subtext);font-size:.85rem;margin-top:7px'>{count} {'note' if count == 1 else 'notes'}</div></div>",
-                    unsafe_allow_html=True,
-                )
-                if st.button("Open folder", key=f"open_folder_{folder['id']}", use_container_width=True):
-                    st.session_state.selected_note_folder_id = folder["id"]
-                    st.rerun()
+                with st.container(border=True):
+                    if bulk_mode:
+                        st.checkbox(
+                            "Select folder",
+                            key=f"select_folders_{folder_id}",
+                            on_change=_toggle_asset_selection,
+                            args=("folders", folder_id, f"select_folders_{folder_id}"),
+                        )
+
+                    color = _resolved_color(folder)
+                    safe_name = html.escape(str(folder.get("name", "Untitled folder")))
+                    count = _folder_count(folder_id, notes)
+                    name_col, action_col = st.columns([5, 0.7], vertical_alignment="center")
+                    with name_col:
+                        st.markdown(
+                            f"<div style='border-left:3px solid {color};padding:3px 0 3px 10px'>"
+                            f"<div style='font-size:1.02rem;font-weight:650'>{safe_name}</div>"
+                            f"<div style='color:var(--vc-subtext);font-size:.85rem;margin-top:5px'>"
+                            f"{count} {'note' if count == 1 else 'notes'}</div></div>",
+                            unsafe_allow_html=True,
+                        )
+                    with action_col:
+                        with st.popover("⋮", help=f"Actions for {folder.get('name', 'folder')}", use_container_width=True):
+                            if st.button("Open folder", key=f"menu_open_folder_{folder_id}", use_container_width=True):
+                                st.session_state.selected_note_folder_id = folder_id
+                                st.rerun()
+                            if not bulk_mode:
+                                if st.button("Select for bulk actions", key=f"menu_select_folder_{folder_id}", use_container_width=True):
+                                    _begin_asset_selection("folders", [folder_id])
+                                    st.rerun()
+                            else:
+                                st.caption("Use the checkbox to select this folder.")
+                            if st.button("Delete folder", key=f"menu_delete_folder_{folder_id}", use_container_width=True):
+                                st.session_state[f"confirm_delete_folder_{folder_id}"] = True
+                                st.rerun()
+
+                    if st.button("Open folder", key=f"open_folder_{folder_id}", use_container_width=True):
+                        st.session_state.selected_note_folder_id = folder_id
+                        st.rerun()
+
+                    if st.session_state.get(f"confirm_delete_folder_{folder_id}", False):
+                        st.warning("Delete this folder? Its notes will be kept in Unfiled.")
+                        confirm_col, cancel_col = st.columns(2)
+                        with confirm_col:
+                            if st.button("Confirm delete", key=f"confirm_delete_folder_button_{folder_id}", type="primary", use_container_width=True):
+                                _delete_folders([folder_id])
+                                st.rerun()
+                        with cancel_col:
+                            if st.button("Keep folder", key=f"cancel_delete_folder_button_{folder_id}", use_container_width=True):
+                                st.session_state[f"confirm_delete_folder_{folder_id}"] = False
+                                st.rerun()
+    else:
+        st.caption("Create a folder to group related notes. Notes can also stay in Unfiled.")
 
     st.divider()
     _render_notes_list(notes, selected_folder_id=None, show_all=True)
-
 
 def _render_folder_view(folder: dict[str, Any]) -> None:
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
