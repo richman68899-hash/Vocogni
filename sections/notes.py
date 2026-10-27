@@ -310,6 +310,7 @@ def render() -> None:
         unsafe_allow_html=True,
     )
     if st.session_state.get("note_editor_open", False):
+        _render_pending_asset_deletion({"note"})
         _render_editor()
         return
 
@@ -587,11 +588,7 @@ def _render_editor() -> None:
         st.rerun()
 
     if delete_clicked and existing:
-        st.session_state.notes = [n for n in st.session_state.notes if n.get("id") != existing.get("id")]
-        _mark_changed()
-        st.session_state.note_editor_open = False
-        st.session_state.selected_note_id = None
-        st.info("Note deleted. Syncing changes…")
+        _request_asset_deletion("note", [existing.get("id")])
         st.rerun()
 
 
