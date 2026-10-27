@@ -86,17 +86,14 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
 
 def _begin_asset_selection(kind: str, asset_ids: list[Any] | None = None) -> None:
     """Enable multi-select without changing saved learner data."""
-    was_active = bool(st.session_state.get(f"{kind}_bulk_select_mode", False))
     st.session_state[f"{kind}_bulk_select_mode"] = True
     selected_key = f"selected_{kind}_ids"
     selected = list(st.session_state.get(selected_key, []))
     for asset_id in asset_ids or []:
         if asset_id not in selected:
             selected.append(asset_id)
-        # These checkboxes are not rendered while selection mode is disabled.
-        # When already active, the widget may have been instantiated this run.
-        if not was_active:
-            st.session_state[f"select_{kind}_{asset_id}"] = True
+        # All callers invoke this before the relevant asset checkboxes render.
+        st.session_state[f"select_{kind}_{asset_id}"] = True
     st.session_state[selected_key] = selected
 
 
@@ -662,8 +659,8 @@ def _toggle_milestone_item(milestone_id: int, item_id: int, widget_key: str) -> 
 
 
 def _render_milestones() -> None:
-    """Render goal categories and the milestone cards in the Notes workspace."""
-    milestones = st.session_state.milestones
+    """Render goal categories and milestone cards with per-item and bulk actions."""
+    milestones = [m for m in st.session_state.milestones if isinstance(m, dict)]
     st.markdown("### Learning milestones")
     st.caption(
         "Turn larger goals into dated checklists. Milestones and checklist changes "
@@ -729,6 +726,66 @@ def _render_milestones() -> None:
         if selected_section == "All sections" or milestone.get("section") == selected_section
     ]
     visible.sort(key=lambda row: (str(row.get("end_date", "9999-12-31")), str(row.get("title", "")).casefold()))
+    visible_ids = [milestone.get("id") for milestone in visible]
+    bulk_mode = bool(st.session_state.get("milestones_bulk_select_mode", False))
+
+    toolbar_col, menu_col = st.columns([5, 0.7], vertical_alignment="center")
+    with toolbar_col:
+        st.caption(f"{len(visible)} saved {'milestone' if len(visible) == 1 else 'milestones'}")
+    with menu_col:
+        with st.popover("⋮", help="Milestone actions", use_container_width=True):
+            if not bulk_mode:
+                if st.button("Select multiple", key="milestones_menu_bulk", use_container_width=True):
+                    _begin_asset_selection("milestones")
+                    st.rerun()
+                if st.button("Select all visible", key="milestones_menu_all", use_container_width=True):
+                    _begin_asset_selection("milestones", visible_ids)
+                    st.rerun()
+            else:
+                if st.button("Select all visible", key="milestones_menu_all", use_container_width=True):
+                    _begin_asset_selection("milestones", visible_ids)
+                    st.rerun()
+                if st.button("Stop selecting", key="milestones_menu_stop", use_container_width=True):
+                    _clear_asset_selection("milestones")
+                    st.session_state["confirm_bulk_delete_milestones"] = False
+                    st.session_state["confirm_bulk_delete_milestone_ids"] = []
+                    st.rerun()
+
+    if bulk_mode:
+        selected_ids = [
+            milestone_id for milestone_id in st.session_state.get("selected_milestones_ids", [])
+            if milestone_id in visible_ids
+        ]
+        action_col, cancel_col = st.columns([3, 1], vertical_alignment="center")
+        with action_col:
+            st.caption(f"{len(selected_ids)} visible milestone(s) selected")
+            if st.button("Delete selected milestones", key="delete_selected_milestones", type="primary", disabled=not selected_ids):
+                st.session_state["confirm_bulk_delete_milestones"] = True
+                st.session_state["confirm_bulk_delete_milestone_ids"] = selected_ids
+        with cancel_col:
+            if st.button("Cancel selection", key="cancel_milestone_selection", use_container_width=True):
+                _clear_asset_selection("milestones")
+                st.session_state["confirm_bulk_delete_milestones"] = False
+                st.session_state["confirm_bulk_delete_milestone_ids"] = []
+                st.rerun()
+        if st.session_state.get("confirm_bulk_delete_milestones"):
+            confirm_ids = [
+                milestone_id for milestone_id in st.session_state.get("confirm_bulk_delete_milestone_ids", [])
+                if milestone_id in visible_ids
+            ]
+            st.warning(f"Delete {len(confirm_ids)} selected milestone(s) and their checklist items? This cannot be undone.")
+            confirm_col, keep_col = st.columns(2)
+            with confirm_col:
+                if st.button("Confirm delete", key="confirm_bulk_delete_milestones_button", type="primary"):
+                    _delete_milestones(confirm_ids)
+                    st.session_state["confirm_bulk_delete_milestones"] = False
+                    st.session_state["confirm_bulk_delete_milestone_ids"] = []
+                    st.rerun()
+            with keep_col:
+                if st.button("Keep milestones", key="cancel_bulk_delete_milestones_button"):
+                    st.session_state["confirm_bulk_delete_milestones"] = False
+                    st.session_state["confirm_bulk_delete_milestone_ids"] = []
+                    st.rerun()
 
     if not visible:
         st.info(
@@ -752,7 +809,6 @@ def _render_milestones() -> None:
         st.markdown(f"### {html.escape(section_name)}")
         for milestone in section_milestones:
             _render_milestone_card(milestone)
-
 
 def _render_milestone_card(milestone: dict[str, Any]) -> None:
     milestone_id = milestone["id"]
