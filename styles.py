@@ -35,11 +35,11 @@ _CSS_TEMPLATE = Template("""
     --vc-radius-card: $radius_card;
 }
 
-html, body, .stApp, [data-testid="stAppViewContainer"] {
+body, .stApp, [data-testid="stAppViewContainer"] {
     font-family: var(--vc-font-family) !important;
     background: var(--vc-bg) !important;
     color: var(--vc-text) !important;
-    font-size: $base_px;
+    font-size: 16px;
     line-height: $line_height;
 }
 
@@ -1474,6 +1474,34 @@ def _tint(surface: str, accent: str, amount: float) -> str:
     return _rgb_hex(tuple(base_rgb[i] * (1 - amount) + accent_rgb[i] * amount for i in range(3)))
 
 
+
+_FONT_SIZE_DECLARATION = re.compile(r"(?<![\\w-])font-size\\s*:\\s*([^;]+);")
+_FONT_SIZE_LENGTH = re.compile(r"(?<![\\w.-])(\\d+(?:\\.\\d+)?)(rem|px|vw|pt)\\b")
+
+
+def _scale_css_font_sizes(css: str, scale: float) -> str:
+    """Scale declared text sizes without scaling rem-based layout spacing.
+
+    Streamlit's text-size setting is a typography preference, not a layout
+    zoom. Scaling the root font size also widens rem-based sidebars and
+    increases padding, which can cause columns and controls to overflow.
+    """
+    if abs(scale - 1.0) < 1e-9:
+        return css
+
+    def scale_declaration(match: re.Match[str]) -> str:
+        value = match.group(1)
+
+        def scale_length(length_match: re.Match[str]) -> str:
+            amount = float(length_match.group(1)) * scale
+            rendered = f"{amount:.4f}".rstrip("0").rstrip(".")
+            return f"{rendered}{length_match.group(2)}"
+
+        scaled_value = _FONT_SIZE_LENGTH.sub(scale_length, value)
+        return f"font-size: {scaled_value};"
+
+    return _FONT_SIZE_DECLARATION.sub(scale_declaration, css)
+
 def build_css(settings: dict) -> str:
     """Render the visual system from the learner's current display settings."""
     dark = settings.get("appearance") == "Dark"
@@ -1580,4 +1608,8 @@ def build_css(settings: dict) -> str:
         radius_control=radius_control,
         radius_card=radius_card,
     )
-    return _CSS_TEMPLATE.substitute(tokens)
+    rendered_css = _CSS_TEMPLATE.substitute(tokens)
+    # Keep rem units anchored to the browser's root size. Only typography is
+    # scaled, so a learner selecting larger text doesn't also enlarge sidebar
+    # widths, card padding, gaps, and other layout geometry.
+    return _scale_css_font_sizes(rendered_css, base_px / 16.0)
