@@ -60,6 +60,8 @@ def test_dark_theme_overrides_native_widget_surfaces_and_text():
     assert "[data-baseweb=\"select\"] span" in css
     assert "[role=\"listbox\"] [role=\"option\"]:hover" in css
     assert "input::placeholder" in css
+    assert '.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div *' in css
+    assert "min-height: 1.25rem;" in css
     assert "[data-testid=\"stAlert\"] p" in css
     assert "$" not in css
 
