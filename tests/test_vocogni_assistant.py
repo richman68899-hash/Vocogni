@@ -2,7 +2,74 @@
 import unittest
 
 import data
-from vocogni_assistant import answer_request, _recent_mistakes
+from vocogni_assistant import answer_request, _recent_mistakes, render_assistant
+
+
+
+class _FakeScope:
+    """Minimal Streamlit context manager for testing assistant layout decisions."""
+
+    def __init__(self, streamlit):
+        self.streamlit = streamlit
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        return False
+
+
+class _FakeSessionState(dict):
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError as exc:
+            raise AttributeError(key) from exc
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+
+class _FakeStreamlit:
+    """Capture rendered button labels without needing a Streamlit server."""
+
+    def __init__(self, messages):
+        self.session_state = _FakeSessionState({
+            "vocogni_assistant_open": True,
+            "vocogni_assistant_messages": list(messages),
+        })
+        self.button_labels = []
+
+    def markdown(self, *args, **kwargs):
+        return None
+
+    def caption(self, *args, **kwargs):
+        return None
+
+    def container(self, **kwargs):
+        return _FakeScope(self)
+
+    def columns(self, specification, **kwargs):
+        return [_FakeScope(self) for _ in specification]
+
+    def button(self, label, **kwargs):
+        self.button_labels.append(label)
+        return False
+
+    def rerun(self):
+        return None
+
+    def chat_message(self, *args, **kwargs):
+        return _FakeScope(self)
+
+    def form(self, *args, **kwargs):
+        return _FakeScope(self)
+
+    def text_input(self, *args, **kwargs):
+        return ""
+
+    def form_submit_button(self, *args, **kwargs):
+        return False
 
 
 class VocogniAssistantTests(unittest.TestCase):
@@ -30,6 +97,23 @@ class VocogniAssistantTests(unittest.TestCase):
             }
             for course_id in data.COURSE_ORDER
         }
+
+
+    def test_quick_prompts_remain_visible_after_conversation_starts(self):
+        messages = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "How can I help?"},
+        ]
+        fake_st = _FakeStreamlit(messages)
+
+        render_assistant(fake_st, self.profile, self.progress)
+
+        self.assertTrue({
+            "Summarise profile",
+            "Latest mistakes",
+            "My progress",
+            "Next step",
+        }.issubset(set(fake_st.button_labels)))
 
     def test_profile_summary_uses_only_recorded_profile_fields(self):
         reply, route = answer_request("Summarize my profile", self.profile, self.progress)
