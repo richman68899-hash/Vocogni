@@ -28,7 +28,7 @@ The intent handler is deterministic and framework-free. Unsupported requests rec
 
 ## Interface
 
-A fixed bottom-right launcher opens a bounded-height responsive panel. Conversation display is limited to the latest eight messages; the current session retains at most twenty message records. Quick actions cover the most common initial requests.
+A fixed bottom-right launcher opens a bounded-height responsive panel. Conversation display is limited to the latest eight messages; the current session retains at most twenty message records. A sticky **Suggested prompts** area keeps the four quick actions visible throughout the conversation, not only before the first message.
 
 ## Future LLM integration
 
