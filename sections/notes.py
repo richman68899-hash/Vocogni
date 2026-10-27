@@ -111,8 +111,13 @@ def _toggle_asset_selection(kind: str, asset_id: Any, widget_key: str) -> None:
 
 def _clear_asset_selection(kind: str) -> None:
     """Close multi-select mode and defer checkbox-state cleanup until next run."""
+    selected_key = f"selected_{kind}_ids"
+    pending_key = f"{kind}_reset_selection_widget_ids"
+    pending = list(st.session_state.get(pending_key, []))
+    pending.extend(st.session_state.get(selected_key, []))
+    st.session_state[pending_key] = list(dict.fromkeys(pending))
     st.session_state[f"{kind}_bulk_select_mode"] = False
-    st.session_state[f"selected_{kind}_ids"] = []
+    st.session_state[selected_key] = []
     # Widget keys cannot be modified after their checkbox has rendered in this
     # run. The next render clears them before creating any selection widgets.
     st.session_state[f"{kind}_reset_selection_widgets"] = True
@@ -122,9 +127,13 @@ def _reset_asset_selection_widgets(kind: str, assets: list[dict[str, Any]]) -> N
     """Clear stale checkbox state before rendering a list in its next mode."""
     if not st.session_state.pop(f"{kind}_reset_selection_widgets", False):
         return
-    for asset in assets:
-        if isinstance(asset, dict) and asset.get("id") is not None:
-            st.session_state.pop(f"select_{kind}_{asset['id']}", None)
+    pending = list(st.session_state.pop(f"{kind}_reset_selection_widget_ids", []))
+    pending.extend(
+        asset.get("id") for asset in assets
+        if isinstance(asset, dict) and asset.get("id") is not None
+    )
+    for asset_id in set(pending):
+        st.session_state.pop(f"select_{kind}_{asset_id}", None)
 
 
 def _delete_notes(note_ids: list[Any]) -> None:
