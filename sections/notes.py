@@ -475,14 +475,47 @@ def _render_notes_list(
             note_id for note_id in st.session_state.get("selected_notes_ids", [])
             if note_id in visible_ids
         ]
-        action_col, cancel_col = st.columns([3, 1], vertical_alignment="center")
-        with action_col:
-            st.caption(f"{len(selected_ids)} visible note(s) selected")
-            if st.button("Delete selected notes", key=f"delete_selected_notes_{selected_folder_id}_{show_all}", type="primary", disabled=not selected_ids):
+        move_col, delete_col, cancel_col = st.columns([3, 1.6, 1], vertical_alignment="bottom")
+        with move_col:
+            destinations = {"Unfiled": None}
+            destinations.update({
+                str(folder.get("name", "Folder")): folder.get("id")
+                for folder in st.session_state.note_folders
+            })
+            destination_label = st.selectbox(
+                "Move selected to",
+                list(destinations),
+                key=f"bulk_move_notes_destination_{selected_folder_id}_{show_all}",
+            )
+            if st.button(
+                "Move selected",
+                key=f"move_selected_notes_{selected_folder_id}_{show_all}",
+                disabled=not selected_ids,
+                use_container_width=True,
+            ):
+                destination_id = destinations[destination_label]
+                for note in notes:
+                    if note.get("id") in selected_ids:
+                        note["folder_id"] = destination_id
+                        note["updated_at"] = _now()
+                _mark_changed()
+                _clear_asset_selection("notes")
+                st.session_state["confirm_bulk_delete_notes"] = False
+                st.session_state["confirm_bulk_delete_note_ids"] = []
+                st.rerun()
+        with delete_col:
+            st.caption(f"{len(selected_ids)} selected")
+            if st.button(
+                "Delete selected",
+                key=f"delete_selected_notes_{selected_folder_id}_{show_all}",
+                type="primary",
+                disabled=not selected_ids,
+                use_container_width=True,
+            ):
                 st.session_state["confirm_bulk_delete_notes"] = True
                 st.session_state["confirm_bulk_delete_note_ids"] = selected_ids
         with cancel_col:
-            if st.button("Cancel selection", key=f"cancel_notes_selection_{selected_folder_id}_{show_all}", use_container_width=True):
+            if st.button("Cancel", key=f"cancel_notes_selection_{selected_folder_id}_{show_all}", use_container_width=True):
                 _clear_asset_selection("notes")
                 st.session_state["confirm_bulk_delete_notes"] = False
                 st.session_state["confirm_bulk_delete_note_ids"] = []
