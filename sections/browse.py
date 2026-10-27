@@ -93,28 +93,33 @@ def _render_grid():
         chips = "".join(f"<span class='vc-recommend-chip'>{html.escape(str(r))}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
-    col_search, col_status, col_diff, col_category, col_subject = st.columns([2, 1, 1, 1, 1])
-    with col_search:
+    # Give the search field room to breathe, then place the shorter filters
+    # on a second row. Five columns in one row made labels and controls cramped
+    # in the main content area on tablets and narrower browser windows.
+    search_col, status_col = st.columns([2.2, 1], gap="medium")
+    with search_col:
         search = st.text_input(
             "Search courses", value=st.session_state.browse_search,
             placeholder="Search by course, subject, or topic",
         )
-    with col_status:
+    with status_col:
         status_filter = st.selectbox(
             "Status", STATUS_OPTIONS,
             index=STATUS_OPTIONS.index(st.session_state.browse_status_filter),
         )
-    with col_diff:
+
+    diff_col, category_col, subject_col = st.columns(3, gap="medium")
+    with diff_col:
         difficulties = sorted({c["difficulty"] for c in data.COURSES.values()})
         diff_filter = st.selectbox("Difficulty", ["All"] + difficulties)
-    with col_category:
+    with category_col:
         category_labels = {item["id"]: item["label"] for item in data.COURSE_CATEGORIES}
         category_filter = st.selectbox(
             "Category", ["All"] + list(category_labels),
             format_func=lambda key: "All" if key == "All" else category_labels.get(key, key),
             key="browse_category_filter",
         )
-    with col_subject:
+    with subject_col:
         subject_labels = {item["id"]: item["label"] for item in data.COURSE_SUBJECTS}
         subject_filter = st.selectbox(
             "Subject", ["All"] + list(subject_labels),
