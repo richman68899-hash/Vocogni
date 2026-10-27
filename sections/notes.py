@@ -80,6 +80,232 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
     return sum(1 for note in notes if note.get("folder_id") == folder_id)
 
 
+def _all_asset_ids(kind: str) -> list[Any]:
+    collection_key = {"note": "notes", "folder": "note_folders", "milestone": "milestones"}[kind]
+    return [
+        item.get("id") for item in st.session_state.get(collection_key, [])
+        if isinstance(item, dict) and item.get("id") is not None
+    ]
+
+
+def _start_asset_selection(kind: str, asset_id: Any | None = None) -> None:
+    """Enter bulk-selection mode and optionally preselect the asset that opened it."""
+    st.session_state[f"{kind}_bulk_select_mode"] = True
+    selected_key = f"selected_{kind}_ids"
+    selected = list(st.session_state.get(selected_key, []))
+    if asset_id is not None and asset_id not in selected:
+        selected.append(asset_id)
+    st.session_state[selected_key] = selected
+    if asset_id is not None:
+        st.session_state[f"{kind}_select_{asset_id}"] = True
+    if kind == "folder":
+        st.session_state.selected_note_folder_id = None
+
+
+def _toggle_asset_selection(kind: str, asset_id: Any, widget_key: str) -> None:
+    selected_key = f"selected_{kind}_ids"
+    selected = list(st.session_state.get(selected_key, []))
+    if st.session_state.get(widget_key, False):
+        if asset_id not in selected:
+            selected.append(asset_id)
+    else:
+        selected = [item_id for item_id in selected if item_id != asset_id]
+    st.session_state[selected_key] = selected
+
+
+def _end_asset_selection(kind: str, asset_ids: list[Any] | None = None) -> None:
+    """Exit bulk selection and reset widget state so old checks do not reappear."""
+    selected_key = f"selected_{kind}_ids"
+    tracked = list(st.session_state.get(selected_key, []))
+    all_ids = _all_asset_ids(kind) if asset_ids is None else list(asset_ids)
+    for asset_id in dict.fromkeys([*all_ids, *tracked]):
+        st.session_state[f"{kind}_select_{asset_id}"] = False
+    st.session_state[f"{kind}_bulk_select_mode"] = False
+    st.session_state[selected_key] = []
+
+
+def _select_visible_assets(kind: str, visible_ids: list[Any]) -> None:
+    selected_key = f"selected_{kind}_ids"
+    selected = list(st.session_state.get(selected_key, []))
+    for asset_id in visible_ids:
+        if asset_id not in selected:
+            selected.append(asset_id)
+        st.session_state[f"{kind}_select_{asset_id}"] = True
+    st.session_state[selected_key] = selected
+
+
+def _request_asset_deletion(kind: str, asset_ids: list[Any]) -> None:
+    st.session_state.pending_asset_deletion = {
+        "kind": kind,
+        "ids": list(dict.fromkeys(asset_ids)),
+    }
+
+
+def _confirm_pending_asset_deletion() -> None:
+    pending = st.session_state.get("pending_asset_deletion")
+    if not isinstance(pending, dict):
+        return
+    kind, asset_ids = pending.get("kind"), pending.get("ids", [])
+    if kind not in {"note", "folder", "milestone"} or not asset_ids:
+        st.session_state.pop("pending_asset_deletion", None)
+        return
+
+    ids = set(asset_ids)
+    ids_before = _all_asset_ids(kind)
+    if kind == "note":
+        st.session_state.notes = [
+            note for note in st.session_state.get("notes", [])
+            if not isinstance(note, dict) or note.get("id") not in ids
+        ]
+        if st.session_state.get("selected_note_id") in ids:
+            st.session_state.note_editor_open = False
+            st.session_state.selected_note_id = None
+    elif kind == "folder":
+        # Folder deletion preserves every note and moves its contents to Unfiled.
+        now = _now()
+        for note in st.session_state.get("notes", []):
+            if isinstance(note, dict) and note.get("folder_id") in ids:
+                note["folder_id"] = None
+                note["updated_at"] = now
+        st.session_state.note_folders = [
+            folder for folder in st.session_state.get("note_folders", [])
+            if not isinstance(folder, dict) or folder.get("id") not in ids
+        ]
+        if st.session_state.get("selected_note_folder_id") in ids:
+            st.session_state.selected_note_folder_id = None
+    else:
+        st.session_state.milestones = [
+            item for item in st.session_state.get("milestones", [])
+            if not isinstance(item, dict) or item.get("id") not in ids
+        ]
+
+    _end_asset_selection(kind, ids_before)
+    st.session_state.pop("pending_asset_deletion", None)
+    _mark_changed()
+    st.rerun()
+
+
+def _render_pending_asset_deletion(allowed_kinds: set[str]) -> None:
+    """Show a confirmation step before removing saved assets."""
+    pending = st.session_state.get("pending_asset_deletion")
+    if not isinstance(pending, dict) or pending.get("kind") not in allowed_kinds:
+        return
+    kind, count = pending.get("kind"), len(pending.get("ids", []))
+    if kind == "folder":
+        message = (
+            f"Delete {count} selected folder{'s' if count != 1 else ''}? "
+            "Notes inside will be moved to Unfiled; no note content will be deleted."
+        )
+    elif kind == "milestone":
+        message = (
+            f"Delete {count} selected milestone{'s' if count != 1 else ''} "
+            "and their checklist items? This cannot be undone."
+        )
+    else:
+        message = (
+            f"Delete {count} selected note{'s' if count != 1 else ''}? "
+            "The saved note content will be removed. This cannot be undone."
+        )
+    st.warning(message)
+    confirm_col, cancel_col = st.columns([1, 1], gap="small")
+    with confirm_col:
+        if st.button("Confirm delete", type="primary", key="confirm_pending_asset_delete", use_container_width=True):
+            _confirm_pending_asset_deletion()
+    with cancel_col:
+        if st.button("Cancel", key="cancel_pending_asset_delete", use_container_width=True):
+            st.session_state.pop("pending_asset_deletion", None)
+            st.rerun()
+
+
+def _render_bulk_toolbar(kind: str, visible_assets: list[dict[str, Any]], allow_move: bool = False) -> None:
+    """Common select-all, delete, and exit controls for saved assets."""
+    if not st.session_state.get(f"{kind}_bulk_select_mode", False):
+        return
+    selected = list(st.session_state.get(f"selected_{kind}_ids", []))
+    visible_ids = [
+        item.get("id") for item in visible_assets
+        if isinstance(item, dict) and item.get("id") is not None
+    ]
+    labels = {"note": "notes", "folder": "folders", "milestone": "milestones"}
+    with st.container(border=True):
+        st.markdown("**Select multiple**")
+        st.caption(f"{len(selected)} {labels[kind]} selected")
+        select_col, delete_col, done_col = st.columns([1.2, 1.2, 0.8], gap="small")
+        with select_col:
+            if st.button("Select all shown", key=f"select_all_{kind}_visible", use_container_width=True):
+                _select_visible_assets(kind, visible_ids)
+                st.rerun()
+        with delete_col:
+            if st.button(
+                f"Delete selected ({len(selected)})", key=f"delete_selected_{kind}",
+                type="primary", disabled=not selected, use_container_width=True,
+            ):
+                _request_asset_deletion(kind, selected)
+                st.rerun()
+        with done_col:
+            if st.button("Done", key=f"finish_select_{kind}", use_container_width=True):
+                _end_asset_selection(kind)
+                st.rerun()
+
+        if allow_move and selected:
+            destinations = {"Unfiled": None}
+            destinations.update({
+                str(folder.get("name", "Folder")): folder.get("id")
+                for folder in st.session_state.get("note_folders", [])
+                if isinstance(folder, dict)
+            })
+            move_col, action_col = st.columns([3, 1.2], vertical_alignment="bottom", gap="small")
+            with move_col:
+                target_label = st.selectbox("Move selected notes to", list(destinations), key="notes_bulk_move_target")
+            with action_col:
+                if st.button("Move notes", key="move_selected_notes", use_container_width=True):
+                    selected_ids = set(selected)
+                    now = _now()
+                    for note in st.session_state.get("notes", []):
+                        if isinstance(note, dict) and note.get("id") in selected_ids:
+                            note["folder_id"] = destinations[target_label]
+                            note["updated_at"] = now
+                    _end_asset_selection("note")
+                    _mark_changed()
+                    st.rerun()
+
+
+def _render_folder_overflow_menu(folder: dict[str, Any]) -> None:
+    folder_id = folder.get("id")
+    with st.popover("⋯", key=f"folder_overflow_{folder_id}", help="Folder actions"):
+        if not st.session_state.get("folder_bulk_select_mode", False):
+            if st.button("Select multiple folders", key=f"select_folder_{folder_id}", use_container_width=True):
+                _start_asset_selection("folder", folder_id)
+                st.rerun()
+        if st.button("Delete folder", key=f"delete_folder_menu_{folder_id}", use_container_width=True):
+            _request_asset_deletion("folder", [folder_id])
+            st.rerun()
+
+
+def _render_note_overflow_menu(note: dict[str, Any]) -> None:
+    note_id = note.get("id")
+    with st.popover("⋯", key=f"note_overflow_{note_id}", help="Note actions"):
+        if not st.session_state.get("note_bulk_select_mode", False):
+            if st.button("Select multiple notes", key=f"select_note_{note_id}", use_container_width=True):
+                _start_asset_selection("note", note_id)
+                st.rerun()
+        if st.button("Delete note", key=f"delete_note_menu_{note_id}", use_container_width=True):
+            _request_asset_deletion("note", [note_id])
+            st.rerun()
+
+
+def _render_milestone_overflow_menu(milestone: dict[str, Any]) -> None:
+    milestone_id = milestone.get("id")
+    with st.popover("⋯", key=f"milestone_overflow_{milestone_id}", help="Milestone actions"):
+        if not st.session_state.get("milestone_bulk_select_mode", False):
+            if st.button("Select multiple milestones", key=f"select_milestone_{milestone_id}", use_container_width=True):
+                _start_asset_selection("milestone", milestone_id)
+                st.rerun()
+        if st.button("Delete milestone", key=f"delete_milestone_menu_{milestone_id}", use_container_width=True):
+            _request_asset_deletion("milestone", [milestone_id])
+            st.rerun()
+
+
 def render() -> None:
     st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
@@ -87,6 +313,7 @@ def render() -> None:
         unsafe_allow_html=True,
     )
     if st.session_state.get("note_editor_open", False):
+        _render_pending_asset_deletion({"note"})
         _render_editor()
         return
 
@@ -98,6 +325,8 @@ def render() -> None:
         label_visibility="collapsed",
     )
     st.divider()
+    if workspace == "Notes & folders":
+        _render_pending_asset_deletion({"note", "folder"})
     if workspace == "Learning milestones":
         _render_milestones()
         return
@@ -118,7 +347,7 @@ def render() -> None:
 
 
 def _render_folder_index() -> None:
-    folders = st.session_state.note_folders
+    folders = [f for f in st.session_state.note_folders if isinstance(f, dict)]
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
 
     st.markdown("### Folders")
@@ -136,51 +365,72 @@ def _render_folder_index() -> None:
             else:
                 folder_id = st.session_state.next_note_folder_id
                 st.session_state.next_note_folder_id += 1
-                folders.append({
-                    "id": folder_id, "name": clean, "color": color_name,
-                    "created_at": _now(),
-                })
+                folders.append({"id": folder_id, "name": clean, "color": color_name, "created_at": _now()})
+                st.session_state.note_folders = folders
                 _mark_changed()
                 st.rerun()
 
+    _render_bulk_toolbar("folder", folders)
     if folders:
         cols = st.columns(2, gap="medium")
         for i, folder in enumerate(folders):
             with cols[i % 2]:
+                folder_id = folder.get("id")
                 color = _resolved_color(folder)
                 safe_name = html.escape(str(folder.get("name", "Untitled folder")))
-                count = _folder_count(folder.get("id"), notes)
-                st.markdown(
-                    f"<div style='border:1px solid var(--vc-border);border-left:3px solid {color};"
-                    f"border-radius:10px;padding:14px;margin:4px 0 8px 0;"
-                    f"background:var(--vc-surface);min-height:84px'>"
-                    f"<div style='font-size:1.05rem;font-weight:650'>{safe_name}</div>"
-                    f"<div style='color:var(--vc-subtext);font-size:.85rem;margin-top:7px'>{count} {'note' if count == 1 else 'notes'}</div></div>",
-                    unsafe_allow_html=True,
-                )
-                if st.button("Open folder", key=f"open_folder_{folder['id']}", use_container_width=True):
-                    st.session_state.selected_note_folder_id = folder["id"]
-                    st.rerun()
+                count = _folder_count(folder_id, notes)
+                with st.container(border=True):
+                    if st.session_state.get("folder_bulk_select_mode", False):
+                        select_col, content_col, menu_col = st.columns([0.42, 4, 0.5], vertical_alignment="top", gap="small")
+                        with select_col:
+                            checkbox_key = f"folder_select_{folder_id}"
+                            st.checkbox(
+                                "Select folder", value=folder_id in st.session_state.get("selected_folder_ids", []),
+                                key=checkbox_key, label_visibility="collapsed",
+                                on_change=_toggle_asset_selection, args=("folder", folder_id, checkbox_key),
+                            )
+                    else:
+                        content_col, menu_col = st.columns([4, 0.5], vertical_alignment="top", gap="small")
+                    with content_col:
+                        st.markdown(
+                            f"<div style='border-left:3px solid {color};padding:4px 0 4px 10px'>"
+                            f"<div style='font-size:1.05rem;font-weight:650'>{safe_name}</div>"
+                            f"<div style='color:var(--vc-subtext);font-size:.85rem;margin-top:6px'>"
+                            f"{count} {'note' if count == 1 else 'notes'}</div></div>",
+                            unsafe_allow_html=True,
+                        )
+                        if st.button("Open folder", key=f"open_folder_{folder_id}", use_container_width=True):
+                            st.session_state.selected_note_folder_id = folder_id
+                            st.rerun()
+                    with menu_col:
+                        _render_folder_overflow_menu(folder)
+    elif not st.session_state.get("folder_bulk_select_mode", False):
+        st.info("No folders yet. Create one above, or save notes without a folder.")
 
     st.divider()
     _render_notes_list(notes, selected_folder_id=None, show_all=True)
 
-
 def _render_folder_view(folder: dict[str, Any]) -> None:
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
+    folder_id = folder.get("id")
     color = _resolved_color(folder)
     safe_name = html.escape(str(folder.get("name", "Folder")))
-    st.button("All folders", key="back_to_folder_index", on_click=_go_to_folder_index)
-    st.markdown(
-        f"<div style='border-left:3px solid {color};padding:8px 0 8px 12px;margin:6px 0 16px 0'>"
-        f"<div style='font-size:1.4rem;font-weight:650'>{safe_name}</div>"
-        f"<div style='color:var(--vc-subtext);font-size:.86rem'>{_folder_count(folder.get('id'), notes)} {'note' if _folder_count(folder.get('id'), notes) == 1 else 'notes'}</div></div>",
-        unsafe_allow_html=True,
-    )
+    count = _folder_count(folder_id, notes)
 
-    # Folder management belongs inside the folder view, not on the folder card.
+    top_col, menu_col = st.columns([5, 0.55], vertical_alignment="center", gap="small")
+    with top_col:
+        st.button("← All folders", key="back_to_folder_index", on_click=_go_to_folder_index)
+        st.markdown(
+            f"<div style='border-left:3px solid {color};padding:6px 0 6px 12px;margin:4px 0 14px 0'>"
+            f"<div style='font-size:1.4rem;font-weight:650'>{safe_name}</div>"
+            f"<div style='color:var(--vc-subtext);font-size:.86rem'>{count} {'note' if count == 1 else 'notes'}</div></div>",
+            unsafe_allow_html=True,
+        )
+    with menu_col:
+        _render_folder_overflow_menu(folder)
+
     with st.expander("Manage folder", expanded=False):
-        with st.form(f"edit_folder_{folder['id']}"):
+        with st.form(f"edit_folder_{folder_id}"):
             new_name = st.text_input("Folder title", value=folder.get("name", ""))
             options = list(PALETTE)
             current_color = _color_name(folder)
@@ -189,7 +439,7 @@ def _render_folder_view(folder: dict[str, Any]) -> None:
         if save_folder:
             clean = new_name.strip()
             duplicate = any(
-                f.get("id") != folder.get("id")
+                f.get("id") != folder_id
                 and str(f.get("name", "")).casefold() == clean.casefold()
                 for f in st.session_state.note_folders
             )
@@ -202,22 +452,9 @@ def _render_folder_view(folder: dict[str, Any]) -> None:
                 folder["color"] = new_color_name
                 _mark_changed()
                 st.rerun()
-        if st.button("Delete folder", key=f"delete_folder_{folder['id']}"):
-            # Preserve notes and move them to Unfiled.
-            for note in notes:
-                if note.get("folder_id") == folder["id"]:
-                    note["folder_id"] = None
-                    note["updated_at"] = _now()
-            st.session_state.note_folders = [
-                f for f in st.session_state.note_folders if f.get("id") != folder["id"]
-            ]
-            st.session_state.selected_note_folder_id = None
-            _mark_changed()
-            st.rerun()
 
     st.divider()
-    _render_notes_list(notes, selected_folder_id=folder["id"], show_all=False)
-
+    _render_notes_list(notes, selected_folder_id=folder_id, show_all=False)
 
 def _go_to_folder_index() -> None:
     st.session_state.selected_note_folder_id = None
@@ -228,7 +465,6 @@ def _render_notes_list(
     selected_folder_id: Any,
     show_all: bool,
 ) -> None:
-    # The selector and primary action share one row for consistent alignment.
     col_filter, col_new = st.columns([3, 1], vertical_alignment="bottom", gap="medium")
     with col_filter:
         if show_all:
@@ -256,16 +492,27 @@ def _render_notes_list(
         visible = notes if selected_id == "all" else [n for n in notes if n.get("folder_id") == selected_id]
     else:
         visible = [n for n in notes if n.get("folder_id") == selected_folder_id]
-
     visible.sort(key=lambda n: n.get("updated_at", ""), reverse=True)
+    _render_bulk_toolbar("note", visible, allow_move=True)
     if not visible:
         st.info("No notes here yet. Create one or choose another folder.")
         return
 
+    note_bulk_mode = st.session_state.get("note_bulk_select_mode", False)
     for note in visible:
+        note_id = note.get("id")
         with st.container(border=True):
-            # Keep the note title and folder destination control on one row.
-            title_col, folder_col = st.columns([3, 2], vertical_alignment="center", gap="medium")
+            if note_bulk_mode:
+                select_col, title_col, folder_col, menu_col = st.columns([0.38, 3, 2, 0.48], vertical_alignment="center", gap="small")
+                with select_col:
+                    checkbox_key = f"note_select_{note_id}"
+                    st.checkbox(
+                        "Select note", value=note_id in st.session_state.get("selected_note_ids", []),
+                        key=checkbox_key, label_visibility="collapsed",
+                        on_change=_toggle_asset_selection, args=("note", note_id, checkbox_key),
+                    )
+            else:
+                title_col, folder_col, menu_col = st.columns([3, 2, 0.48], vertical_alignment="center", gap="small")
             with title_col:
                 title = html.escape(str(note.get("title") or "Untitled note"))
                 st.markdown(f"**{title}**")
@@ -276,21 +523,21 @@ def _render_notes_list(
                     for f in st.session_state.note_folders
                 })
                 current_folder = note.get("folder_id")
-                current_label = next(
-                    (label for label, value in destinations.items() if value == current_folder),
-                    "Unfiled",
-                )
+                current_label = next((label for label, value in destinations.items() if value == current_folder), "Unfiled")
                 dest = st.selectbox(
                     "Folders", list(destinations),
                     index=list(destinations).index(current_label),
-                    key=f"move_note_{note.get('id')}",
-                    label_visibility="visible",
+                    key=f"move_note_{note_id}",
+                    label_visibility="collapsed",
                 )
                 if destinations[dest] != current_folder:
                     note["folder_id"] = destinations[dest]
                     note["updated_at"] = _now()
                     _mark_changed()
                     st.rerun()
+            with menu_col:
+                _render_note_overflow_menu(note)
+
             body = str(note.get("content", "")).strip().replace("\\n", " ")
             st.caption((body[:180] + ("…" if len(body) > 180 else "")) or "No content yet.")
             folder = _find_folder(note.get("folder_id"))
@@ -298,11 +545,10 @@ def _render_notes_list(
                 f"{folder.get('name')} · Updated {note.get('updated_at', 'unknown')}"
                 if folder else f"Unfiled · Updated {note.get('updated_at', 'unknown')}"
             )
-            if st.button("Open", key=f"open_note_{note.get('id')}"):
-                st.session_state.selected_note_id = note.get("id")
+            if st.button("Open note", key=f"open_note_{note_id}"):
+                st.session_state.selected_note_id = note_id
                 st.session_state.note_editor_open = True
                 st.rerun()
-
 
 def _render_editor() -> None:
     note_id = st.session_state.get("selected_note_id")
@@ -345,11 +591,7 @@ def _render_editor() -> None:
         st.rerun()
 
     if delete_clicked and existing:
-        st.session_state.notes = [n for n in st.session_state.notes if n.get("id") != existing.get("id")]
-        _mark_changed()
-        st.session_state.note_editor_open = False
-        st.session_state.selected_note_id = None
-        st.info("Note deleted. Syncing changes…")
+        _request_asset_deletion("note", [existing.get("id")])
         st.rerun()
 
 
@@ -392,8 +634,9 @@ def _toggle_milestone_item(milestone_id: int, item_id: int, widget_key: str) -> 
 
 
 def _render_milestones() -> None:
-    """Render goal categories and the milestone cards in the Notes workspace."""
-    milestones = st.session_state.milestones
+    """Render goal categories and milestone cards with bulk actions."""
+    _render_pending_asset_deletion({"milestone"})
+    milestones = [item for item in st.session_state.milestones if isinstance(item, dict)]
     st.markdown("### Learning milestones")
     st.caption(
         "Turn larger goals into dated checklists. Milestones and checklist changes "
@@ -459,6 +702,7 @@ def _render_milestones() -> None:
         if selected_section == "All sections" or milestone.get("section") == selected_section
     ]
     visible.sort(key=lambda row: (str(row.get("end_date", "9999-12-31")), str(row.get("title", "")).casefold()))
+    _render_bulk_toolbar("milestone", visible)
 
     if not visible:
         st.info(
@@ -501,9 +745,22 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
             f"<div style='height:5px;background:{color};border-radius:8px;margin-bottom:12px'></div>",
             unsafe_allow_html=True,
         )
-        icon_col, title_col, date_col = st.columns(
-            [0.75, 3.8, 1.7],
+        if st.session_state.get("milestone_bulk_select_mode", False):
+            select_col, spacer_col = st.columns([0.5, 5.5], gap="small")
+            with select_col:
+                checkbox_key = f"milestone_select_{milestone_id}"
+                st.checkbox(
+                    "Select milestone",
+                    value=milestone_id in st.session_state.get("selected_milestone_ids", []),
+                    key=checkbox_key,
+                    label_visibility="collapsed",
+                    on_change=_toggle_asset_selection,
+                    args=("milestone", milestone_id, checkbox_key),
+                )
+        icon_col, title_col, date_col, menu_col = st.columns(
+            [0.75, 3.7, 1.55, 0.55],
             vertical_alignment="center",
+            gap="small",
         )
         with icon_col:
             st.markdown(
@@ -532,6 +789,9 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                 "</div>",
                 unsafe_allow_html=True,
             )
+
+        with menu_col:
+            _render_milestone_overflow_menu(milestone)
 
         if checklist:
             st.progress(done_count / len(checklist))
@@ -685,23 +945,4 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                     _mark_changed()
                     st.rerun()
 
-        confirm_key = f"confirm_delete_milestone_{milestone_id}"
-        if st.button("Delete milestone", key=f"delete_milestone_{milestone_id}"):
-            st.session_state[confirm_key] = True
-            st.rerun()
-        if st.session_state.get(confirm_key):
-            st.warning("Delete this milestone and all its checklist items?")
-            confirm_col, cancel_col = st.columns(2)
-            with confirm_col:
-                if st.button("Confirm delete", key=f"confirm_delete_milestone_button_{milestone_id}", type="primary"):
-                    st.session_state.milestones = [
-                        row for row in st.session_state.milestones
-                        if row.get("id") != milestone_id
-                    ]
-                    st.session_state.pop(confirm_key, None)
-                    _mark_changed()
-                    st.rerun()
-            with cancel_col:
-                if st.button("Keep milestone", key=f"cancel_delete_milestone_{milestone_id}"):
-                    st.session_state.pop(confirm_key, None)
-                    st.rerun()
+
