@@ -273,9 +273,10 @@ def _render_bulk_toolbar(kind: str, visible_assets: list[dict[str, Any]], allow_
 def _render_folder_overflow_menu(folder: dict[str, Any]) -> None:
     folder_id = folder.get("id")
     with st.popover("⋯", key=f"folder_overflow_{folder_id}", help="Folder actions"):
-        if st.button("Select multiple folders", key=f"select_folder_{folder_id}", use_container_width=True):
-            _start_asset_selection("folder", folder_id)
-            st.rerun()
+        if not st.session_state.get("folder_bulk_select_mode", False):
+            if st.button("Select multiple folders", key=f"select_folder_{folder_id}", use_container_width=True):
+                _start_asset_selection("folder", folder_id)
+                st.rerun()
         if st.button("Delete folder", key=f"delete_folder_menu_{folder_id}", use_container_width=True):
             _request_asset_deletion("folder", [folder_id])
             st.rerun()
@@ -284,9 +285,10 @@ def _render_folder_overflow_menu(folder: dict[str, Any]) -> None:
 def _render_note_overflow_menu(note: dict[str, Any]) -> None:
     note_id = note.get("id")
     with st.popover("⋯", key=f"note_overflow_{note_id}", help="Note actions"):
-        if st.button("Select multiple notes", key=f"select_note_{note_id}", use_container_width=True):
-            _start_asset_selection("note", note_id)
-            st.rerun()
+        if not st.session_state.get("note_bulk_select_mode", False):
+            if st.button("Select multiple notes", key=f"select_note_{note_id}", use_container_width=True):
+                _start_asset_selection("note", note_id)
+                st.rerun()
         if st.button("Delete note", key=f"delete_note_menu_{note_id}", use_container_width=True):
             _request_asset_deletion("note", [note_id])
             st.rerun()
@@ -295,9 +297,10 @@ def _render_note_overflow_menu(note: dict[str, Any]) -> None:
 def _render_milestone_overflow_menu(milestone: dict[str, Any]) -> None:
     milestone_id = milestone.get("id")
     with st.popover("⋯", key=f"milestone_overflow_{milestone_id}", help="Milestone actions"):
-        if st.button("Select multiple milestones", key=f"select_milestone_{milestone_id}", use_container_width=True):
-            _start_asset_selection("milestone", milestone_id)
-            st.rerun()
+        if not st.session_state.get("milestone_bulk_select_mode", False):
+            if st.button("Select multiple milestones", key=f"select_milestone_{milestone_id}", use_container_width=True):
+                _start_asset_selection("milestone", milestone_id)
+                st.rerun()
         if st.button("Delete milestone", key=f"delete_milestone_menu_{milestone_id}", use_container_width=True):
             _request_asset_deletion("milestone", [milestone_id])
             st.rerun()
