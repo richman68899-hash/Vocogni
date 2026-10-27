@@ -103,7 +103,7 @@ class SavedAssetActionTests(unittest.TestCase):
 
         self.assertNotIn("select_notes_10", self.session)
         self.assertFalse(self.session.notes_reset_selection_widgets)
-        self.assertEqual(self.session.notes_reset_selection_widget_ids, [])
+        self.assertNotIn("notes_reset_selection_widget_ids", self.session)
 
 
 if __name__ == "__main__":
