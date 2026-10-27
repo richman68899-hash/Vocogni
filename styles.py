@@ -1416,6 +1416,75 @@ section[data-testid="stSidebar"] button[data-testid^="stBaseButton-"] {
     }
 }
 
+/* ------------------------------------------------------------------
+   TEXT-SIZE REFLOW
+   Text size is a typographic preference, not a page zoom. Keep the
+   document's rem baseline stable and let labels wrap instead of forcing
+   controls, columns, and cards wider than their available space.
+   ------------------------------------------------------------------ */
+.stApp [data-testid="stHorizontalBlock"],
+.stApp [data-testid="column"],
+.stApp [data-testid="stVerticalBlock"],
+.stApp [data-testid="stVerticalBlockBorderWrapper"],
+.stApp [data-testid="stWidgetLabel"] {
+    min-width: 0 !important;
+    max-width: 100%;
+}
+.stApp [data-testid="stWidgetLabel"] label,
+.stApp [data-testid="stWidgetLabel"] p {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+.stApp .stButton > button,
+.stApp .stFormSubmitButton > button,
+.stApp [data-testid="stDownloadButton"] > button,
+.stApp [data-testid="stLinkButton"] > a {
+    height: auto !important;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+.stApp .stButton > button > div,
+.stApp .stFormSubmitButton > button > div,
+.stApp [data-testid="stDownloadButton"] > button > div {
+    min-width: 0;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+}
+.stApp [data-testid="stSelectbox"],
+.stApp [data-testid="stMultiSelect"],
+.stApp [data-testid="stTextInput"],
+.stApp [data-testid="stNumberInput"],
+.stApp [data-testid="stTextArea"],
+.stApp [data-testid="stRadio"],
+.stApp [data-testid="stCheckbox"],
+.stApp [data-testid="stToggle"] {
+    min-width: 0 !important;
+    max-width: 100%;
+}
+.stApp [data-baseweb="select"] [role="combobox"] {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+}
+.vc-card, .vc-lesson-row, .vc-summary-box, .vc-challenge-box,
+.vc-feedback, .vc-profile-identity-copy, .vc-profile-section-copy {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+    .stApp [data-testid="stHorizontalBlock"] {
+        flex-wrap: wrap !important;
+        align-items: stretch;
+    }
+    .stApp [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+        min-width: min(100%, 15rem) !important;
+    }
+}
+
+
 </style>
 """)
 
@@ -1475,8 +1544,8 @@ def _tint(surface: str, accent: str, amount: float) -> str:
 
 
 
-_FONT_SIZE_DECLARATION = re.compile(r"(?<![\\w-])font-size\\s*:\\s*([^;]+);")
-_FONT_SIZE_LENGTH = re.compile(r"(?<![\\w.-])(\\d+(?:\\.\\d+)?)(rem|px|vw|pt)\\b")
+_FONT_SIZE_DECLARATION = re.compile(r"(?<![\w-])font-size\s*:\s*([^;]+);")
+_FONT_SIZE_LENGTH = re.compile(r"(?<![\w.-])(\d+(?:\.\d+)?)(rem|px|vw|pt)\b")
 
 
 def _scale_css_font_sizes(css: str, scale: float) -> str:
