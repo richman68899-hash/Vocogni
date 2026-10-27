@@ -80,6 +80,103 @@ def _folder_count(folder_id: Any, notes: list[dict[str, Any]]) -> int:
     return sum(1 for note in notes if note.get("folder_id") == folder_id)
 
 
+# ===========================================================================
+# Saved-asset overflow menus and bulk selection
+# ===========================================================================
+
+def _begin_asset_selection(kind: str, asset_ids: list[Any] | None = None) -> None:
+    """Enable multi-select without changing saved learner data."""
+    was_active = bool(st.session_state.get(f"{kind}_bulk_select_mode", False))
+    st.session_state[f"{kind}_bulk_select_mode"] = True
+    selected_key = f"selected_{kind}_ids"
+    selected = list(st.session_state.get(selected_key, []))
+    for asset_id in asset_ids or []:
+        if asset_id not in selected:
+            selected.append(asset_id)
+        # These checkboxes are not rendered while selection mode is disabled.
+        # When already active, the widget may have been instantiated this run.
+        if not was_active:
+            st.session_state[f"select_{kind}_{asset_id}"] = True
+    st.session_state[selected_key] = selected
+
+
+def _toggle_asset_selection(kind: str, asset_id: Any, widget_key: str) -> None:
+    """Keep checkbox selection and the bulk-action selection list in sync."""
+    selected_key = f"selected_{kind}_ids"
+    selected = list(st.session_state.get(selected_key, []))
+    is_selected = bool(st.session_state.get(widget_key, False))
+    if is_selected and asset_id not in selected:
+        selected.append(asset_id)
+    elif not is_selected and asset_id in selected:
+        selected.remove(asset_id)
+    st.session_state[selected_key] = selected
+
+
+def _clear_asset_selection(kind: str) -> None:
+    """Close multi-select mode and clear transient selections."""
+    st.session_state[f"{kind}_bulk_select_mode"] = False
+    st.session_state[f"selected_{kind}_ids"] = []
+
+
+def _delete_notes(note_ids: list[Any]) -> None:
+    ids = set(note_ids)
+    if not ids:
+        return
+    st.session_state.notes = [
+        note for note in st.session_state.notes
+        if not isinstance(note, dict) or note.get("id") not in ids
+    ]
+    st.session_state.selected_note_ids = [
+        value for value in st.session_state.get("selected_note_ids", [])
+        if value not in ids
+    ]
+    if st.session_state.get("selected_note_id") in ids:
+        st.session_state.selected_note_id = None
+        st.session_state.note_editor_open = False
+    for note_id in ids:
+        st.session_state.pop(f"select_notes_{note_id}", None)
+        st.session_state.pop(f"confirm_delete_note_{note_id}", None)
+    _clear_asset_selection("notes")
+    _mark_changed()
+
+
+def _delete_folders(folder_ids: list[Any]) -> None:
+    """Delete folders but preserve their notes by returning them to Unfiled."""
+    ids = set(folder_ids)
+    if not ids:
+        return
+    for note in st.session_state.notes:
+        if isinstance(note, dict) and note.get("folder_id") in ids:
+            note["folder_id"] = None
+            note["updated_at"] = _now()
+    st.session_state.note_folders = [
+        folder for folder in st.session_state.note_folders
+        if not isinstance(folder, dict) or folder.get("id") not in ids
+    ]
+    if st.session_state.get("selected_note_folder_id") in ids:
+        st.session_state.selected_note_folder_id = None
+    for folder_id in ids:
+        st.session_state.pop(f"select_folders_{folder_id}", None)
+        st.session_state.pop(f"confirm_delete_folder_{folder_id}", None)
+    _clear_asset_selection("folders")
+    _mark_changed()
+
+
+def _delete_milestones(milestone_ids: list[Any]) -> None:
+    ids = set(milestone_ids)
+    if not ids:
+        return
+    st.session_state.milestones = [
+        row for row in st.session_state.milestones
+        if not isinstance(row, dict) or row.get("id") not in ids
+    ]
+    for milestone_id in ids:
+        st.session_state.pop(f"select_milestones_{milestone_id}", None)
+        st.session_state.pop(f"confirm_delete_milestone_{milestone_id}", None)
+    _clear_asset_selection("milestones")
+    _mark_changed()
+
+
 def render() -> None:
     st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
