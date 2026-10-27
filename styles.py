@@ -1355,6 +1355,13 @@ section[data-testid="stSidebar"] button[data-testid^="stBaseButton-"] {
     border-color: transparent !important;
 }
 
+.stApp [data-baseweb="select-arrow"],
+.stApp [data-baseweb="select"] [data-baseweb="select-arrow"] {
+    background-color: transparent !important;
+    color: var(--vc-text) !important;
+    border-color: transparent !important;
+}
+
 .stApp [data-baseweb="select"] svg {
     background: transparent !important;
     color: var(--vc-text) !important;
