@@ -1280,6 +1280,40 @@ html {
     .vc-profile-field { min-height: 0; }
 }
 
+
+/* Select controls: keep the value area, caret area, and label legible in
+   both themes. BaseWeb paints the dropdown indicator separately from the
+   control surface, which can otherwise leave a bright block in dark mode. */
+.stApp [data-testid="stSelectbox"] [data-testid="stWidgetLabel"] {
+    display: block !important;
+    height: auto !important;
+    min-height: 1.25rem;
+    margin-bottom: 0.3rem !important;
+    overflow: visible !important;
+}
+.stApp [data-testid="stSelectbox"] [data-testid="stWidgetLabel"] label {
+    display: inline-block !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    color: var(--vc-text) !important;
+}
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background-color: var(--vc-surface) !important;
+    border-color: var(--vc-border) !important;
+    color: var(--vc-text) !important;
+}
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div * {
+    background-color: transparent !important;
+    color: var(--vc-text) !important;
+}
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div svg {
+    color: var(--vc-text) !important;
+    fill: currentColor !important;
+    stroke: currentColor !important;
+}
+
 </style>
 """)
 
