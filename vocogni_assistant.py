@@ -205,7 +205,7 @@ def _mistakes_summary(progress: dict[str, Any] | None) -> str:
         "**Recorded mistake themes**",
         "",
         "The available history contains aggregate counters rather than item timestamps, "
-        "so I can't reliably label these as the *latest* mistakes. These are the most frequent recorded themes:",
+        "so I can't reliably label these as the latest mistakes. These are the most frequent recorded themes:",
     ]
     for count, course_title, tag in aggregate[:5]:
         lines.append(f"- **{tag}** — {course_title} · {count} recorded error{'s' if count != 1 else ''}")
