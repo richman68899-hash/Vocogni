@@ -184,3 +184,23 @@ def test_invalid_custom_accent_falls_back_safely():
     })
     assert "--vc-accent: #176B5B;" in css
     assert "$" not in css
+
+
+def test_tablet_layout_reclaims_space_and_compacts_navigation():
+    css = styles.build_css({"appearance": "Dark"})
+    assert 'section[data-testid="stSidebar"][aria-expanded="true"]' in css
+    assert "width: 17.25rem !important;" in css
+    assert "max-width: 1320px !important;" in css
+    assert "min-height: 2.25rem !important;" in css
+    assert "gap: 0.62rem !important;" in css
+    assert "$" not in css
+
+
+def test_dark_select_control_and_arrow_use_theme_surface():
+    css = styles.build_css({"appearance": "Dark"})
+    assert '.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div' in css
+    assert '.stApp [data-baseweb="select-arrow"]' in css
+    assert "background-color: var(--vc-surface) !important;" in css
+    assert "color: var(--vc-text) !important;" in css
+    assert "$" not in css
+
