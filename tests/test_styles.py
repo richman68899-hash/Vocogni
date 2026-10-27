@@ -205,3 +205,37 @@ def test_select_arrow_and_control_use_theme_surface():
     assert "color: var(--vc-text) !important;" in css
     assert "$" not in css
 
+def test_text_size_scales_type_without_scaling_layout_geometry():
+    small = styles.build_css({"appearance": "Dark", "text_size": "Small"})
+    medium = styles.build_css({"appearance": "Dark", "text_size": "Medium"})
+    large = styles.build_css({
+        "appearance": "Dark",
+        "text_size": "Large",
+        "larger_text": True,
+    })
+
+    # The body typography changes, but rem-based page geometry remains stable.
+    assert "font-size: 14px;" in small
+    assert "font-size: 16px;" in medium
+    assert "font-size: 19px;" in large
+    for css in (small, medium, large):
+        assert "width: 17.25rem !important;" in css
+        assert "padding: 1.15rem 1rem 1.5rem;" in css
+        assert "min-width: 0 !important;" in css
+        assert "white-space: normal !important;" in css
+        assert "$" not in css
+
+
+def test_large_text_scales_heading_and_control_typography():
+    large = styles.build_css({
+        "appearance": "Light",
+        "text_size": "Large",
+        "larger_text": True,
+    })
+    small = styles.build_css({"appearance": "Light", "text_size": "Small"})
+
+    assert "font-size: clamp(2.2563rem, 3.5625vw, 2.7906rem) !important;" in large
+    assert "font-size: clamp(1.6188rem, 2.625vw, 1.9688rem) !important;" in small
+    assert "flex-wrap: wrap !important;" in large
+    assert "overflow-wrap: anywhere;" in large
+
