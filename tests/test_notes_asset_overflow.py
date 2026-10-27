@@ -45,6 +45,8 @@ def test_deleting_folder_preserves_and_unfiles_its_notes():
 
 def test_destructive_actions_require_confirmation_and_can_be_cancelled():
     confirmation = function_source("_render_pending_asset_deletion")
+    editor = function_source("_render_editor")
     assert 'st.button("Confirm delete"' in confirmation
     assert 'st.button("Cancel"' in confirmation
     assert '_confirm_pending_asset_deletion()' in confirmation
+    assert '_request_asset_deletion("note"' in editor
