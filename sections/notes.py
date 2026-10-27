@@ -379,17 +379,19 @@ def _render_folder_view(folder: dict[str, Any]) -> None:
                 _mark_changed()
                 st.rerun()
         if st.button("Delete folder", key=f"delete_folder_{folder['id']}"):
-            # Preserve notes and move them to Unfiled.
-            for note in notes:
-                if note.get("folder_id") == folder["id"]:
-                    note["folder_id"] = None
-                    note["updated_at"] = _now()
-            st.session_state.note_folders = [
-                f for f in st.session_state.note_folders if f.get("id") != folder["id"]
-            ]
-            st.session_state.selected_note_folder_id = None
-            _mark_changed()
+            st.session_state[f"confirm_delete_folder_{folder['id']}"] = True
             st.rerun()
+        if st.session_state.get(f"confirm_delete_folder_{folder['id']}", False):
+            st.warning("Delete this folder? Its notes will be kept and moved to Unfiled.")
+            confirm_col, cancel_col = st.columns(2)
+            with confirm_col:
+                if st.button("Confirm delete", key=f"confirm_delete_folder_button_{folder['id']}", type="primary"):
+                    _delete_folders([folder["id"]])
+                    st.rerun()
+            with cancel_col:
+                if st.button("Keep folder", key=f"cancel_delete_folder_button_{folder['id']}"):
+                    st.session_state[f"confirm_delete_folder_{folder['id']}"] = False
+                    st.rerun()
 
     st.divider()
     _render_notes_list(notes, selected_folder_id=folder["id"], show_all=False)
