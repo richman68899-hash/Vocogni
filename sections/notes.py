@@ -822,15 +822,32 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
     ]
     done_count = sum(bool(item.get("done")) for item in checklist)
 
+    confirm_key = f"confirm_delete_milestone_{milestone_id}"
+    bulk_mode = bool(st.session_state.get("milestones_bulk_select_mode", False))
+
     with st.container(border=True):
         st.markdown(
             f"<div style='height:5px;background:{color};border-radius:8px;margin-bottom:12px'></div>",
             unsafe_allow_html=True,
         )
-        icon_col, title_col, date_col = st.columns(
-            [0.75, 3.8, 1.7],
-            vertical_alignment="center",
-        )
+        if bulk_mode:
+            select_col, icon_col, title_col, date_col, action_col = st.columns(
+                [0.55, 0.75, 3.4, 1.6, 0.6],
+                vertical_alignment="center",
+            )
+            with select_col:
+                st.checkbox(
+                    "Select milestone",
+                    key=f"select_milestones_{milestone_id}",
+                    on_change=_toggle_asset_selection,
+                    args=("milestones", milestone_id, f"select_milestones_{milestone_id}"),
+                )
+        else:
+            icon_col, title_col, date_col, action_col = st.columns(
+                [0.75, 3.8, 1.7, 0.6],
+                vertical_alignment="center",
+            )
+
         with icon_col:
             st.markdown(
                 f"<div class='vc-milestone-icon' aria-hidden='true'>{emoji}</div>",
@@ -858,6 +875,17 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                 "</div>",
                 unsafe_allow_html=True,
             )
+        with action_col:
+            with st.popover("⋮", help=f"Actions for {milestone.get('title', 'milestone')}", use_container_width=True):
+                if not bulk_mode:
+                    if st.button("Select for bulk actions", key=f"menu_select_milestone_{milestone_id}", use_container_width=True):
+                        _begin_asset_selection("milestones", [milestone_id])
+                        st.rerun()
+                else:
+                    st.caption("Use the checkbox to select this milestone.")
+                if st.button("Delete milestone", key=f"menu_delete_milestone_{milestone_id}", use_container_width=True):
+                    st.session_state[confirm_key] = True
+                    st.rerun()
 
         if checklist:
             st.progress(done_count / len(checklist))
@@ -1011,21 +1039,12 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                     _mark_changed()
                     st.rerun()
 
-        confirm_key = f"confirm_delete_milestone_{milestone_id}"
-        if st.button("Delete milestone", key=f"delete_milestone_{milestone_id}"):
-            st.session_state[confirm_key] = True
-            st.rerun()
         if st.session_state.get(confirm_key):
             st.warning("Delete this milestone and all its checklist items?")
             confirm_col, cancel_col = st.columns(2)
             with confirm_col:
                 if st.button("Confirm delete", key=f"confirm_delete_milestone_button_{milestone_id}", type="primary"):
-                    st.session_state.milestones = [
-                        row for row in st.session_state.milestones
-                        if row.get("id") != milestone_id
-                    ]
-                    st.session_state.pop(confirm_key, None)
-                    _mark_changed()
+                    _delete_milestones([milestone_id])
                     st.rerun()
             with cancel_col:
                 if st.button("Keep milestone", key=f"cancel_delete_milestone_{milestone_id}"):
