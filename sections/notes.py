@@ -110,9 +110,21 @@ def _toggle_asset_selection(kind: str, asset_id: Any, widget_key: str) -> None:
 
 
 def _clear_asset_selection(kind: str) -> None:
-    """Close multi-select mode and clear transient selections."""
+    """Close multi-select mode and defer checkbox-state cleanup until next run."""
     st.session_state[f"{kind}_bulk_select_mode"] = False
     st.session_state[f"selected_{kind}_ids"] = []
+    # Widget keys cannot be modified after their checkbox has rendered in this
+    # run. The next render clears them before creating any selection widgets.
+    st.session_state[f"{kind}_reset_selection_widgets"] = True
+
+
+def _reset_asset_selection_widgets(kind: str, assets: list[dict[str, Any]]) -> None:
+    """Clear stale checkbox state before rendering a list in its next mode."""
+    if not st.session_state.pop(f"{kind}_reset_selection_widgets", False):
+        return
+    for asset in assets:
+        if isinstance(asset, dict) and asset.get("id") is not None:
+            st.session_state.pop(f"select_{kind}_{asset['id']}", None)
 
 
 def _delete_notes(note_ids: list[Any]) -> None:
@@ -131,7 +143,6 @@ def _delete_notes(note_ids: list[Any]) -> None:
         st.session_state.selected_note_id = None
         st.session_state.note_editor_open = False
     for note_id in ids:
-        st.session_state.pop(f"select_notes_{note_id}", None)
         st.session_state.pop(f"confirm_delete_note_{note_id}", None)
     _clear_asset_selection("notes")
     _mark_changed()
@@ -153,7 +164,6 @@ def _delete_folders(folder_ids: list[Any]) -> None:
     if st.session_state.get("selected_note_folder_id") in ids:
         st.session_state.selected_note_folder_id = None
     for folder_id in ids:
-        st.session_state.pop(f"select_folders_{folder_id}", None)
         st.session_state.pop(f"confirm_delete_folder_{folder_id}", None)
     _clear_asset_selection("folders")
     _mark_changed()
@@ -168,7 +178,6 @@ def _delete_milestones(milestone_ids: list[Any]) -> None:
         if not isinstance(row, dict) or row.get("id") not in ids
     ]
     for milestone_id in ids:
-        st.session_state.pop(f"select_milestones_{milestone_id}", None)
         st.session_state.pop(f"confirm_delete_milestone_{milestone_id}", None)
     _clear_asset_selection("milestones")
     _mark_changed()
@@ -214,6 +223,7 @@ def render() -> None:
 def _render_folder_index() -> None:
     folders = [f for f in st.session_state.note_folders if isinstance(f, dict)]
     notes = [n for n in st.session_state.notes if isinstance(n, dict)]
+    _reset_asset_selection_widgets("folders", folders)
     bulk_mode = bool(st.session_state.get("folders_bulk_select_mode", False))
 
     title_col, menu_col = st.columns([5, 0.7], vertical_alignment="center")
@@ -406,6 +416,7 @@ def _render_notes_list(
     selected_folder_id: Any,
     show_all: bool,
 ) -> None:
+    _reset_asset_selection_widgets("notes", notes)
     col_filter, col_new = st.columns([3, 1], vertical_alignment="bottom", gap="medium")
     with col_filter:
         if show_all:
@@ -663,6 +674,7 @@ def _toggle_milestone_item(milestone_id: int, item_id: int, widget_key: str) -> 
 def _render_milestones() -> None:
     """Render goal categories and milestone cards with per-item and bulk actions."""
     milestones = [m for m in st.session_state.milestones if isinstance(m, dict)]
+    _reset_asset_selection_widgets("milestones", milestones)
     st.markdown("### Learning milestones")
     st.caption(
         "Turn larger goals into dated checklists. Milestones and checklist changes "
