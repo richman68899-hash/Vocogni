@@ -39,6 +39,7 @@ import streamlit as st
 
 import state
 import styles
+from vocogni_assistant import render_assistant
 
 from sections import browse as browse_section
 from sections import notes as notes_section
@@ -358,6 +359,19 @@ def main() -> None:
     )
 
     renderer()
+
+    # The floating learner assistant is available throughout the Learn flow,
+    # including course and lesson detail screens. It reads current session data
+    # and does not mutate or persist learner state.
+    if st.session_state.nav == "Browse":
+        render_assistant(
+            st,
+            st.session_state.profile,
+            st.session_state.progress,
+            settings=st.session_state.settings,
+            notes=st.session_state.notes,
+            milestones=st.session_state.milestones,
+        )
 
     # ========================================================
     # V1.2.0 AUTOSAVE
