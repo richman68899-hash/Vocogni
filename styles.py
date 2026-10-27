@@ -1280,6 +1280,136 @@ html {
     .vc-profile-field { min-height: 0; }
 }
 
+
+/* ------------------------------------------------------------------
+   RESPONSIVE LAYOUT REPAIR
+   Compact navigation, reclaim usable width, and keep BaseWeb controls
+   inside the learner-selected theme (especially on tablets in landscape).
+   ------------------------------------------------------------------ */
+@media (min-width: 900px) {
+    section[data-testid="stSidebar"][aria-expanded="true"] {
+        width: 17.25rem !important;
+        min-width: 17.25rem !important;
+        max-width: 17.25rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewContainer"] .main .block-container {
+        width: 100% !important;
+        max-width: 1320px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding: 1.35rem clamp(1rem, 2.5vw, 2.15rem) 2.8rem !important;
+        box-sizing: border-box !important;
+    }
+}
+
+/* Remove the oversized gaps between persistent sidebar actions. */
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    gap: 0.62rem !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] hr,
+section[data-testid="stSidebar"] hr {
+    margin: 0.75rem 0 !important;
+}
+
+section[data-testid="stSidebar"] .stButton > button,
+section[data-testid="stSidebar"] button[data-testid^="stBaseButton-"] {
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 2.25rem !important;
+    padding: 0.28rem 0.72rem !important;
+    line-height: 1.25 !important;
+    font-size: 0.9rem !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+}
+
+.stButton > button,
+.stFormSubmitButton > button,
+[data-testid="stDownloadButton"] > button {
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 2.45rem !important;
+    padding: 0.38rem 0.85rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+}
+
+/* BaseWeb renders the select arrow as a separate child. Theme the child too,
+   otherwise it stays white in dark mode while the text field turns dark. */
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+.stApp [data-testid="stMultiSelect"] [data-baseweb="select"] > div {
+    background-color: var(--vc-surface) !important;
+    color: var(--vc-text) !important;
+    border-color: var(--vc-border) !important;
+    box-shadow: none !important;
+}
+
+.stApp [data-baseweb="select"] [role="button"],
+.stApp [data-baseweb="select"] [role="combobox"] {
+    background-color: transparent !important;
+    color: var(--vc-text) !important;
+    border-color: transparent !important;
+}
+
+.stApp [data-baseweb="select"] svg {
+    background: transparent !important;
+    color: var(--vc-text) !important;
+    fill: var(--vc-text) !important;
+}
+
+.stApp [data-baseweb="select"] input {
+    background-color: transparent !important;
+    color: var(--vc-text) !important;
+}
+
+/* Constrain controls and prevent layout overflow in tablet-sized viewports. */
+.stApp [data-testid="stSelectbox"],
+.stApp [data-testid="stMultiSelect"],
+.stApp [data-testid="stTextInput"],
+.stApp [data-testid="stNumberInput"],
+.stApp [data-testid="stTextArea"] {
+    min-width: 0 !important;
+}
+
+.stApp [data-testid="stHorizontalBlock"] {
+    min-width: 0;
+}
+
+@media (max-width: 1100px) {
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding-left: 1.1rem !important;
+        padding-right: 1.1rem !important;
+    }
+
+    .stApp [data-testid="stHorizontalBlock"] {
+        gap: 0.65rem !important;
+    }
+}
+
+@media (max-width: 760px) {
+    section[data-testid="stSidebar"][aria-expanded="true"] {
+        width: min(18rem, 88vw) !important;
+        min-width: min(18rem, 88vw) !important;
+        max-width: min(18rem, 88vw) !important;
+    }
+
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding: 1rem 0.85rem 2rem !important;
+    }
+
+    .stButton > button,
+    .stFormSubmitButton > button,
+    [data-testid="stDownloadButton"] > button {
+        min-height: 2.35rem !important;
+    }
+}
+
 </style>
 """)
 
