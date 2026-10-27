@@ -292,6 +292,17 @@ def _render_note_overflow_menu(note: dict[str, Any]) -> None:
             st.rerun()
 
 
+def _render_milestone_overflow_menu(milestone: dict[str, Any]) -> None:
+    milestone_id = milestone.get("id")
+    with st.popover("⋯", key=f"milestone_overflow_{milestone_id}", help="Milestone actions"):
+        if st.button("Select multiple milestones", key=f"select_milestone_{milestone_id}", use_container_width=True):
+            _start_asset_selection("milestone", milestone_id)
+            st.rerun()
+        if st.button("Delete milestone", key=f"delete_milestone_menu_{milestone_id}", use_container_width=True):
+            _request_asset_deletion("milestone", [milestone_id])
+            st.rerun()
+
+
 def render() -> None:
     st.markdown("<h1>Notes</h1>", unsafe_allow_html=True)
     st.markdown(
@@ -623,8 +634,9 @@ def _toggle_milestone_item(milestone_id: int, item_id: int, widget_key: str) -> 
 
 
 def _render_milestones() -> None:
-    """Render goal categories and the milestone cards in the Notes workspace."""
-    milestones = st.session_state.milestones
+    """Render goal categories and milestone cards with bulk actions."""
+    _render_pending_asset_deletion({"milestone"})
+    milestones = [item for item in st.session_state.milestones if isinstance(item, dict)]
     st.markdown("### Learning milestones")
     st.caption(
         "Turn larger goals into dated checklists. Milestones and checklist changes "
@@ -690,6 +702,7 @@ def _render_milestones() -> None:
         if selected_section == "All sections" or milestone.get("section") == selected_section
     ]
     visible.sort(key=lambda row: (str(row.get("end_date", "9999-12-31")), str(row.get("title", "")).casefold()))
+    _render_bulk_toolbar("milestone", visible)
 
     if not visible:
         st.info(
@@ -732,9 +745,22 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
             f"<div style='height:5px;background:{color};border-radius:8px;margin-bottom:12px'></div>",
             unsafe_allow_html=True,
         )
-        icon_col, title_col, date_col = st.columns(
-            [0.75, 3.8, 1.7],
+        if st.session_state.get("milestone_bulk_select_mode", False):
+            select_col, spacer_col = st.columns([0.5, 5.5], gap="small")
+            with select_col:
+                checkbox_key = f"milestone_select_{milestone_id}"
+                st.checkbox(
+                    "Select milestone",
+                    value=milestone_id in st.session_state.get("selected_milestone_ids", []),
+                    key=checkbox_key,
+                    label_visibility="collapsed",
+                    on_change=_toggle_asset_selection,
+                    args=("milestone", milestone_id, checkbox_key),
+                )
+        icon_col, title_col, date_col, menu_col = st.columns(
+            [0.75, 3.7, 1.55, 0.55],
             vertical_alignment="center",
+            gap="small",
         )
         with icon_col:
             st.markdown(
@@ -763,6 +789,9 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                 "</div>",
                 unsafe_allow_html=True,
             )
+
+        with menu_col:
+            _render_milestone_overflow_menu(milestone)
 
         if checklist:
             st.progress(done_count / len(checklist))
@@ -916,23 +945,4 @@ def _render_milestone_card(milestone: dict[str, Any]) -> None:
                     _mark_changed()
                     st.rerun()
 
-        confirm_key = f"confirm_delete_milestone_{milestone_id}"
-        if st.button("Delete milestone", key=f"delete_milestone_{milestone_id}"):
-            st.session_state[confirm_key] = True
-            st.rerun()
-        if st.session_state.get(confirm_key):
-            st.warning("Delete this milestone and all its checklist items?")
-            confirm_col, cancel_col = st.columns(2)
-            with confirm_col:
-                if st.button("Confirm delete", key=f"confirm_delete_milestone_button_{milestone_id}", type="primary"):
-                    st.session_state.milestones = [
-                        row for row in st.session_state.milestones
-                        if row.get("id") != milestone_id
-                    ]
-                    st.session_state.pop(confirm_key, None)
-                    _mark_changed()
-                    st.rerun()
-            with cancel_col:
-                if st.button("Keep milestone", key=f"cancel_delete_milestone_{milestone_id}"):
-                    st.session_state.pop(confirm_key, None)
-                    st.rerun()
+
