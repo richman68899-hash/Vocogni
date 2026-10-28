@@ -20,7 +20,7 @@ class LegalNoticeTests(unittest.TestCase):
         self.assertIn("prototype", text)
 
     def test_privacy_notice_matches_current_ai_architecture(self):
-        text = load_notice("privacy notice".replace(" notice", "")).casefold()
+        text = load_notice("privacy").casefold()
         self.assertIn("auth0", text)
         self.assertIn("supabase", text)
         self.assertIn("does not make a request to an external generative ai model", text)
