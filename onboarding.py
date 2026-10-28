@@ -96,7 +96,7 @@ TUTORIAL_STEPS: tuple[dict[str, str], ...] = (
         "route": "Profile",
     },
     {
-        "eyebrow": "06 · VOCogNI ASSISTANT",
+        "eyebrow": "06 · ASSISTANT",
         "short_title": "Assistant",
         "title": "Ask for help from the Learn area.",
         "body": (
@@ -205,13 +205,6 @@ def render_tutorial(st: Any) -> None:
     body = html.escape(step["body"])
     detail = html.escape(step["detail"])
     step_label = f"Step {index + 1} of {len(TUTORIAL_STEPS)}"
-    next_label = (
-        "Finish tutorial"
-        if is_last
-        else f"Next: {step['short_title'] if index == 0 else TUTORIAL_STEPS[index + 1]['short_title']}"
-    )
-    next_label = "Start tour" if index == 0 else next_label
-
     st.markdown(
         f"""
         <section role="region" aria-label="Vocogni guided tour"
