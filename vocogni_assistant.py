@@ -1,9 +1,9 @@
 """Vocogni's learner-data assistant.
 
-The first version is intentionally grounded and private-by-default: it answers a
-curated set of learning-support requests from the learner's current saved state.
-It does not call an external model or transmit profile/progress data off-platform.
-The pure request handler can be unit-tested without starting Streamlit.
+The current assistant is a limited rule-based helper. It answers a curated set
+of learning-support requests from the data passed in by the app; it does not
+call an external generative-AI model. The pure request handler is unit-tested
+without starting Streamlit.
 """
 from __future__ import annotations
 
@@ -24,6 +24,15 @@ NAVIGATION_TARGETS = {
     "course library": "Browse",
     "notes": "Notes",
     "settings": "Settings",
+    "trust and safety": "Trust & Safety",
+    "trust safety": "Trust & Safety",
+    "terms": "Trust & Safety",
+    "terms of service": "Trust & Safety",
+    "privacy": "Trust & Safety",
+    "privacy notice": "Trust & Safety",
+    "ai safety": "Trust & Safety",
+    "ai use and safety": "Trust & Safety",
+    "safety": "Trust & Safety",
 }
 
 
@@ -365,8 +374,23 @@ def answer_request(
 
     route = _navigation_target(normalized)
     if route:
-        labels = {"Profile": "profile", "Progress": "progress", "Browse": "Learn / course library", "Notes": "Notes", "Settings": "Settings"}
+        labels = {
+            "Profile": "profile",
+            "Progress": "progress",
+            "Browse": "Learn / course library",
+            "Notes": "Notes",
+            "Settings": "Settings",
+            "Trust & Safety": "Trust & Safety",
+        }
         return f"Opening **{labels.get(route, route)}**.", route
+
+    if _has_any(normalized, ("terms of service", "privacy notice", "ai safety", "ai use", "trust and safety")):
+        return (
+            "Vocogni's **Trust & safety** page contains the working Terms of Service, Privacy Notice, "
+            "and AI Use & Safety Notes. These are development drafts, not legal advice or proof of compliance. "
+            "Open **Trust & safety** from the sidebar to read them.",
+            "Trust & Safety",
+        )
 
     if _has_any(normalized, ("help", "what can you do", "commands", "supported requests", "how can you help")):
         return (
@@ -378,8 +402,9 @@ def answer_request(
             "- List courses in your library.\n"
             "- Summarise your notes and learning milestones.\n"
             "- Show your learning settings.\n"
-            "- Open Profile, Progress, Learn, Notes, or Settings.\n\n"
-            "I answer from data already in Vocogni. I don't infer missing results or invent a learning history."
+            "- Open Profile, Progress, Learn, Notes, Settings, or Trust & safety.\n\n"
+            "The current assistant is rule-based, not generative AI. It answers from data already passed in by Vocogni. "
+            "It does not infer missing results or invent a learning history."
         ), None
 
     if _has_any(normalized, ("profile", "about me", "learning goals", "my interests")):
@@ -401,7 +426,8 @@ def answer_request(
         "I don't have a supported instruction for that yet. Try **Help** or one of these requests: "
         "**summarise my profile**, **show my latest mistakes**, **summarise my progress**, "
         "**recommend my next step**, or **list courses**.\n\n"
-        "For explanations of a subject, open the related lesson and use its worked examples and practice feedback.",
+        "For explanations of a subject, open the related lesson and use its worked examples and practice feedback. "
+        "To read the working terms, privacy notice, and AI safety notes, open **Trust & safety** from the sidebar.",
         None,
     )
 
@@ -503,6 +529,19 @@ def render_assistant(
             if st.button("✕", key="vocogni_assistant_close", help="Close assistant"):
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
+
+        st.caption(
+            "Prototype notice: this helper uses rule-based replies, not generative AI. "
+            "Check important answers and do not enter passwords, ID numbers, or sensitive personal details."
+        )
+        if st.button(
+            "Read AI use & safety notes",
+            key="vocogni_assistant_safety_notes",
+            use_container_width=True,
+        ):
+            st.session_state.nav = "Trust & Safety"
+            st.session_state.vocogni_assistant_open = False
+            st.rerun()
 
         messages = st.session_state.vocogni_assistant_messages
 
