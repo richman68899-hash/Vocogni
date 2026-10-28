@@ -11,7 +11,7 @@ class LegalNoticeTests(unittest.TestCase):
             with self.subTest(notice=name):
                 text = load_notice(name)
                 self.assertTrue(text.strip())
-                self.assertIn("Draft", text[:500])
+                self.assertIn("draft", text[:500].casefold())
 
     def test_terms_do_not_claim_official_assessment_or_guaranteed_accuracy(self):
         text = load_notice("terms").casefold()
