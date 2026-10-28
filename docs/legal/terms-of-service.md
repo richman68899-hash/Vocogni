@@ -60,7 +60,7 @@ The current architecture uses third-party services for authentication, hosting, 
 
 This is a developing prototype. Features may be unavailable, revised, or removed, and saved records may not be available during outages or maintenance. Do not treat the prototype as the only place to keep important schoolwork; keep your own copy of anything you cannot afford to lose.
 
-The final service must explain how a user or guardian can request account closure, access to records, correction, and deletion. A complete self-service account-deletion flow has not been confirmed in this repository, so no such functionality is promised here.
+The final service must explain how a user or guardian can request account closure, access to records, correction, and deletion. A complete self-service account-deletion flow is not currently documented as available, so this draft does not promise that functionality.
 
 ## 9. Disclaimers and responsibility
 
