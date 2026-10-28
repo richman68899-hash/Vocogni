@@ -39,6 +39,7 @@ import streamlit as st
 
 import state
 import styles
+import onboarding
 from vocogni_assistant import render_assistant
 
 from sections import browse as browse_section
@@ -340,6 +341,14 @@ def main() -> None:
     # ========================================================
 
     _load_persistent_state()
+
+    # ========================================================
+    # FIRST-RUN GUIDED TOUR
+    # ========================================================
+    # Completion is kept in the existing durable settings bundle. The tour
+    # renders above the current page and its callbacks choose the next route.
+
+    onboarding.render_tutorial(st)
 
     # ========================================================
     # PERSISTENT SIDEBAR
