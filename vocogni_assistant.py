@@ -24,6 +24,17 @@ NAVIGATION_TARGETS = {
     "course library": "Browse",
     "notes": "Notes",
     "settings": "Settings",
+    "terms": "Settings",
+    "terms of use": "Settings",
+    "terms of service": "Settings",
+    "privacy": "Settings",
+    "privacy notice": "Settings",
+    "privacy policy": "Settings",
+    "ai safety": "Settings",
+    "ai use and safety": "Settings",
+    "ai use safety": "Settings",
+    "safety notes": "Settings",
+    "legal notices": "Settings",
 }
 
 
@@ -368,6 +379,12 @@ def answer_request(
         labels = {"Profile": "profile", "Progress": "progress", "Browse": "Learn / course library", "Notes": "Notes", "Settings": "Settings"}
         return f"Opening **{labels.get(route, route)}**.", route
 
+    if _has_any(normalized, ("terms of service", "terms of use", "privacy notice", "privacy policy", "ai safety", "ai use and safety", "ai use safety", "safety notes", "legal notices")):
+        return (
+            "Vocogni's draft Terms of Use, Privacy Notice, and AI Use & Safety Notes are available in **Settings**, near the bottom of the page. They are working drafts, not final legal terms or proof of compliance. The assistant itself is rule-based and does not call a generative AI model in this build.",
+            "Settings",
+        )
+
     if _has_any(normalized, ("help", "what can you do", "commands", "supported requests", "how can you help")):
         return (
             "**What I can help with**\n\n"
@@ -378,7 +395,8 @@ def answer_request(
             "- List courses in your library.\n"
             "- Summarise your notes and learning milestones.\n"
             "- Show your learning settings.\n"
-            "- Open Profile, Progress, Learn, Notes, or Settings.\n\n"
+            "- Open Profile, Progress, Learn, Notes, or Settings.\n"
+            "- Open Settings to read the Terms, Privacy Notice, and AI Use & Safety Notes.\n\n"
             "I answer from data already in Vocogni. I don't infer missing results or invent a learning history."
         ), None
 
@@ -502,8 +520,16 @@ def render_assistant(
             st.caption(
                 "Prototype disclosure: replies are rule-based and use data already in Vocogni; "
                 "this build does not call a generative AI model. Avoid passwords and sensitive "
-                "personal information. See Settings for Terms, Privacy & AI Safety."
+                "personal information. The full draft notices are available in Settings."
             )
+            if st.button(
+                "Read Terms, Privacy & AI Safety",
+                key="vocogni_assistant_policy_button",
+                use_container_width=True,
+            ):
+                st.session_state.nav = "Settings"
+                st.session_state.vocogni_assistant_open = False
+                st.rerun()
         with close_col:
             if st.button("✕", key="vocogni_assistant_close", help="Close assistant"):
                 st.session_state.vocogni_assistant_open = False
