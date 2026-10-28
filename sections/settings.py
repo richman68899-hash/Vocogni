@@ -12,6 +12,7 @@ from typing import Any
 
 import streamlit as st
 import styles
+import onboarding
 
 from version import APP_VERSION
 import state
@@ -131,6 +132,23 @@ def render() -> None:
                     on_click=_apply_preset,
                     args=(name,),
                 )
+
+    # The first-run walkthrough is available again from Settings at any time.
+    # It reuses the same saved completion flag and never resets learner progress.
+    with st.container(border=True):
+        st.subheader("Guided tour")
+        tour_complete = onboarding.is_tutorial_complete(settings)
+        if tour_complete:
+            st.caption("You've completed the tour. Replay it whenever you need a refresher.")
+        else:
+            st.caption("Take a short, guided look around Learn, practice, progress, notes, and settings.")
+        st.button(
+            "Replay guided tour" if tour_complete else "Restart guided tour",
+            key="settings_restart_guided_tour",
+            type="primary",
+            on_click=onboarding.start_tutorial,
+            use_container_width=True,
+        )
 
     # Keep decorative controls in a full-width panel rather than an overly tall
     # half-width column. Group the controls by what they change.
