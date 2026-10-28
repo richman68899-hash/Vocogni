@@ -32,6 +32,7 @@ NAVIGATION_TARGETS = {
     "privacy notice": "Trust & Safety",
     "ai safety": "Trust & Safety",
     "ai use and safety": "Trust & Safety",
+    "ai use safety": "Trust & Safety",
     "safety": "Trust & Safety",
 }
 
