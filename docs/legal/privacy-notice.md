@@ -57,7 +57,9 @@ The service must provide a working channel to make these requests and a document
 
 ## 8. Children and school use
 
-The service is intended for learning, and learners may be minors. Before enabling public or school use, the operator must assess applicable child-data rules, guardian permission/consent requirements, age-appropriate notices, school responsibilities, and the need for any additional safeguards. Do not treat the existence of this draft as proof that those requirements have been met.
+The service is intended for learning, and learners may be minors. Article 25 of Indonesia's Personal Data Protection Law (Law No. 27 of 2022) provides for special handling of children's personal data and requires parent/guardian consent in accordance with applicable law. Indonesia also has electronic-system child-protection rules, including Government Regulation No. 17 of 2025 and Minister of Communication and Digital Regulation No. 9 of 2026. Their exact application to Vocogni must be assessed by qualified counsel against the service's role, features, user groups, deployment, and risk classification.
+
+The current prototype does not verify or record parent/guardian consent and has no documented child-safety risk classification. Do not treat this draft or the login screen as satisfying consent or compliance requirements. Public child-facing use should remain blocked until the operator completes the legal assessment and implements the controls that assessment requires.
 
 ## 9. Changes to this notice
 
@@ -65,8 +67,10 @@ The published notice should show an effective date and version. Material changes
 
 ## 10. Legal reference for launch review
 
-For Indonesia, have qualified counsel assess the Personal Data Protection Law (Law No. 27 of 2022), Government Regulation No. 71 of 2019 on Electronic Systems and Transactions, and any applicable rules for private electronic system operators against the actual service and deployment. This is a review prompt, not a legal conclusion about applicability or compliance.
+For Indonesia, have qualified counsel review the actual service and deployment against the laws and regulations that apply. The references below are a starting point for review, not a legal conclusion about applicability or compliance.
 
-- [Law No. 27 of 2022 — Personal Data Protection, Ministry JDIH](https://jdih.komdigi.go.id/produk_hukum/view/id/832/t/crc32/)
-- [Government Regulation No. 71 of 2019 — BPK regulatory database](https://peraturan.bpk.go.id/Details/122030/pp-no-71-tahun-2019)
-- [Ministerial Regulation No. 5 of 2020 — private electronic system operators, Ministry JDIH](https://jdih.komdigi.go.id/produk_hukum/view/id/759/t/pera)
+- [Law No. 27 of 2022 — Personal Data Protection, Ministry JDIH](https://jdih.komdigi.go.id/produk_hukum/view/id/832/t/crc32/). Article 25 addresses special handling of children's personal data and parent/guardian consent.
+- [Government Regulation No. 17 of 2025 — Governance of Electronic System Operators for Child Protection, Ministry JDIH](https://jdih.komdigi.go.id/produk_hukum/view/id/965/t/peraturan%20pemerintah%20nomor%2017%20tahun%202025).
+- [Minister of Communication and Digital Regulation No. 9 of 2026 — implementing PP No. 17 of 2025, Ministry JDIH](https://jdih.komdigi.go.id/produk_hukum/view/id/1007/t/peraturan%2Bmenteri%2Bkomunikasi%2Bdan%2Bdigital%2Bnomor%2B9%2Btahun%2B2026). The official abstract covers, among other matters, product/service/feature risk profiles, self-assessment and verification, risk mitigation, reporting/complaints, and child-friendly design.
+- [Government Regulation No. 71 of 2019 — BPK regulatory database](https://peraturan.bpk.go.id/Details/122030/pp-no-71-tahun-2019).
+- [Ministerial Regulation No. 5 of 2020 — private electronic system operators, Ministry JDIH](https://jdih.komdigi.go.id/produk_hukum/view/id/759/t/pera). Counsel should confirm current status and applicability, including any subsequent amendments or replacement rules.

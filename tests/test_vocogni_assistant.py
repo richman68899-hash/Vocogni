@@ -109,6 +109,22 @@ class VocogniAssistantTests(unittest.TestCase):
         self.assertEqual(route, "Progress")
         self.assertIn("Opening", reply)
 
+    def test_policy_requests_open_settings_and_explain_draft_status(self):
+        for query in (
+            "open terms of service",
+            "open privacy notice",
+            "open AI use safety",
+            "terms of service",
+        ):
+            with self.subTest(query=query):
+                reply, route = answer_request(query, self.profile, self.progress)
+                self.assertEqual(route, "Settings")
+                self.assertTrue(reply)
+        reply, route = answer_request("terms of service", self.profile, self.progress)
+        self.assertEqual(route, "Settings")
+        self.assertIn("working drafts", reply)
+        self.assertIn("not final legal terms", reply)
+
     def test_help_lists_supported_requests(self):
         reply, route = answer_request("help", self.profile, self.progress)
         self.assertIsNone(route)

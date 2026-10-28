@@ -28,7 +28,9 @@ The current assistant does not send its inputs to an external generative AI mode
 
 ## 4. Safer use by younger learners
 
-If you are under 18, use the service with the awareness and involvement of a parent/guardian or educator as appropriate. Tell a trusted adult if something on the service makes you feel unsafe, exposes private information, or appears to be used to target or harm another learner.
+If you are under 18, involve a parent/guardian or educator as appropriate. Tell a trusted adult if something on the service makes you feel unsafe, exposes private information, or appears to be used to target or harm another learner.
+
+**Product-readiness warning:** This prototype does not verify or record parent/guardian consent and has no documented child-safety risk classification. These notes do not replace legally required consent, age-appropriate controls, or risk mitigation. Public child-facing use should remain blocked until the operator completes a jurisdiction-specific legal review and implements the required controls. For Indonesia, see the official child-data and electronic-system child-protection references in the Privacy Notice.
 
 Do not use the service to bully, threaten, exploit, impersonate, or expose others. Report concerns through **[insert monitored safety/support contact]** once the operator has filled in and verified that contact.
 
