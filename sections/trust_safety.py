@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import streamlit as st
 
 
 _POLICY_FILES = {
@@ -28,6 +27,8 @@ def load_policy(key: str) -> str:
 
 
 def _render_policy_tabs() -> None:
+    import streamlit as st
+
     tabs = st.tabs(["Terms of service", "Privacy notice", "AI use & safety"])
     for tab, key in zip(tabs, ("terms", "privacy", "ai_safety")):
         with tab:
@@ -51,6 +52,8 @@ def render_login_disclosure() -> None:
 
 def render() -> None:
     """Render the in-product Trust & Safety page."""
+    import streamlit as st
+
     st.title("Trust & safety")
     st.markdown(
         "<p class='vc-page-intro'>How Vocogni works, what data it uses, and the limits "
