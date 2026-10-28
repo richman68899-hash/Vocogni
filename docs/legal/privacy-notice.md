@@ -47,7 +47,7 @@ The current architecture necessarily relies on its authentication, database, and
 
 The operator should apply appropriate access controls, keep credentials and secrets out of source code, limit internal access, and maintain a process for handling incidents. No internet service can promise absolute security.
 
-Learner-state persistence is implemented in Supabase, but the complete retention schedule, backup-deletion timeline, and user-facing account/data deletion workflow have not been confirmed by the repository review. These must be decided, implemented, and described before public release. Until then, do not promise a specific deletion deadline.
+Learner-state persistence is implemented in Supabase, but the retention schedule, backup-deletion timeline, and user-facing account/data deletion process have not yet been finalised for this prototype. These must be decided, implemented, and described before public release. Until then, do not promise a specific deletion deadline.
 
 ## 7. Your choices and data rights
 
