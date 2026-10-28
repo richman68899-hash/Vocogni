@@ -15,7 +15,7 @@ Ketentuan Layanan ini ("Ketentuan") mengatur akses dan penggunaan Vocogni ("Voco
 
 Pihak yang mengoperasikan Layanan adalah pihak yang diidentifikasi pada bagian informasi pengelola di atas ("Pengelola"). Jangan menerbitkan dokumen ini sebelum identitas Pengelola dan kontak yang dapat dihubungi telah dilengkapi dengan benar.
 
-Dengan mengakses atau menggunakan Layanan, Anda menyatakan telah membaca Ketentuan ini dan, apabila diwajibkan, orang tua/wali Anda telah memberikan persetujuan yang sesuai. Jika Anda tidak menyetujuinya, jangan gunakan Layanan. Persetujuan pemrosesan data pribadi—khususnya data anak—harus ditangani secara jelas dan terpisah sesuai hukum yang berlaku; Ketentuan ini bukan pengganti persetujuan tersebut.
+Sebelum membuat akun atau menggunakan fitur yang memerlukan akun, pengguna harus diberi kesempatan membaca Ketentuan ini dan Kebijakan Privasi, lalu menyatakan persetujuan secara jelas melalui mekanisme penerimaan yang ditampilkan (misalnya kotak centang yang tidak dicentang sebelumnya). Pengelola harus menyimpan bukti yang memadai tentang versi Ketentuan dan peristiwa persetujuan. Jangan menganggap penggunaan berlanjut sebagai pengganti persetujuan baru apabila hukum mewajibkannya. Jika Anda tidak menyetujui Ketentuan ini, jangan gunakan fitur akun. Persetujuan pemrosesan data pribadi—khususnya data anak—harus ditangani secara jelas dan terpisah sesuai hukum yang berlaku; Ketentuan ini bukan pengganti persetujuan tersebut.
 
 ## 2. Kelayakan dan Pengguna di Bawah Umur
 
