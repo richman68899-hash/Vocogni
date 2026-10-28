@@ -41,6 +41,7 @@ import state
 import styles
 import onboarding
 from vocogni_assistant import render_assistant
+from legal_notices import render_legal_notices
 
 from sections import browse as browse_section
 from sections import notes as notes_section
@@ -99,6 +100,11 @@ def _render_login() -> None:
             args=["auth0"],
             use_container_width=True,
         )
+
+    st.divider()
+    st.markdown("#### Terms, privacy & AI safety")
+    st.caption("Review these prototype notices before signing in.")
+    render_legal_notices(st, compact=True)
 
     # Do not render the application while unauthenticated.
     st.stop()

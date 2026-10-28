@@ -13,6 +13,7 @@ from typing import Any
 import streamlit as st
 import styles
 import onboarding
+from legal_notices import render_legal_notices
 
 from version import APP_VERSION
 import state
@@ -349,3 +350,8 @@ def render() -> None:
 
     st.divider()
     st.caption(f"Vocogni v{APP_VERSION}")
+
+    st.divider()
+    st.header("Terms, privacy & AI safety")
+    st.caption("Read what the current prototype does, what learner data it uses, and the limits of its learning support.")
+    render_legal_notices(st)
