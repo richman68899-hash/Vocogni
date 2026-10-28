@@ -48,10 +48,19 @@ Checklist ini sengaja memisahkan naskah Ketentuan Layanan dari kontrol produk ya
 - [ ] Uji alur pengguna baru, pengguna yang sudah ada, pengguna anak, penolakan persetujuan, sign-out, serta permintaan penutupan akun.
 - [ ] Jalankan review keamanan dan uji manual pada deployment produksi sebelum menganggap kontrol ini berfungsi.
 
+## F. Perlindungan anak dan kewajiban PSE
+
+- [ ] Minta penasihat hukum menilai penerapan **PP No. 17 Tahun 2025 tentang Tata Kelola Penyelenggaraan Sistem Elektronik dalam Pelindungan Anak** terhadap kelompok usia, fitur, tingkat risiko, dan operasi Vocogni. Jangan menganggap pencantuman klausul persetujuan wali saja sudah memenuhi semua kewajiban perlindungan anak.
+- [ ] Tentukan safeguard berbasis usia, penilaian risiko, desain/pengaturan akun anak, mekanisme persetujuan dan penarikan persetujuan wali, serta prosedur penanganan permintaan/keluhan yang berlaku untuk Vocogni.
+- [ ] Nilai bersama penasihat hukum apakah Vocogni wajib mendaftar sebagai **Penyelenggara Sistem Elektronik Lingkup Privat (PSE Lingkup Privat)** dan melalui proses yang sesuai sebelum operasi publik. Panduan resmi Komdigi mencantumkan beberapa kategori layanan online, termasuk layanan penawaran/penyediaan jasa dan pemrosesan data pribadi untuk kegiatan operasional.
+- [ ] Jangan mengklaim telah terdaftar, memperoleh izin, atau mematuhi kewajiban PSE sampai statusnya dibuktikan dengan dokumen resmi.
+
 ## Referensi hukum awal (periksa kembali saat publikasi)
 
 1. **UU Republik Indonesia No. 27 Tahun 2022 tentang Pelindungan Data Pribadi** — mencakup hak subjek data, transparansi/persetujuan, data pribadi anak, kewajiban pengendali, dan pemberitahuan kegagalan pelindungan data. Sumber resmi JDIH Komdigi: https://jdih.komdigi.go.id/produk_hukum/view/id/832
 2. **PP Republik Indonesia No. 71 Tahun 2019 tentang Penyelenggaraan Sistem dan Transaksi Elektronik** — mengatur kewajiban penyelenggara sistem elektronik dan ketentuan kontrak elektronik; Pasal 47 menyatakan kontrak elektronik yang ditujukan kepada penduduk Indonesia harus dibuat dalam Bahasa Indonesia. Sumber resmi JDIH Komdigi: https://jdih.komdigi.go.id/produk_hukum/view/id/695
 3. **UU Republik Indonesia No. 8 Tahun 1999 tentang Perlindungan Konsumen** — perlu diperhatikan saat menyusun informasi produk, klausul baku, dan ketentuan tanggung jawab. Identifikasi naskah resmi dan ketentuan yang berlaku saat peninjauan final.
+4. **PP Republik Indonesia No. 17 Tahun 2025 tentang Tata Kelola Penyelenggaraan Sistem Elektronik dalam Pelindungan Anak** — tercatat berlaku pada JDIH Komdigi; penasihat hukum perlu menilai kewajiban operasional yang sesuai. Sumber resmi: https://jdih.komdigi.go.id/produk_hukum/view/id/965/t/peraturan%20pemerintah%20nomor%2017%20tahun%202025
+5. **Panduan kriteria pendaftaran PSE Lingkup Privat Komdigi** — gunakan untuk penilaian awal, bukan sebagai pengganti keputusan hukum atas fakta operasional Vocogni. Sumber resmi: https://pse.komdigi.go.id/panduan/kriteria-pendaftaran-pse-lingkup-privat
 
 Referensi ini adalah titik awal untuk pemeriksaan, bukan pernyataan bahwa Vocogni sudah mematuhi seluruh kewajiban hukum. Penasihat hukum perlu memverifikasi peraturan pelaksana, kewajiban PSE yang mungkin berlaku, dan fakta operasional aktual sebelum publikasi.
