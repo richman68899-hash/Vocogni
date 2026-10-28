@@ -499,6 +499,11 @@ def render_assistant(
         with title_col:
             st.markdown("### Vocogni Assistant")
             st.caption("Profile, progress, mistakes, and learning support")
+            st.caption(
+                "Prototype disclosure: replies are rule-based and use data already in Vocogni; "
+                "this build does not call a generative AI model. Avoid passwords and sensitive "
+                "personal information. See Settings for Terms, Privacy & AI Safety."
+            )
         with close_col:
             if st.button("✕", key="vocogni_assistant_close", help="Close assistant"):
                 st.session_state.vocogni_assistant_open = False
