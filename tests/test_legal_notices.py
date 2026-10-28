@@ -35,6 +35,15 @@ class LegalNoticeTests(unittest.TestCase):
         self.assertIn("human moderator", text)
         self.assertIn("before any future generative ai integration", text)
 
+    def test_indonesian_child_protection_requirements_are_flagged_for_review(self):
+        privacy = load_notice("privacy").casefold()
+        ai_safety = load_notice("ai_safety").casefold()
+        self.assertIn("law no. 27 of 2022", privacy)
+        self.assertIn("government regulation no. 17 of 2025", privacy)
+        self.assertIn("regulation no. 9 of 2026", privacy)
+        self.assertIn("does not verify or record parent/guardian consent", privacy)
+        self.assertIn("public child-facing use should remain blocked", ai_safety)
+
     def test_internal_launch_checklist_flags_missing_operator_and_contact(self):
         from pathlib import Path
 
@@ -44,6 +53,8 @@ class LegalNoticeTests(unittest.TestCase):
         self.assertIn("monitored", text)
         self.assertIn("retention", text)
         self.assertIn("guardian", text)
+        self.assertIn("risk classification", text)
+        self.assertIn("2026", text)
 
 
 if __name__ == "__main__":
