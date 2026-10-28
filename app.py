@@ -47,6 +47,7 @@ from sections import notes as notes_section
 from sections import profile as profile_section
 from sections import progress as progress_section
 from sections import settings as settings_section
+from sections import trust_safety as trust_safety_section
 
 
 # ============================================================
@@ -59,6 +60,7 @@ NAV_ITEMS = [
     ("Learn", "Browse"),
     ("Notes", "Notes"),
     ("Settings", "Settings"),
+    ("Trust & safety", "Trust & Safety"),
 ]
 
 
@@ -68,6 +70,7 @@ SECTION_RENDERERS = {
     "Browse": browse_section.render,
     "Notes": notes_section.render,
     "Settings": settings_section.render,
+    "Trust & Safety": trust_safety_section.render,
 }
 
 
@@ -99,6 +102,10 @@ def _render_login() -> None:
             args=["auth0"],
             use_container_width=True,
         )
+
+    # Make draft policy text accessible before sign-in. This does not record
+    # consent and must not be mistaken for a completed legal acceptance flow.
+    trust_safety_section.render_login_disclosure()
 
     # Do not render the application while unauthenticated.
     st.stop()
