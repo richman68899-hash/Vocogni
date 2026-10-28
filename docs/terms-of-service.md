@@ -17,7 +17,7 @@ Vocogni is a learning aid. It is not a school, examination board, accredited qua
 
 Until the operator completes a child-safety assessment and implements all required age-appropriate controls and consent flows, Vocogni is intended only for controlled development testing with responsible adult oversight.
 
-If you are under 18, use the prototype only with permission and appropriate supervision from a parent, guardian, or responsible educator. This notice is **not** a substitute for the verifiable parental/guardian consent or other controls that may be legally required. The current prototype does not provide a completed guardian-consent recording workflow. Public access by children must not be treated as approved until this blocker is resolved.
+If you are under 18, use the prototype only with permission and appropriate supervision from a parent, guardian, or responsible educator. This notice is **not** a substitute for verifiable parent/guardian consent or other controls that may be legally required. The current prototype does not provide a completed guardian-consent recording workflow. Public access by children must not be treated as approved until this blocker is resolved.
 
 ## 3. Accounts and account security
 
