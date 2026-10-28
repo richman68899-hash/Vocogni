@@ -48,7 +48,7 @@ In the current repository version, the Vocogni Assistant is a deterministic, rul
 
 If later versions add an external AI provider or AI-generated content, the service must update its notices before the feature is released to explain what data is sent, to whom, for what purpose, and under what provider retention/training terms. An AI label must not be used to imply a capability that is not actually implemented.
 
-See [AI Use and Safety Notes](ai-use-and-safety.md).
+See **AI Use and Safety Notes** in the in-app Trust & Safety page.
 
 ## 7. Learner content
 
@@ -62,7 +62,7 @@ The current app uses an identity provider for sign-in, Streamlit for the applica
 
 The prototype is provided for development and may be unavailable, reset, changed, or discontinued. Do not use it as the only copy of important schoolwork. The app has not been production-validated for availability, recovery, deletion, or security.
 
-See [Privacy Notice](privacy-notice.md).
+See **Privacy Notice** in the in-app Trust & Safety page.
 
 ## 9. Safety concerns and support
 
