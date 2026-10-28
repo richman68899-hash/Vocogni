@@ -36,7 +36,7 @@ Do not enter:
 
 Use the minimum information needed for a learning task. Check notes and profile fields before sharing your screen or using a shared device. Log out on devices other people can access.
 
-The current assistant reads session data such as profile fields, saved progress, settings, notes, and milestones when answering supported requests. Its conversation messages are held in the app session; they are not written by this helper to an external generative-AI provider. The hosting and database providers may still process the data needed to run the app. See the [Privacy Notice](privacy-notice.md).
+The current assistant reads session data such as profile fields, saved progress, settings, notes, and milestones when answering supported requests. Its conversation messages are held in the app session; they are not written by this helper to an external generative-AI provider. The hosting and database providers may still process the data needed to run the app. See the **Privacy Notice** in the in-app Trust & Safety page.
 
 ## 4. Appropriate use and academic integrity
 
