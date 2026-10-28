@@ -1,6 +1,6 @@
 # AI Use and Safety Notes — Prototype
 
-**Status:** User-facing guidance for the current prototype. Review it whenever learning, assistant, scoring, storage, or model integrations change.
+**Status:** Prototype draft — user-facing guidance for the current build. Review it whenever learning, assistant, scoring, storage, or model integrations change.
 
 ## 1. What the current assistant actually does
 
