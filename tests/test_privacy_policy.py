@@ -37,7 +37,7 @@ class PrivacyPolicyDraftTests(unittest.TestCase):
             "[INSERT FULL LEGAL NAME OR LEGAL ENTITY]",
             "[INSERT MONITORED PRIVACY EMAIL ADDRESS]",
             "[INSERT POSTAL OR BUSINESS ADDRESS]",
-            "Current prototype does not yet define and enforce",
+            "does not yet define and enforce a complete, published retention schedule",
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.policy)
