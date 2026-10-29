@@ -70,7 +70,7 @@ The service is provided as a prototype for educational support. To the extent pe
 
 ## 10. Complaints and contact
 
-Use **NOT CONFIGURED — add a monitored support and privacy contact before public launch** to report a problem, request help, or raise a privacy concern. Replace this placeholder with a real, monitored contact before public release.
+**Support and privacy reporting channel: not configured.** A real, monitored contact must be published before public launch so users can report a problem, request help, or raise a privacy concern.
 
 ## 11. Governing law and dispute process
 
