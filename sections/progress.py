@@ -390,6 +390,7 @@ def _render_recommendations(progress):
     st.markdown(f"<div>{chips}</div>", unsafe_allow_html=True)
 
 
+# Keep the summary transparent about its rule-based source until a real model is integrated.
 def _render_ai_summary(profile, progress):
     st.markdown(
         "<span class='vc-muted'>A transparent summary of your recorded activity. "
