@@ -531,7 +531,7 @@ def render_assistant(
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
         with close_col:
-            if st.button("✕", key="vocogni_assistant_close", help="Close assistant"):
+            if st.button("✕", key="vocogni_assistant_close", help="Close Study Guide"):
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
 
