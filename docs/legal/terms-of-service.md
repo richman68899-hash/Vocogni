@@ -2,16 +2,16 @@
 
 **Status:** Draft for product and legal review. These terms are not ready to serve as the final public agreement. Complete the operator details, governing-law provisions, data-handling procedures, and legal review before public release.
 
-- **Service operator:** [Insert the responsible individual or legal entity]
-- **Support contact:** [Insert a monitored support contact]
-- **Effective date:** [Set after review]
+- **Service operator:** NOT CONFIGURED — identify the responsible individual or legal entity before public launch
+- **Support contact:** NOT CONFIGURED — add a monitored support contact before public launch
+- **Effective date:** NOT SET — publish an effective date only after legal review
 - **Version:** 0.1-draft
 
 ## 1. What Vocogni is
 
 Vocogni is an educational learning prototype. Depending on the current release, it may provide authored lessons, practice questions, rule-based diagnostics, answer feedback, course progress, learning notes, milestones, and recommendations based on recorded activity. Features can change as the prototype develops.
 
-The current Vocogni Assistant is a **rule-based helper**, not a general-purpose generative AI chatbot. It matches supported requests to existing code and the learner data passed to it. In the current implementation it does not call an external generative AI model.
+The current Vocogni Study Guide is a **rule-based helper**, not a general-purpose generative AI chatbot. It matches supported requests to existing code and the learner data passed to it. In the current implementation it does not call an external generative AI model.
 
 ## 2. Who may use the service
 
@@ -70,7 +70,7 @@ The service is provided as a prototype for educational support. To the extent pe
 
 ## 10. Complaints and contact
 
-Use **[insert monitored support and privacy contact]** to report a problem, request help, or raise a privacy concern. Replace this placeholder with a real, monitored contact before public release.
+Use **NOT CONFIGURED — add a monitored support and privacy contact before public launch** to report a problem, request help, or raise a privacy concern. Replace this placeholder with a real, monitored contact before public release.
 
 ## 11. Governing law and dispute process
 
