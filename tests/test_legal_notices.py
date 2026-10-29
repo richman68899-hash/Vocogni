@@ -1,7 +1,7 @@
 """Regression checks for the in-app terms, privacy, and AI-safety notices."""
 import unittest
 
-from legal_notices import NOTICE_FILES, load_notice
+from legal_notices import NOTICE_FILES, NOTICE_SUMMARIES, load_notice
 
 
 class LegalNoticeTests(unittest.TestCase):
@@ -12,6 +12,24 @@ class LegalNoticeTests(unittest.TestCase):
                 text = load_notice(name)
                 self.assertTrue(text.strip())
                 self.assertIn("draft", text[:500].casefold())
+
+    def test_each_notice_has_a_plain_language_quick_read(self):
+        self.assertEqual(set(NOTICE_SUMMARIES), set(NOTICE_FILES))
+        for name, summary in NOTICE_SUMMARIES.items():
+            with self.subTest(notice=name):
+                self.assertIn("Quick read", summary)
+                self.assertGreaterEqual(len(summary.splitlines()), 4)
+
+    def test_contact_placeholders_are_explicit_launch_blockers_not_fake_addresses(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1] / "docs" / "legal"
+        for filename in ("terms-of-service.md", "privacy-notice.md", "ai-use-and-safety.md"):
+            text = (root / filename).read_text(encoding="utf-8").casefold()
+            with self.subTest(filename=filename):
+                self.assertNotIn("[insert", text)
+                self.assertIn("not configured", text)
+                self.assertIn("draft", text[:500])
 
     def test_terms_do_not_claim_official_assessment_or_guaranteed_accuracy(self):
         text = load_notice("terms").casefold()
