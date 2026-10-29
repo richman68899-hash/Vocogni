@@ -23,6 +23,31 @@ DRAFT_NOTICE = (
     "processes, and legal review must be completed before public launch."
 )
 
+NOTICE_SUMMARIES = {
+    "terms": (
+        "**Quick read**\n\n"
+        "- Vocogni is a learning prototype, not an official school assessment.\n"
+        "- Check important answers with your teacher or course materials.\n"
+        "- The rules and contact details are still being completed.\n"
+        "- Do not treat this draft as final permission or proof of legal compliance."
+    ),
+    "privacy": (
+        "**Quick read**\n\n"
+        "- Vocogni saves learning progress and details you choose to enter.\n"
+        "- Sign out on shared devices and avoid adding sensitive personal details.\n"
+        "- The final privacy contact, retention period, and deletion process are not configured yet.\n"
+        "- Child-facing use is not cleared until required reviews and safeguards are completed."
+    ),
+    "ai_safety": (
+        "**Quick read**\n\n"
+        "- The Study Guide uses preset rules; it is not a generative AI chatbot.\n"
+        "- Check important answers and ask a teacher if something seems wrong.\n"
+        "- Do not enter passwords or private details about yourself or classmates.\n"
+        "- The app is not watched live and cannot promise to detect every unsafe situation.\n"
+        "- A monitored safety contact and child-safety review are still outstanding."
+    ),
+}
+
 
 def load_notice(name: str) -> str:
     """Load one approved notice by stable key; reject unknown keys."""
@@ -45,4 +70,6 @@ def render_legal_notices(st: Any, compact: bool = False) -> None:
     for name in ("terms", "privacy", "ai_safety"):
         title, _path = NOTICE_FILES[name]
         with st.expander(title, expanded=False):
+            st.markdown(NOTICE_SUMMARIES[name])
+            st.markdown("---")
             st.markdown(load_notice(name))
