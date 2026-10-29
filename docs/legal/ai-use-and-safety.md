@@ -2,7 +2,7 @@
 
 **Status:** Prototype draft — user-facing guidance for the current build. Review it whenever learning, assistant, scoring, storage, or model integrations change.
 
-## 1. What the current assistant actually does
+## 1. What the Study Guide actually does
 
 The floating Vocogni Study Guide currently supports a limited set of predictable requests, such as summarising profile fields, showing recorded mistakes, summarising saved progress, suggesting the next step from rule-based logic, listing courses, summarising notes/milestones/settings, and navigating to supported pages.
 
@@ -38,7 +38,7 @@ If you are under 18, involve a parent/guardian or educator as appropriate. Tell 
 
 **Product-readiness warning:** This prototype does not verify or record parent/guardian consent and has no documented child-safety risk classification. These notes do not replace legally required consent, age-appropriate controls, or risk mitigation. Public child-facing use should remain blocked until the operator completes a jurisdiction-specific legal review and implements the required controls. For Indonesia, see the official child-data and electronic-system child-protection references in the Privacy Notice.
 
-Do not use the service to bully, threaten, exploit, impersonate, or expose others. Report concerns through **NOT CONFIGURED — a verified monitored safety/support contact has not been published. This remains a launch blocker.** once the operator has filled in and verified that contact.
+Do not use the service to bully, threaten, exploit, impersonate, or expose others. **Reporting channel: not configured.** A verified, monitored safety contact must be published before public launch; do not treat this draft as a working reporting channel.
 
 ## 5. Limits of safeguards
 
@@ -58,4 +58,4 @@ Do not connect a live model and silently reuse the current notice. Before releas
 
 ## 7. Reporting issues
 
-Contact **NOT CONFIGURED — a verified monitored safety/support contact has not been published. This remains a launch blocker.** to report an incorrect result, a privacy concern, harmful content, or a technical issue. This placeholder must be replaced with a monitored channel before public release.
+**Reporting channel: not configured.** A verified, monitored safety contact must be published before public launch so users can report an incorrect result, a privacy concern, harmful content, or a technical issue.
