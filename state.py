@@ -896,24 +896,9 @@ def render_save_status() -> None:
             flush_persistent_save()
             st.rerun()
 
-    else:
-
-        last_saved_at = st.session_state.get(
-            "_persistent_last_saved_at"
-        )
-
-        if last_saved_at:
-
-            # Keep the normal status intentionally quiet.
-            st.caption(
-                "Saved ✓"
-            )
-
-        else:
-
-            st.caption(
-                "Saved ✓"
-            )
+    # Successful saves are confirmed with a temporary toast from app.py.
+    # Keep the sidebar reserved for pending, saving, and error states so a
+    # stale "Saved" label is not mistaken for a fresh confirmation.
 
 
 # ===========================================================================

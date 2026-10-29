@@ -181,50 +181,37 @@ def _render_nav() -> None:
     # --------------------------------------------------------
 
     user_name = ""
+    email_hint = ""
 
     try:
-        user_name = (
-            st.user.get("name", "")
-            or st.user.get("email", "")
-            or ""
-        )
-
+        user_name = str(st.user.get("name", "") or "").strip()
+        email_hint = str(st.user.get("email", "") or "").strip()
     except Exception:
         user_name = ""
+        email_hint = ""
 
-    # Fall back to the existing Vocogni profile.
+    # Fall back to the optional learner profile, but never print the full
+    # identity in the persistent sidebar.
     if not user_name:
-
-        profile = st.session_state.get(
-            "profile",
-            {},
-        )
-
+        profile = st.session_state.get("profile", {})
         if isinstance(profile, dict):
+            user_name = str(profile.get("name", "") or "").strip()
 
-            user_name = (
-                str(
-                    profile.get(
-                        "name",
-                        "",
-                    )
-                ).strip()
-            )
-
-    if user_name:
-
-        st.sidebar.markdown(
-            "<hr>",
-            unsafe_allow_html=True,
+    if user_name or email_hint:
+        identity = user_name or email_hint
+        initial = html.escape(identity[:1].upper() or "A", quote=True)
+        hover_label = html.escape(
+            f"Signed in as {user_name}" if user_name else "Signed-in account",
+            quote=True,
         )
-
+        st.sidebar.markdown("<hr>", unsafe_allow_html=True)
         st.sidebar.markdown(
-            (
-                "<span class='vc-muted'>"
-                "Signed in as "
-                f"{html.escape(str(user_name))}"
-                "</span>"
-            ),
+            "<div style='display:flex;align-items:center;gap:.6rem;padding:.2rem 0;'>"
+            f"<span title='{hover_label}' aria-label='{hover_label}' "
+            "style='display:inline-flex;align-items:center;justify-content:center;"
+            "width:2rem;height:2rem;border-radius:50%;border:1px solid var(--vc-border,#d8e1dc);"
+            "font-weight:700;cursor:default;'>"
+            f"{initial}</span><span class='vc-muted'>Account</span></div>",
             unsafe_allow_html=True,
         )
 
@@ -404,7 +391,11 @@ def main() -> None:
     # dirty cause no database write.
     # ========================================================
 
+    previous_save_count = int(st.session_state.get("_persistent_save_count", 0) or 0)
     state.flush_persistent_save()
+    current_save_count = int(st.session_state.get("_persistent_save_count", 0) or 0)
+    if current_save_count > previous_save_count:
+        st.toast("Changes saved", icon="✅")
 
     # ========================================================
     # SAVE STATUS

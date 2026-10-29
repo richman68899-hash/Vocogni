@@ -135,7 +135,7 @@ class VocogniAssistantTests(unittest.TestCase):
     def test_unsupported_subject_question_is_not_fabricated(self):
         reply, route = answer_request("Explain quantum mechanics", self.profile, self.progress)
         self.assertIsNone(route)
-        self.assertIn("don't have a supported instruction", reply)
+        self.assertIn("Study Guide does not support that request yet", reply)
         self.assertIn("worked examples", reply)
 
 

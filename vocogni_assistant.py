@@ -381,7 +381,7 @@ def answer_request(
 
     if _has_any(normalized, ("terms of service", "terms of use", "privacy notice", "privacy policy", "ai safety", "ai use and safety", "ai use safety", "safety notes", "legal notices")):
         return (
-            "Vocogni's draft Terms of Use, Privacy Notice, and AI Use & Safety Notes are available in **Settings**, near the bottom of the page. They are working drafts, not final legal terms or proof of compliance. The assistant itself is rule-based and does not call a generative AI model in this build.",
+            "Vocogni's draft Terms of Use, Privacy Notice, and AI Use & Safety Notes are available in **Settings**, near the bottom of the page. They are working drafts, not final legal terms or proof of compliance. The Study Guide is rule-based and does not call a generative AI model in this build.",
             "Settings",
         )
 
@@ -397,7 +397,7 @@ def answer_request(
             "- Show your learning settings.\n"
             "- Open Profile, Progress, Learn, Notes, or Settings.\n"
             "- Open Settings to read the Terms, Privacy Notice, and AI Use & Safety Notes.\n\n"
-            "I answer from data already in Vocogni. I don't infer missing results or invent a learning history."
+            "The Study Guide uses data already in Vocogni. It does not infer missing results or invent a learning history."
         ), None
 
     if _has_any(normalized, ("profile", "about me", "learning goals", "my interests")):
@@ -416,7 +416,7 @@ def answer_request(
         return _settings_summary(settings), None
 
     return (
-        "I don't have a supported instruction for that yet. Try **Help** or one of these requests: "
+        "The Study Guide does not support that request yet. Try **Help** or one of these requests: "
         "**summarise my profile**, **show my latest mistakes**, **summarise my progress**, "
         "**recommend my next step**, or **list courses**.\n\n"
         "For explanations of a subject, open the related lesson and use its worked examples and practice feedback.",
@@ -504,7 +504,7 @@ def render_assistant(
     st.markdown(_ASSISTANT_CSS, unsafe_allow_html=True)
 
     with st.container(key="vocogni_assistant_launcher"):
-        button_label = "Close assistant" if st.session_state.vocogni_assistant_open else "Ask Vocogni"
+        button_label = "Close Study Guide" if st.session_state.vocogni_assistant_open else "Study Guide"
         if st.button(button_label, key="vocogni_assistant_toggle", type="primary"):
             st.session_state.vocogni_assistant_open = not st.session_state.vocogni_assistant_open
             st.rerun()
@@ -515,8 +515,8 @@ def render_assistant(
     with st.container(key="vocogni_assistant_panel"):
         title_col, close_col = st.columns([5, 1], vertical_alignment="center")
         with title_col:
-            st.markdown("### Vocogni Assistant")
-            st.caption("Profile, progress, mistakes, and learning support")
+            st.markdown("### Vocogni Study Guide")
+            st.caption("A rule-based guide to your profile, progress, mistakes, and next steps")
             st.caption(
                 "Prototype disclosure: replies are rule-based and use data already in Vocogni; "
                 "this build does not call a generative AI model. Avoid passwords and sensitive "
@@ -531,7 +531,7 @@ def render_assistant(
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
         with close_col:
-            if st.button("✕", key="vocogni_assistant_close", help="Close assistant"):
+            if st.button("✕", key="vocogni_assistant_close", help="Close Study Guide"):
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
 

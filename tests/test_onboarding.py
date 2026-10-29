@@ -24,7 +24,7 @@ class OnboardingTests(unittest.TestCase):
         routes = {step["route"] for step in TUTORIAL_STEPS}
         titles = {step["short_title"] for step in TUTORIAL_STEPS}
         self.assertTrue({"Browse", "Progress", "Notes", "Profile", "Settings"} <= routes)
-        self.assertTrue({"Learn", "Practice", "Progress", "Notes", "Profile", "Assistant", "Settings"} <= titles)
+        self.assertTrue({"Learn", "Practice", "Progress", "Notes", "Profile", "Study Guide", "Settings"} <= titles)
         self.assertIn("replay", TUTORIAL_STEPS[-1]["detail"].lower())
 
     def test_step_normalization_handles_bad_and_out_of_range_values(self):
