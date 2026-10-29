@@ -44,6 +44,7 @@ class ProgressSectionsTests(unittest.TestCase):
         ):
             self.assertIn(f'"{section_id}": False', PROGRESS_SOURCE)
 
+    # These checks track current learner-facing copy, not obsolete wording.
     def test_sections_have_clear_purpose_descriptions(self):
         for description in (
             "A concise snapshot of course activity",
