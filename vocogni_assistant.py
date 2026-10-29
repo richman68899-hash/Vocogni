@@ -459,6 +459,19 @@ _ASSISTANT_CSS = """
 .st-key-vocogni_assistant_panel [data-testid="stVerticalBlock"] {
     gap: 0.55rem;
 }
+/* Keep prompt shortcuts pinned to the panel viewport while the conversation scrolls. */
+.st-key-vocogni_assistant_quick_requests {
+    position: sticky !important;
+    top: -1px !important;
+    z-index: 15 !important;
+    background: var(--vc-surface, #fff) !important;
+    padding: 0.6rem 0.1rem 0.55rem !important;
+    margin-top: -0.25rem !important;
+    border-bottom: 1px solid var(--vc-border, #d8e1dc) !important;
+}
+.st-key-vocogni_assistant_quick_requests [data-testid="stCaptionContainer"] {
+    margin-top: -0.15rem;
+}
 .st-key-vocogni_assistant_panel [data-testid="stChatMessage"] {
     padding: 0.65rem 0.75rem;
     border-radius: 10px;
@@ -537,23 +550,23 @@ def render_assistant(
 
         messages = st.session_state.vocogni_assistant_messages
 
-        # Keep the prompt shortcuts visible throughout the conversation.
-        # Learners can start with a suggestion or use one again after seeing
-        # a reply; the shortcuts do not clear or replace the conversation.
-        st.markdown("**Quick requests**")
-        st.caption("Choose a prompt at any time, or write your own message below.")
-        quick_col1, quick_col2 = st.columns(2, gap="small")
+        # Pin shortcuts to the panel viewport so they remain available as the
+        # learner scrolls through a longer conversation.
         quick_request = None
-        with quick_col1:
-            if st.button("Summarise profile", key="vocogni_assistant_quick_profile", use_container_width=True):
-                quick_request = "summarise my profile"
-            if st.button("Latest mistakes", key="vocogni_assistant_quick_mistakes", use_container_width=True):
-                quick_request = "show my latest mistakes"
-        with quick_col2:
-            if st.button("My progress", key="vocogni_assistant_quick_progress", use_container_width=True):
-                quick_request = "summarise my progress"
-            if st.button("Next step", key="vocogni_assistant_quick_next", use_container_width=True):
-                quick_request = "recommend my next step"
+        with st.container(key="vocogni_assistant_quick_requests"):
+            st.markdown("**Quick requests**")
+            st.caption("These shortcuts stay available while you chat. Choose one any time, or write your own message below.")
+            quick_col1, quick_col2 = st.columns(2, gap="small")
+            with quick_col1:
+                if st.button("Summarise profile", key="vocogni_assistant_quick_profile", use_container_width=True):
+                    quick_request = "summarise my profile"
+                if st.button("Latest mistakes", key="vocogni_assistant_quick_mistakes", use_container_width=True):
+                    quick_request = "show my latest mistakes"
+            with quick_col2:
+                if st.button("My progress", key="vocogni_assistant_quick_progress", use_container_width=True):
+                    quick_request = "summarise my progress"
+                if st.button("Next step", key="vocogni_assistant_quick_next", use_container_width=True):
+                    quick_request = "recommend my next step"
 
         # Show a bounded conversation window to keep the floating panel usable.
         for message in messages[-8:]:
