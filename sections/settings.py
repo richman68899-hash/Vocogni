@@ -335,7 +335,7 @@ def render() -> None:
             use_container_width=True,
         )
     with info_col:
-        st.caption("Your preferences are stored with your learner profile. The sidebar shows save status.")
+        st.caption("Your preferences save automatically. A brief confirmation appears after a successful save; any save error stays visible in the sidebar.")
 
     new_values = {
         setting_key: _safe_value(setting_key, st.session_state[widget_key])
