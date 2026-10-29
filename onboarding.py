@@ -96,11 +96,11 @@ TUTORIAL_STEPS: tuple[dict[str, str], ...] = (
         "route": "Profile",
     },
     {
-        "eyebrow": "06 · ASSISTANT",
-        "short_title": "Assistant",
+        "eyebrow": "06 · STUDY GUIDE",
+        "short_title": "Study Guide",
         "title": "Ask for help from the Learn area.",
         "body": (
-            "The Vocogni Assistant can help you navigate supported features and "
+            "The Vocogni Study Guide can help you navigate supported features and "
             "summarise information already recorded in your learning data."
         ),
         "detail": (
