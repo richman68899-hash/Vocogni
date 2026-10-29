@@ -183,6 +183,7 @@ def _render_nav() -> None:
     user_name = ""
 
     try:
+
         user_name = (
             st.user.get("name", "")
             or st.user.get("email", "")
@@ -190,6 +191,7 @@ def _render_nav() -> None:
         )
 
     except Exception:
+
         user_name = ""
 
     # Fall back to the existing Vocogni profile.
@@ -220,7 +222,7 @@ def _render_nav() -> None:
 
         st.sidebar.markdown(
             (
-                "<span class='vc-muted'>"
+                "<span class='vc-muted vc-account-status'>"
                 "Signed in as "
                 f"{html.escape(str(user_name))}"
                 "</span>"
@@ -420,10 +422,49 @@ def main() -> None:
     # APPLY CURRENT SETTINGS
     # ========================================================
 
+    accessibility_overrides = """
+    <style>
+    /* Keep inactive navigation readable in every supported theme. */
+    section[data-testid="stSidebar"] .stButton > button[kind="secondary"],
+    section[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] {
+        color: var(--vc-text) !important;
+        opacity: 1 !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button[kind="secondary"] *,
+    section[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] * {
+        color: inherit !important;
+        opacity: 1 !important;
+    }
+
+    /* Account identity and logout are persistent, important controls. */
+    .vc-account-status {
+        display: block;
+        color: var(--vc-text) !important;
+        font-size: 0.88rem !important;
+        font-weight: 550;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+    section[data-testid="stSidebar"] button[aria-label="Log out"],
+    section[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] {
+        color: var(--vc-text) !important;
+    }
+
+    /* Secondary tour actions remain legible, including the disabled first-step Back button. */
+    .stButton > button[kind="secondary"],
+    button[data-testid="stBaseButton-secondary"] {
+        color: var(--vc-text) !important;
+    }
+    .stButton > button[kind="secondary"]:disabled,
+    button[data-testid="stBaseButton-secondary"]:disabled {
+        color: var(--vc-subtext) !important;
+        opacity: 1 !important;
+        border-color: var(--vc-border) !important;
+    }
+    </style>
+    """
     st.markdown(
-        styles.build_css(
-            st.session_state.settings
-        ),
+        styles.build_css(st.session_state.settings) + accessibility_overrides,
         unsafe_allow_html=True,
     )
 
