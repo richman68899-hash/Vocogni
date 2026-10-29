@@ -4,7 +4,7 @@
 
 ## 1. What the current assistant actually does
 
-The floating Vocogni Assistant currently supports a limited set of predictable requests, such as summarising profile fields, showing recorded mistakes, summarising saved progress, suggesting the next step from rule-based logic, listing courses, summarising notes/milestones/settings, and navigating to supported pages.
+The floating Vocogni Study Guide currently supports a limited set of predictable requests, such as summarising profile fields, showing recorded mistakes, summarising saved progress, suggesting the next step from rule-based logic, listing courses, summarising notes/milestones/settings, and navigating to supported pages.
 
 It uses predefined code paths and recorded Vocogni data. It **does not currently use a connected generative AI model** and cannot answer every open-ended subject question. Unrecognised questions may receive a supported-request message rather than a substantive explanation.
 
@@ -28,15 +28,21 @@ The current assistant does not send its inputs to an external generative AI mode
 
 ## 4. Safer use by younger learners
 
+> **Quick read for younger learners**
+> - If you are under 18, ask a parent/guardian or teacher to review Vocogni with you.
+> - If something here makes you feel unsafe or exposes private information, tell a trusted adult.
+> - Vocogni is not watched live. Do not rely on it to get urgent help.
+> - This prototype is not cleared for public child-facing use until the required checks and safeguards are complete.
+
 If you are under 18, involve a parent/guardian or educator as appropriate. Tell a trusted adult if something on the service makes you feel unsafe, exposes private information, or appears to be used to target or harm another learner.
 
 **Product-readiness warning:** This prototype does not verify or record parent/guardian consent and has no documented child-safety risk classification. These notes do not replace legally required consent, age-appropriate controls, or risk mitigation. Public child-facing use should remain blocked until the operator completes a jurisdiction-specific legal review and implements the required controls. For Indonesia, see the official child-data and electronic-system child-protection references in the Privacy Notice.
 
-Do not use the service to bully, threaten, exploit, impersonate, or expose others. Report concerns through **[insert monitored safety/support contact]** once the operator has filled in and verified that contact.
+Do not use the service to bully, threaten, exploit, impersonate, or expose others. Report concerns through **NOT CONFIGURED — a verified monitored safety/support contact has not been published. This remains a launch blocker.** once the operator has filled in and verified that contact.
 
 ## 5. Limits of safeguards
 
-The current assistant is a narrow rules-based feature, not a human moderator and not an emergency-monitoring service. These notes describe responsible use; they do not guarantee that every harmful request or unsafe situation will be detected. Do not assume the app is monitored in real time.
+The current Study Guide is a narrow rules-based feature, not a human moderator and not an emergency-monitoring service. These notes describe responsible use; they do not guarantee that every harmful request or unsafe situation will be detected. Do not assume the app is monitored in real time.
 
 ## 6. Before any future generative AI integration
 
@@ -52,4 +58,4 @@ Do not connect a live model and silently reuse the current notice. Before releas
 
 ## 7. Reporting issues
 
-Contact **[insert monitored safety/support contact]** to report an incorrect result, a privacy concern, harmful content, or a technical issue. This placeholder must be replaced with a monitored channel before public release.
+Contact **NOT CONFIGURED — a verified monitored safety/support contact has not been published. This remains a launch blocker.** to report an incorrect result, a privacy concern, harmful content, or a technical issue. This placeholder must be replaced with a monitored channel before public release.
