@@ -12,6 +12,7 @@ import streamlit as st
 
 import data
 import logic
+from course_presentation import course_card_metadata
 from . import revision_sprint as revision_sprint_section
 
 
@@ -163,26 +164,6 @@ def _render_grid():
             _render_course_card(course, progress)
 
 
-def _course_card_metadata(course):
-    """Format only configured, learner-useful course metadata."""
-    level = course.get("level")
-    if not isinstance(level, str) or not level.strip() or level.strip().casefold() in {
-        "not specified", "level not specified", "none", "null", "n/a"
-    }:
-        level = ""
-
-    metadata_parts = [
-        course.get("category_label", "Other"),
-        course.get("subject_label", "Other"),
-        f'{course.get("lesson_count", len(course.get("lessons", [])))} lessons',
-        level,
-    ]
-    return " · ".join(
-        html.escape(str(value).strip())
-        for value in metadata_parts
-        if value is not None and str(value).strip()
-    )
-
 
 def _render_course_card(course, progress):
     status = _status_for_course(course["id"], progress)
@@ -190,7 +171,7 @@ def _render_course_card(course, progress):
 
     title = html.escape(str(course.get("title", "Untitled course")))
     description = html.escape(str(course.get("short_description", "")))
-    metadata = _course_card_metadata(course)
+    metadata = course_card_metadata(course)
 
     # A real Streamlit container keeps the card intact across reruns and
     # responsive layouts; no HTML wrapper is left open across UI blocks.
