@@ -124,17 +124,22 @@ def _render_logo() -> None:
 
     if os.path.exists(logo_path):
         st.sidebar.image(logo_path, width=188)
-        st.sidebar.markdown("<hr>", unsafe_allow_html=True)
-        return
+    else:
+        st.sidebar.markdown(
+            "<div class='vc-logo-wrap'>"
+            "<div class='vc-logo-row'><span class='vc-logo-mark'>V</span>"
+            "<div class='vc-logo-text'>Vocogni</div></div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
+    # Keep the tagline present whether the brand asset is available or not.
+    # The divider and spacing make it visually distinct from navigation.
     st.sidebar.markdown(
-        "<div class='vc-logo-wrap'>"
-        "<div class='vc-logo-row'><span class='vc-logo-mark'>V</span>"
-        "<div><div class='vc-logo-text'>Vocogni</div>"
-        "<div class='vc-logo-tag'>Understand · Practise · Apply</div></div></div>"
-        "</div>",
+        "<div class='vc-sidebar-tagline'>Understand <span>·</span> Practise <span>·</span> Apply</div>",
         unsafe_allow_html=True,
     )
+    st.sidebar.markdown("<hr class='vc-sidebar-divider'>", unsafe_allow_html=True)
 
 
 # ============================================================
