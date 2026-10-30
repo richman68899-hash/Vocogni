@@ -426,35 +426,32 @@ def answer_request(
 
 _ASSISTANT_CSS = """
 <style>
+/* The launcher lives in the sidebar; it must never cover lesson or card content. */
 .st-key-vocogni_assistant_launcher {
-    position: fixed !important;
-    right: 1.25rem !important;
-    bottom: 1.15rem !important;
-    width: auto !important;
-    max-width: calc(100vw - 2rem) !important;
-    z-index: 10000 !important;
+    width: 100% !important;
+    margin: 0.65rem 0 0.9rem !important;
 }
 .st-key-vocogni_assistant_launcher button {
-    border-radius: 999px !important;
-    min-height: 3.05rem !important;
-    padding: 0.7rem 1.15rem !important;
-    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18) !important;
+    width: 100% !important;
+    min-height: 2.7rem !important;
+    border-radius: 8px !important;
+    padding: 0.6rem 0.85rem !important;
+    box-shadow: none !important;
     font-weight: 650 !important;
 }
 .st-key-vocogni_assistant_panel {
-    position: fixed !important;
-    right: 1.25rem !important;
-    bottom: 5.25rem !important;
-    width: min(410px, calc(100vw - 2rem)) !important;
-    max-height: min(72vh, 650px) !important;
-    overflow-y: auto !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 760px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 1.25rem 0 1.5rem !important;
     padding: 1rem !important;
     background: var(--vc-surface, #fff) !important;
     color: var(--vc-text, #182831) !important;
     border: 1px solid var(--vc-border, #d8e1dc) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 18px 55px rgba(0, 0, 0, 0.24) !important;
-    z-index: 9999 !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
 }
 .st-key-vocogni_assistant_panel [data-testid="stVerticalBlock"] {
     gap: 0.55rem;
@@ -482,23 +479,6 @@ _ASSISTANT_CSS = """
 .st-key-vocogni_assistant_panel [data-testid="stTextInput"] input {
     min-height: 2.8rem !important;
 }
-@media (max-width: 640px) {
-    .st-key-vocogni_assistant_launcher {
-        right: 0.75rem !important;
-        bottom: 0.75rem !important;
-    }
-    .st-key-vocogni_assistant_launcher button {
-        min-height: 2.8rem !important;
-        padding: 0.6rem 0.9rem !important;
-    }
-    .st-key-vocogni_assistant_panel {
-        left: 0.5rem !important;
-        right: 0.5rem !important;
-        bottom: 4.5rem !important;
-        width: auto !important;
-        max-height: 72vh !important;
-    }
-}
 </style>
 """
 
@@ -511,12 +491,12 @@ def render_assistant(
     notes: Any = None,
     milestones: Any = None,
 ) -> None:
-    """Render the floating assistant only when the caller is on Learn/Browse."""
+    """Render the sidebar Study Guide launcher and an in-flow panel on Learn/Browse."""
     st.session_state.setdefault("vocogni_assistant_open", False)
     st.session_state.setdefault("vocogni_assistant_messages", [])
     st.markdown(_ASSISTANT_CSS, unsafe_allow_html=True)
 
-    with st.container(key="vocogni_assistant_launcher"):
+    with st.sidebar.container(key="vocogni_assistant_launcher"):
         button_label = "Close Study Guide" if st.session_state.vocogni_assistant_open else "Study Guide"
         if st.button(button_label, key="vocogni_assistant_toggle", type="primary"):
             st.session_state.vocogni_assistant_open = not st.session_state.vocogni_assistant_open
@@ -525,7 +505,7 @@ def render_assistant(
     if not st.session_state.vocogni_assistant_open:
         return
 
-    with st.container(key="vocogni_assistant_panel"):
+    with st.container(key="vocogni_assistant_panel", border=True):
         title_col, close_col = st.columns([5, 1], vertical_alignment="center")
         with title_col:
             st.markdown("### Vocogni Study Guide")
