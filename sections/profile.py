@@ -237,9 +237,6 @@ def _render_section_editor(section: dict[str, Any], profile: dict[str, Any]) -> 
     for index, (field, label, kind, option_key) in enumerate(fields):
         with columns[index % 2]:
             key = _widget_key(field)
-            current_value = st.session_state.get(
-                key, _valid_default(field, kind, option_key, profile)
-            )
             if kind == "text":
                 st.text_input(label, key=key, placeholder="Optional")
             elif kind == "textarea":
@@ -247,15 +244,12 @@ def _render_section_editor(section: dict[str, Any], profile: dict[str, Any]) -> 
             elif kind == "select":
                 options = _options_for(option_key or "")
                 if options:
-                    selected = current_value if current_value in options else options[0]
-                    selected_index = options.index(selected)
-                    st.selectbox(label, options, index=selected_index, key=key)
+                    st.selectbox(label, options, key=key)
                 else:
                     st.caption(f"{label}: no options are configured yet.")
             elif kind == "multiselect":
                 options = _options_for(option_key or "")
-                selected = current_value if isinstance(current_value, list) else []
-                st.multiselect(label, options, default=selected, key=key)
+                st.multiselect(label, options, key=key)
 
 
 def _save_profile_changes(profile: dict[str, Any], dirty_fields: list[str]) -> None:
