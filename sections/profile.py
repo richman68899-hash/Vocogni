@@ -254,7 +254,8 @@ def _render_section_editor(section: dict[str, Any], profile: dict[str, Any]) -> 
 
 def _save_profile_changes(profile: dict[str, Any], dirty_fields: list[str]) -> None:
     for field in dirty_fields:
-        profile[field] = st.session_state[_widget_key(field)]
+        value = st.session_state[_widget_key(field)]
+        profile[field] = value.strip() if isinstance(value, str) else value
     profile["saved"] = True
     state.mark_persistent_dirty()
     st.session_state.profile_edit_section = None
@@ -347,12 +348,14 @@ def render() -> None:
     )
 
     profile = st.session_state.profile
-    _render_identity_card(profile)
 
+    # Handle the save action before drawing the identity card and sections,
+    # so the new name and values are visible in the very same run.
     save_col, _spacer = st.columns([1.4, 5])
     with save_col:
         _render_save_control(profile)
 
+    _render_identity_card(profile)
     st.caption("Save Profile is grey when there are no unsaved edits and green when a change is detected.")
 
     for section in _SECTIONS:
