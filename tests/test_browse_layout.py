@@ -1,5 +1,5 @@
 """Regression tests for the course catalog's responsive metadata and filters."""
-from sections.browse import _course_card_metadata
+from course_presentation import course_card_metadata
 
 
 def test_missing_level_metadata_is_hidden_instead_of_exposed_as_a_placeholder():
@@ -11,7 +11,7 @@ def test_missing_level_metadata_is_hidden_instead_of_exposed_as_a_placeholder():
         "lessons": [{}, {}, {}, {}],
     }
 
-    metadata = _course_card_metadata(course)
+    metadata = course_card_metadata(course)
 
     assert "Not specified" not in metadata
     assert "Level not specified" not in metadata
