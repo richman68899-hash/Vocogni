@@ -48,6 +48,7 @@ from sections import notes as notes_section
 from sections import profile as profile_section
 from sections import progress as progress_section
 from sections import settings as settings_section
+from sections import legal as legal_section
 
 
 # ============================================================
@@ -60,6 +61,7 @@ NAV_ITEMS = [
     ("Learn", "Browse"),
     ("Notes", "Notes"),
     ("Settings", "Settings"),
+    ("Terms", "Legal"),
 ]
 
 
@@ -69,6 +71,7 @@ SECTION_RENDERERS = {
     "Browse": browse_section.render,
     "Notes": notes_section.render,
     "Settings": settings_section.render,
+    "Legal": legal_section.render,
 }
 
 
@@ -93,6 +96,10 @@ def _render_login() -> None:
             "</div>",
             unsafe_allow_html=True,
         )
+        # Keep the draft terms readable before the user starts sign-in.
+        # This does not record acceptance or verify parent/guardian consent.
+        legal_section.render_embedded()
+
         st.button(
             "Continue to Vocogni",
             type="primary",
