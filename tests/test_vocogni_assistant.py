@@ -2,7 +2,7 @@
 import unittest
 
 import data
-from vocogni_assistant import answer_request, _recent_mistakes
+from vocogni_assistant import answer_request, _recent_mistakes, _ASSISTANT_CSS
 
 
 class VocogniAssistantTests(unittest.TestCase):
@@ -137,6 +137,12 @@ class VocogniAssistantTests(unittest.TestCase):
         self.assertIsNone(route)
         self.assertIn("Study Guide does not support that request yet", reply)
         self.assertIn("worked examples", reply)
+
+    def test_study_guide_launcher_no_longer_floats_over_course_cards(self):
+        self.assertNotIn("position: fixed", _ASSISTANT_CSS)
+        self.assertIn(".st-key-vocogni_assistant_launcher", _ASSISTANT_CSS)
+        self.assertIn("width: 100% !important", _ASSISTANT_CSS)
+        self.assertIn("position: static !important", _ASSISTANT_CSS)
 
 
 if __name__ == "__main__":

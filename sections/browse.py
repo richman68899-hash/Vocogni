@@ -12,6 +12,7 @@ import streamlit as st
 
 import data
 import logic
+from course_presentation import course_card_metadata
 from . import revision_sprint as revision_sprint_section
 
 
@@ -93,22 +94,19 @@ def _render_grid():
         chips = "".join(f"<span class='vc-recommend-chip'>{html.escape(str(r))}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
-    # Give the search field room to breathe, then place the shorter filters
-    # on a second row. Five columns in one row made labels and controls cramped
-    # in the main content area on tablets and narrower browser windows.
-    search_col, status_col = st.columns([2.2, 1], gap="medium")
-    with search_col:
-        search = st.text_input(
-            "Search courses", value=st.session_state.browse_search,
-            placeholder="Search by course, subject, or topic",
-        )
+    # Search gets its own full-width row. The four filters share a consistent
+    # second row, with CSS wrapping them cleanly on narrow screens.
+    search = st.text_input(
+        "Search courses", value=st.session_state.browse_search,
+        placeholder="Search by course, subject, or topic",
+    )
+
+    status_col, diff_col, category_col, subject_col = st.columns(4, gap="medium")
     with status_col:
         status_filter = st.selectbox(
             "Status", STATUS_OPTIONS,
             index=STATUS_OPTIONS.index(st.session_state.browse_status_filter),
         )
-
-    diff_col, category_col, subject_col = st.columns(3, gap="medium")
     with diff_col:
         difficulties = sorted({c["difficulty"] for c in data.COURSES.values()})
         diff_filter = st.selectbox("Difficulty", ["All"] + difficulties)
@@ -166,22 +164,14 @@ def _render_grid():
             _render_course_card(course, progress)
 
 
+
 def _render_course_card(course, progress):
     status = _status_for_course(course["id"], progress)
     pct = logic.course_lesson_progress_percent(progress, course["id"])
 
     title = html.escape(str(course.get("title", "Untitled course")))
     description = html.escape(str(course.get("short_description", "")))
-    metadata = " · ".join(
-        html.escape(str(value))
-        for value in (
-            course.get("category_label", "Other"),
-            course.get("subject_label", "Other"),
-            f'{course.get("lesson_count", len(course["lessons"]))} lessons',
-            course.get("level", "Level not specified"),
-        )
-        if value
-    )
+    metadata = course_card_metadata(course)
 
     # A real Streamlit container keeps the card intact across reruns and
     # responsive layouts; no HTML wrapper is left open across UI blocks.
@@ -196,9 +186,13 @@ def _render_course_card(course, progress):
             f"<p style='margin-top:0.65rem'>{description}</p>",
             unsafe_allow_html=True,
         )
-        st.caption(metadata)
+        if metadata:
+            st.caption(metadata)
         st.progress(pct)
-        st.markdown(f"<span class='vc-muted'>{pct}% complete</span>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='vc-course-progress-label'>{pct}% complete</div>",
+            unsafe_allow_html=True,
+        )
 
         button_label = {
             "Not started": "Start learning",

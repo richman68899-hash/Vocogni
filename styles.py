@@ -1485,6 +1485,66 @@ section[data-testid="stSidebar"] button[data-testid^="stBaseButton-"] {
 }
 
 
+
+/* ---------------------------------------------------------------
+   UI POLISH: unclipped card endings, readable sidebar, and stable
+   catalog controls. Keep spacing in the document flow.
+   --------------------------------------------------------------- */
+[data-testid="stAppViewContainer"] .main .block-container {
+    padding-bottom: 4.5rem !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"] {
+    padding-bottom: 0.55rem !important;
+    margin-bottom: 0.8rem !important;
+}
+.vc-course-progress-label {
+    display: block;
+    margin: 0.4rem 0 0.35rem;
+    padding-bottom: 0.25rem;
+    line-height: 1.55;
+    min-height: 1.6rem;
+    overflow-wrap: anywhere;
+}
+.vc-sidebar-tagline {
+    color: var(--vc-subtext);
+    font-size: 0.76rem;
+    font-weight: 500;
+    line-height: 1.65;
+    letter-spacing: 0.005em;
+    margin: 0.65rem 0 0.55rem;
+    padding: 0.1rem 0 0.15rem;
+}
+.vc-sidebar-tagline span {
+    color: var(--vc-accent);
+    padding: 0 0.1rem;
+}
+[data-testid="stSidebar"] hr.vc-sidebar-divider {
+    margin: 0.6rem 0 1.05rem !important;
+    opacity: 0.8;
+}
+[data-testid="stSidebar"] .stButton > button {
+    line-height: 1.45 !important;
+    margin-top: 0.16rem !important;
+    margin-bottom: 0.2rem !important;
+    padding-top: 0.62rem !important;
+    padding-bottom: 0.62rem !important;
+}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] hr {
+    margin-top: 1.15rem !important;
+    margin-bottom: 1.15rem !important;
+}
+[data-testid="stSidebar"] .vc-muted {
+    line-height: 1.55;
+}
+@media (max-width: 800px) {
+    [data-testid="stAppViewContainer"] .main .block-container {
+        padding-bottom: 3.5rem !important;
+    }
+    .vc-course-progress-label {
+        margin-bottom: 0.45rem;
+    }
+}
+
 </style>
 """)
 
