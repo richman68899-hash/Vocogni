@@ -239,3 +239,21 @@ def test_large_text_scales_heading_and_control_typography():
     assert "flex-wrap: wrap !important;" in large
     assert "overflow-wrap: anywhere;" in large
 
+
+
+def test_main_content_and_course_cards_have_bottom_clearance():
+    css = styles.build_css({"appearance": "Light"})
+    assert "padding-bottom: 4.5rem !important;" in css
+    assert "[data-testid=\"stVerticalBlockBorderWrapper\"]" in css
+    assert "padding-bottom: 0.55rem !important;" in css
+    assert ".vc-course-progress-label" in css
+    assert "min-height: 1.6rem;" in css
+
+
+def test_sidebar_tagline_and_navigation_have_deliberate_spacing():
+    css = styles.build_css({"appearance": "Light"})
+    assert ".vc-sidebar-tagline" in css
+    assert "line-height: 1.65;" in css
+    assert "hr.vc-sidebar-divider" in css
+    assert "margin-bottom: 0.2rem !important;" in css
+    assert "$" not in css
