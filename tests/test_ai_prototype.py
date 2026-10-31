@@ -5,6 +5,7 @@ from unittest.mock import patch
 from ai_prototype.engine import answer, analyze_learning_patterns
 from ai_prototype.llm import is_configured, resolve_config
 from ai_prototype.patterns import detect_patterns
+from vocogni_ai import _learner_context
 
 
 class PatternRecognitionTests(unittest.TestCase):
@@ -55,7 +56,7 @@ class EngineTests(unittest.TestCase):
     def test_disabled_llm_returns_explainable_fallback(self):
         result = answer("Help me solve this equation", use_llm=False)
         self.assertEqual(result["mode"], "fallback")
-        self.assertIn("structured approach", result["text"])
+        self.assertIn("what is given", result["text"])
 
     def test_pattern_evidence_is_attached_to_answer(self):
         result = answer("How should I improve?", attempts=[
@@ -78,6 +79,23 @@ class EngineTests(unittest.TestCase):
         sent_messages = mock_chat.call_args.args[0]
         self.assertIn("Grade: 8", sent_messages[0]["content"])
         self.assertEqual(mock_chat.call_args.kwargs["config"], config)
+
+
+class LearnerContextTests(unittest.TestCase):
+    def test_context_excludes_identity_and_private_workspace(self):
+        context = _learner_context(
+            {
+                "name": "Private Name",
+                "email": "private@example.test",
+                "grade": "8",
+                "preferred_language": "English",
+            },
+            {},
+        )
+        self.assertIn("Grade level: 8", context)
+        self.assertNotIn("Private Name", context)
+        self.assertNotIn("private@example.test", context)
+        self.assertNotIn("email", context.lower())
 
 
 if __name__ == "__main__":
