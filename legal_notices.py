@@ -38,7 +38,7 @@ NOTICE_SUMMARIES = {
         "**Quick read**\n\n"
         "- Local Study Guide commands work without generative AI.\n"
         "- Open-ended AI tutoring is optional, off by default, and requires session opt-in.\n"
-        "- When enabled, your message, up to 8 recent chat messages, and a limited learning summary are sent to the configured external provider.\n"
+        "- When enabled, your message, up to 8 messages from prior AI-tutoring turns; local account-data summaries are excluded, and a limited learning summary are sent to the configured external provider.\n"
         "- AI can make mistakes. Check important answers with trusted course materials or a teacher.\n"
         "- Do not enter passwords, contact details, precise location, or sensitive information.\n"
         "- The app is not watched live; a monitored safety contact and child-safety review are still outstanding."
