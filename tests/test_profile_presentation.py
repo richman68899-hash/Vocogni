@@ -50,7 +50,7 @@ class ProfilePresentationTests(unittest.TestCase):
         source.save(buffer, format="PNG")
 
         data_uri = process_profile_avatar(buffer.getvalue())
-        self.assertTrue(data_uri.startswith("data:image/png;base64,"))
+        self.assertTrue(data_uri.startswith("data:image/webp;base64,"))
         image_bytes = base64.b64decode(data_uri.split(",", 1)[1])
         with Image.open(io.BytesIO(image_bytes)) as avatar:
             self.assertEqual(avatar.size, (256, 256))
