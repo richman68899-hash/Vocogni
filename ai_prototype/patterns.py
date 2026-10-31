@@ -42,7 +42,7 @@ PATTERNS: dict[str, dict[str, str]] = {
 }
 
 _RULES: dict[str, tuple[str, ...]] = {
-    "sign_error": (r"\b(sign error|forgot the minus|negative became positive|positive became negative|wrong sign)\b",),
+    "sign_error": (r"\b(sign error|forgot the minus|negative became positive|positive became negative|wrong sign)\b|changed\s+-?\d+\s+to\s+\+?\d+",),
     "inverse_operation": (r"\b(inverse operation|divided instead of multiplied|added instead of subtract|subtract instead of add|isolat(?:e|ing) the variable)\b",),
     "equality_balance": (r"\b(one side|both sides|balance the equation|only on the left|only on the right)\b",),
     "fraction_denominator": (r"\b(add(?:ed|ing)? denominators|subtract(?:ed|ing)? denominators|common denominator|fraction denominator)\b",),
