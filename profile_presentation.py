@@ -67,7 +67,7 @@ def profile_initials(name: Any) -> str:
     return clean[:1].upper()
 
 def process_profile_avatar(image_bytes: bytes, max_bytes: int = 4 * 1024 * 1024) -> str:
-    """Validate an uploaded image and return a centered circular PNG data URI.
+    """Validate an uploaded image and return a centered circular WebP data URI.
 
     The image is center-cropped to a square, resized to 256px, and given a
     transparent circular mask. Only the processed image is stored in the
