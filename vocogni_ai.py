@@ -159,6 +159,9 @@ def render_assistant(
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
 
+        if not provider_ready:
+            st.session_state.vocogni_ai_opt_in = False
+
         ai_enabled = st.checkbox(
             "Enable external AI tutoring for this session",
             key="vocogni_ai_opt_in",
@@ -177,7 +180,6 @@ def render_assistant(
                 "Configure VOCogni_LLM_BASE_URL, VOCogni_LLM_MODEL, and VOCogni_LLM_API_KEY "
                 "or add an [llm] section to Streamlit secrets to enable AI tutoring."
             )
-            st.session_state.vocogni_ai_opt_in = False
 
         st.caption(
             "External AI is off by default. If enabled, your current message and selected prior AI chat "
