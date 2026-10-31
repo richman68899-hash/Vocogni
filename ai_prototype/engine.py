@@ -45,7 +45,7 @@ def answer(
     llm_config: dict[str, str] | None = None,
     learner_context: str = "",
 ) -> dict[str, Any]:
-    """Answer a learner using an optional LLM and a bounded, minimal context packet."""
+    """Answer a learner and preserve a safe, actionable provider diagnostic on failure."""
     question = str(message or "").strip()
     if not question:
         return {
@@ -80,7 +80,11 @@ def answer(
                 "patterns": report,
             }
         except LLMError as exc:
-            fallback_reason = str(exc)
+            # The caller can display this diagnostic. It never includes request headers
+            # or the configured API key; keep the text bounded for the learner UI.
+            fallback_reason = str(exc).replace(
+                str((llm_config or {}).get("api_key", "")), "[redacted]"
+            )[:300]
     else:
         fallback_reason = "External AI tutoring is disabled for this session."
 
@@ -95,7 +99,7 @@ def answer(
         )
     else:
         response = (
-            f"{lead}The generative model is currently unavailable ({fallback_reason}). "
+            f"{lead}The generative model is currently unavailable. "
             "Try breaking the problem into: what is given, what is required, which concept "
             "applies, and how the result can be checked."
         )
