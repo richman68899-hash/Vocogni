@@ -25,7 +25,7 @@ The pattern recognizer is deterministic and explainable. It is not machine learn
 ```bash
 pip install -r requirements.txt
 streamlit run ai_lab_app.py
-python -m unittest tests.test_ai_prototype -v
+python -m unittest discover -s tests -p 'test_ai_prototype.py' -v
 ```
 
 Configure a compatible provider before expecting generated responses:
