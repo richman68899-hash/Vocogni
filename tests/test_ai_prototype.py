@@ -98,5 +98,23 @@ class LearnerContextTests(unittest.TestCase):
         self.assertNotIn("email", context.lower())
 
 
+class ChatHistoryPrivacyTests(unittest.TestCase):
+    def test_local_account_summaries_are_excluded_from_ai_history(self):
+        from vocogni_ai import _recent_ai_history
+
+        messages = [
+            {"role": "user", "content": "summarise my profile"},
+            {"role": "assistant", "content": "Private profile details", "mode": "local"},
+            {"role": "user", "content": "Explain linear equations"},
+            {"role": "assistant", "content": "An equation has two equal sides.", "mode": "llm"},
+        ]
+        history = _recent_ai_history(messages)
+        self.assertEqual([item["content"] for item in history], [
+            "Explain linear equations",
+            "An equation has two equal sides.",
+        ])
+        self.assertNotIn("Private profile details", str(history))
+
+
 if __name__ == "__main__":
     unittest.main()
