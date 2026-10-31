@@ -134,6 +134,15 @@ def render_assistant(
     st.session_state.setdefault("vocogni_ai_opt_in", False)
 
     provider_config = _provider_config(st)
+    missing_provider_settings = [
+        label
+        for key, label in (
+            ("base_url", "Base URL"),
+            ("model", "Model name"),
+            ("api_key", "API key"),
+        )
+        if not str(provider_config.get(key, "")).strip()
+    ]
     provider_ready = is_configured(provider_config)
 
     with st.sidebar.container(key="vocogni_assistant_launcher"):
@@ -171,10 +180,13 @@ def render_assistant(
                 "Local profile/notes/progress-summary replies are excluded from chat history."
             )
         else:
+            missing_text = ", ".join(missing_provider_settings)
             st.warning(
-                "AI provider is not configured. Local Study Guide commands still work. "
-                "Configure VOCogni_LLM_BASE_URL, VOCogni_LLM_MODEL, and VOCogni_LLM_API_KEY "
-                "or add an [llm] section to Streamlit secrets to enable AI tutoring."
+                "AI provider is not ready. Local Study Guide commands still work. "
+                f"Missing configuration: {missing_text}. "
+                "Add the missing values under [llm] in Streamlit secrets, or set the "
+                "VOCogni_LLM_BASE_URL, VOCogni_LLM_MODEL, and VOCogni_LLM_API_KEY "
+                "environment variables. The API key value is never displayed here."
             )
 
         st.caption(
