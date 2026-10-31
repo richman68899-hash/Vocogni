@@ -9,6 +9,7 @@ immediately and marks durable state dirty for app.py's end-of-run autosave.
 from __future__ import annotations
 
 import html
+import hashlib
 from typing import Any
 
 import streamlit as st
@@ -20,6 +21,7 @@ from profile_presentation import (
     display_profile_value as _display,
     profile_icon_svg as _icon_svg,
     profile_initials as _initials,
+    process_profile_avatar,
 )
 
 
@@ -67,6 +69,15 @@ _SECTIONS = [
             ("career_interests", "Career interests", "textarea", None),
         ],
     },
+    {
+        "id": "description",
+        "icon": "user",
+        "title": "Description",
+        "subtitle": "Introduce yourself in your own words. Share only what you are comfortable sharing.",
+        "fields": [
+            ("description", "About me", "textarea", None),
+        ],
+    },
 ]
 
 _WIDGET_PREFIX = "profile_inline_"
@@ -88,6 +99,7 @@ _DEFAULTS = {
     "learning_goals": "",
     "interests": "",
     "career_interests": "",
+    "description": "",
 }
 
 
@@ -191,21 +203,88 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
     raw_name = str(profile.get("name", "") or "").strip() or "Learner"
     name = html.escape(raw_name)
     initials = html.escape(_initials(raw_name))
-    status = (
-        "<span class='vc-profile-status'>" + _icon_svg("shield")
-        + "<span>Profile saved</span></span>"
-        if profile.get("saved")
-        else "<span class='vc-profile-status vc-profile-status--quiet'>Optional profile</span>"
+    avatar_uri = profile.get("avatar_data_uri", "")
+    if not (
+        isinstance(avatar_uri, str)
+        and avatar_uri.startswith("data:image/png;base64,")
+        and len(avatar_uri) <= 400_000
+    ):
+        avatar_uri = ""
+    avatar_label = " " if avatar_uri else initials
+    avatar_css = (
+        "<style>"
+        "div[class*='st-key-profile_avatar_trigger'] button {"
+        "width:76px!important;height:76px!important;min-height:76px!important;"
+        "border-radius:50%!important;padding:0!important;overflow:hidden!important;"
+        "font-size:1.25rem!important;font-weight:700!important;"
+        "border:2px solid var(--vc-border)!important;"
+        + (f"background-image:url('{avatar_uri}')!important;background-size:cover!important;"
+           "background-position:center!important;color:transparent!important;"
+           "background-repeat:no-repeat!important;" if avatar_uri else "")
+        + "}"
+        "div[class*='st-key-profile_avatar_trigger'] button:hover {"
+        "border-color:var(--vc-accent)!important;filter:brightness(.96);}"
+        "</style>"
     )
-    st.markdown(
-        "<div class='vc-profile-hero'>"
-        f"<div class='vc-profile-avatar' aria-label='Avatar initials {initials}'>{initials}</div>"
-        "<div class='vc-profile-identity-copy'>"
-        f"<div class='vc-profile-name'>{name}</div>"
-        "<div class='vc-profile-identity-subtitle'>Your preferences, interests and learning goals.</div>"
-        f"{status}</div></div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown(avatar_css, unsafe_allow_html=True)
+
+    avatar_col, identity_col = st.columns([1, 6], vertical_alignment="center")
+    with avatar_col:
+        if st.button(
+            avatar_label,
+            key="profile_avatar_trigger",
+            help="Click to upload or change your profile picture.",
+        ):
+            st.session_state.profile_avatar_upload_open = not st.session_state.get(
+                "profile_avatar_upload_open", False
+            )
+    with identity_col:
+        status = (
+            "<span class='vc-profile-status'>" + _icon_svg("shield")
+            + "<span>Profile saved</span></span>"
+            if profile.get("saved")
+            else "<span class='vc-profile-status vc-profile-status--quiet'>Optional profile</span>"
+        )
+        st.markdown(
+            "<div class='vc-profile-identity-copy'>"
+            f"<div class='vc-profile-name'>{name}</div>"
+            "<div class='vc-profile-identity-subtitle'>Your preferences, interests and learning goals.</div>"
+            f"{status}</div>",
+            unsafe_allow_html=True,
+        )
+
+    if st.session_state.get("profile_avatar_upload_open", False):
+        st.caption("Upload a JPG, PNG, or WebP image. Vocogni center-crops it into a circular 256 × 256 avatar.")
+        uploaded = st.file_uploader(
+            "Choose profile picture",
+            type=["jpg", "jpeg", "png", "webp"],
+            key="profile_avatar_upload",
+            label_visibility="collapsed",
+            help="Maximum file size: 4 MB. The processed circular image is saved to your learner profile.",
+        )
+        if uploaded is not None:
+            raw_bytes = uploaded.getvalue()
+            upload_hash = hashlib.sha256(raw_bytes).hexdigest()
+            if upload_hash != st.session_state.get("profile_avatar_last_hash"):
+                try:
+                    profile["avatar_data_uri"] = process_profile_avatar(raw_bytes)
+                    profile["saved"] = True
+                    st.session_state.profile_avatar_last_hash = upload_hash
+                    state.mark_persistent_dirty()
+                    st.success("Profile picture updated. Saving your changes…")
+                except ValueError as exc:
+                    st.error(str(exc))
+        if profile.get("avatar_data_uri") and st.button(
+            "Remove profile picture", key="remove_profile_avatar"
+        ):
+            profile.pop("avatar_data_uri", None)
+            profile["saved"] = True
+            st.session_state.pop("profile_avatar_last_hash", None)
+            state.mark_persistent_dirty()
+            st.toast("Profile picture removed. Saving your changes…")
+        if st.button("Close photo uploader", key="close_profile_avatar_upload"):
+            st.session_state.profile_avatar_upload_open = False
+            st.rerun()
 
 
 def _render_field_value(label: str, value: Any) -> None:
@@ -351,15 +430,14 @@ def render() -> None:
 
     # Handle the save action before drawing the identity card and sections,
     # so the new name and values are visible in the very same run.
-    save_col, _spacer = st.columns([1.4, 5])
-    with save_col:
-        _render_save_control(profile)
-
     _render_identity_card(profile)
-    st.caption("Save Profile is grey when there are no unsaved edits and green when a change is detected.")
 
     for section in _SECTIONS:
         _render_profile_section(section, profile)
 
     st.divider()
+    save_col, _spacer = st.columns([1.5, 5])
+    with save_col:
+        _render_save_control(profile)
+    st.caption("Save Profile is grey when there are no unsaved edits and green when a change is detected.")
     learning_rhythm.render(st.session_state.progress, profile)
