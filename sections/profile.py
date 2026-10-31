@@ -206,7 +206,7 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
     avatar_uri = profile.get("avatar_data_uri", "")
     if not (
         isinstance(avatar_uri, str)
-        and avatar_uri.startswith("data:image/png;base64,")
+        and avatar_uri.startswith("data:image/webp;base64,")
         and len(avatar_uri) <= 400_000
     ):
         avatar_uri = ""
@@ -279,7 +279,6 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
         ):
             profile.pop("avatar_data_uri", None)
             profile["saved"] = True
-            st.session_state.pop("profile_avatar_last_hash", None)
             state.mark_persistent_dirty()
             st.toast("Profile picture removed. Saving your changes…")
         if st.button("Close photo uploader", key="close_profile_avatar_upload"):
