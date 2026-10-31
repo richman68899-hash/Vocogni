@@ -258,7 +258,7 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
         uploaded = st.file_uploader(
             "Choose profile picture",
             type=["jpg", "jpeg", "png", "webp"],
-            key="profile_avatar_upload",
+            key=f"profile_avatar_upload_{st.session_state.get('profile_avatar_upload_version', 0)}",
             label_visibility="collapsed",
             help="Maximum file size: 4 MB. The processed circular image is saved to your learner profile.",
         )
@@ -279,6 +279,8 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
         ):
             profile.pop("avatar_data_uri", None)
             profile["saved"] = True
+            st.session_state.profile_avatar_upload_version = int(st.session_state.get("profile_avatar_upload_version", 0)) + 1
+            st.session_state.pop("profile_avatar_last_hash", None)
             state.mark_persistent_dirty()
             st.toast("Profile picture removed. Saving your changes…")
         if st.button("Close photo uploader", key="close_profile_avatar_upload"):
