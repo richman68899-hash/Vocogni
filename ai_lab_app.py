@@ -28,12 +28,13 @@ st.subheader("1. Natural-language learning assistant")
 for message in st.session_state.ai_lab_messages[-10:]:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+        if message.get("mode"):
+            st.caption(f"Response mode: {message['mode']}")
 query = st.chat_input("Ask a question or request an explanation…")
 if query:
     st.session_state.ai_lab_messages.append({"role": "user", "content": query})
     result = answer(query, st.session_state.ai_lab_messages[:-1], st.session_state.ai_lab_attempts)
-    st.session_state.ai_lab_messages.append({"role": "assistant", "content": result["text"]})
-    st.caption(f"Response mode: {result['mode']}")
+    st.session_state.ai_lab_messages.append({"role": "assistant", "content": result["text"], "mode": result["mode"]})
     st.rerun()
 
 st.divider()
