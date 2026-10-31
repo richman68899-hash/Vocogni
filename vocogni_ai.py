@@ -8,7 +8,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import data
 import logic
 from ai_prototype.engine import answer as generate_ai_answer
 from ai_prototype.llm import is_configured
@@ -33,7 +32,6 @@ def _provider_config(st: Any) -> dict[str, str]:
                 if value:
                     config[key] = str(value).strip()
     except Exception:
-        # Missing secrets.toml is normal for a local/offline installation.
         pass
     return config
 
@@ -42,19 +40,18 @@ def _learner_context(
     profile: dict[str, Any] | None,
     progress: dict[str, Any] | None,
 ) -> str:
-    """Build a small teaching context; never include identity or private workspace data."""
+    """Build a small teaching context; exclude identity and private workspace data."""
     profile = profile if isinstance(profile, dict) else {}
     progress = progress if isinstance(progress, dict) else {}
     lines: list[str] = []
 
-    # Grade and learning preferences are the only profile fields sent.
-    allowed_profile_fields = (
+    # Only grade level and learning preferences are included from the profile.
+    for label, key in (
         ("Grade level", "grade"),
         ("Preferred language", "preferred_language"),
         ("Preferred difficulty", "preferred_difficulty"),
         ("Feedback preference", "preferred_feedback_style"),
-    )
-    for label, key in allowed_profile_fields:
+    ):
         value = profile.get(key)
         if isinstance(value, (list, tuple)):
             value = ", ".join(str(item).strip() for item in value if str(item).strip())
@@ -103,6 +100,26 @@ def _learner_context(
     return "\n".join(lines) if lines else "No learner learning-context data is available yet."
 
 
+def _recent_ai_history(messages: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Include only user/assistant pairs from earlier external-AI tutoring turns.
+
+    Local profile, notes, and progress summaries are intentionally excluded.
+    """
+    result: list[dict[str, str]] = []
+    for index, item in enumerate(messages):
+        if not isinstance(item, dict):
+            continue
+        if item.get("role") == "assistant" and item.get("mode") == "llm":
+            result.append({"role": "assistant", "content": str(item.get("content", ""))[:2500]})
+            previous = messages[index - 1] if index > 0 else None
+            if isinstance(previous, dict) and previous.get("role") == "user":
+                result.insert(
+                    max(0, len(result) - 1),
+                    {"role": "user", "content": str(previous.get("content", ""))[:2500]},
+                )
+    return result[-8:]
+
+
 def _is_unhandled(reply: str, route: str | None) -> bool:
     return route is None and str(reply).startswith(_UNHANDLED_PREFIX)
 
@@ -149,10 +166,10 @@ def render_assistant(
         )
         if provider_ready:
             st.caption(
-                "When enabled, open-ended questions are sent to the configured AI provider "
-                "with up to 8 recent chat messages and a limited learning summary. The summary "
-                "may include grade level, learning preferences, course accuracy, and mistake tags. "
-                "Your name, email, saved notes, milestones, and account ID are not added to that summary."
+                "When enabled, open-ended questions are sent to the configured provider "
+                "with up to 8 messages from previous AI-tutoring turns and a limited learning summary. "
+                "The summary may include grade level, learning preferences, course accuracy, and mistake tags. "
+                "Local profile/notes/progress-summary replies are excluded from chat history."
             )
         else:
             st.warning(
@@ -163,8 +180,8 @@ def render_assistant(
             st.session_state.vocogni_ai_opt_in = False
 
         st.caption(
-            "External AI is off by default. If enabled, your message and recent conversation "
-            "are sent to the configured provider. Do not enter passwords, contact details, "
+            "External AI is off by default. If enabled, your current message and selected prior AI chat "
+            "messages are sent to the configured provider. Do not enter passwords, contact details, "
             "precise location, or sensitive information. Provider retention and training terms "
             "depend on the provider you configure."
         )
@@ -236,10 +253,7 @@ def render_assistant(
 
                 if _is_unhandled(reply, route):
                     if ai_enabled and provider_ready:
-                        history = [
-                            item for item in messages[:-1][-8:]
-                            if isinstance(item, dict) and item.get("role") in {"user", "assistant"}
-                        ]
+                        history = _recent_ai_history(messages[:-1])
                         result = generate_ai_answer(
                             chosen_query,
                             history=history,
@@ -256,7 +270,6 @@ def render_assistant(
                         )
                         mode = "local"
 
-                # Keep old help/legal wording accurate now that optional AI exists.
                 reply = reply.replace(
                     "The Study Guide is rule-based and does not call a generative AI model in this build.",
                     "The Study Guide has local rule-based commands and optional external AI tutoring, "
@@ -265,7 +278,7 @@ def render_assistant(
                 reply = reply.replace(
                     "The Study Guide uses data already in Vocogni. It does not infer missing results or invent a learning history.",
                     "Local commands use saved Vocogni data. Optional AI tutoring uses only a limited learning summary "
-                    "and recent chat context when you enable it.",
+                    "and selected prior AI chat context when you enable it.",
                 )
 
                 messages.append({"role": "assistant", "content": reply, "mode": mode})
