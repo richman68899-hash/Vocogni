@@ -16,7 +16,7 @@ The optional model is a language-generation aid. It is not the source of truth f
 When the learner enables AI tutoring and sends an open-ended request, Vocogni sends to the configured provider:
 
 - the current message;
-- up to eight recent messages in the Study Guide conversation; and
+- up to eight messages from prior AI-tutoring turns; local account-data summaries are excluded; and
 - a limited learning-context summary, which may include grade level, preferred language/difficulty/feedback style, course-level practice accuracy, and recorded mistake tags.
 
 The application code does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. This is data minimisation, not a guarantee that a learner cannot type personal information into the message or chat history. Learners must not enter private or sensitive information.
