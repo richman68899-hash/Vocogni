@@ -1,9 +1,4 @@
-"""Render Vocogni's version-controlled legal and safety notices.
-
-The documents are kept in docs/legal so the in-app copies and repository copies
-share a single source of truth. These drafts must be completed and reviewed
-before the service is treated as ready for public launch.
-"""
+"""Render Vocogni's version-controlled legal and safety notices."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -34,17 +29,19 @@ NOTICE_SUMMARIES = {
     "privacy": (
         "**Quick read**\n\n"
         "- Vocogni saves learning progress and details you choose to enter.\n"
-        "- Sign out on shared devices and avoid adding sensitive personal details.\n"
-        "- The final privacy contact, retention period, and deletion process are not configured yet.\n"
+        "- Optional AI tutoring sends your prompt, recent chat context, and a limited learning summary to the configured provider only after session opt-in.\n"
+        "- Your name, email, saved notes, milestones, and account ID are not added to the AI context summary.\n"
+        "- Provider retention, training, and data location depend on the provider and must be reviewed.\n"
         "- Child-facing use is not cleared until required reviews and safeguards are completed."
     ),
     "ai_safety": (
         "**Quick read**\n\n"
-        "- The Study Guide uses preset rules; it is not a generative AI chatbot.\n"
-        "- Check important answers and ask a teacher if something seems wrong.\n"
-        "- Do not enter passwords or private details about yourself or classmates.\n"
-        "- The app is not watched live and cannot promise to detect every unsafe situation.\n"
-        "- A monitored safety contact and child-safety review are still outstanding."
+        "- Local Study Guide commands work without generative AI.\n"
+        "- Open-ended AI tutoring is optional, off by default, and requires session opt-in.\n"
+        "- When enabled, your message, up to 8 messages from prior AI-tutoring turns; local account-data summaries are excluded, and a limited learning summary are sent to the configured external provider.\n"
+        "- AI can make mistakes. Check important answers with trusted course materials or a teacher.\n"
+        "- Do not enter passwords, contact details, precise location, or sensitive information.\n"
+        "- The app is not watched live; a monitored safety contact and child-safety review are still outstanding."
     ),
 }
 

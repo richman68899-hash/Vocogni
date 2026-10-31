@@ -41,17 +41,21 @@ class LegalNoticeTests(unittest.TestCase):
         text = load_notice("privacy").casefold()
         self.assertIn("auth0", text)
         self.assertIn("supabase", text)
-        self.assertIn("does not make a request to an external generative ai model", text)
+        self.assertIn("do not require an external generative ai request", text)
+        self.assertIn("open-ended ai tutoring is optional and off by default", text)
+        self.assertIn("up to eight recent chat messages", text)
         self.assertIn("retention", text)
         self.assertIn("children", text)
 
     def test_ai_safety_notes_discourage_sensitive_data_and_overreliance(self):
         text = load_notice("ai_safety").casefold()
-        self.assertIn("does not currently use a connected generative ai model", text)
+        self.assertIn("optional ai tutoring", text)
+        self.assertIn("disabled by default", text)
+        self.assertIn("session-only opt-in", text)
         self.assertIn("passwords", text)
         self.assertIn("academic-integrity", text)
         self.assertIn("human moderator", text)
-        self.assertIn("before any future generative ai integration", text)
+        self.assertIn("public child-facing use should remain blocked", text)
 
     def test_indonesian_child_protection_requirements_are_flagged_for_review(self):
         privacy = load_notice("privacy").casefold()
