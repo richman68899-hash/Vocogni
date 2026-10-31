@@ -109,7 +109,7 @@ def process_profile_avatar(image_bytes: bytes, max_bytes: int = 4 * 1024 * 1024)
     image.putalpha(mask)
 
     output = io.BytesIO()
-    image.save(output, format="PNG", optimize=True)
+    image.save(output, format="WEBP", quality=88, method=6)
     encoded = base64.b64encode(output.getvalue()).decode("ascii")
-    return "data:image/png;base64," + encoded
+    return "data:image/webp;base64," + encoded
 
