@@ -1,0 +1,24 @@
+name: AI prototype checks
+
+on:
+  push:
+    branches:
+      - feature/ai-learning-core-prototype
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run AI prototype unit tests
+        run: python -m unittest discover -s tests -p 'test_ai_prototype.py' -v
+      - name: Compile integrated app modules
+        run: python -m py_compile app.py vocogni_ai.py vocogni_assistant.py ai_prototype/llm.py ai_prototype/engine.py
