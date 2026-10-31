@@ -100,6 +100,7 @@ def _default_profile() -> dict[str, Any]:
         "weak_subjects": [],
         "interests": "",
         "career_interests": "",
+        "description": "",
         "learning_style": "Prefer not to say",
         "preferred_difficulty": "Adaptive",
         "preferred_session_length": "Prefer not to say",

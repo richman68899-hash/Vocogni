@@ -65,3 +65,51 @@ def profile_initials(name: Any) -> str:
     if len(parts) >= 2:
         return (parts[0][0] + parts[-1][0]).upper()
     return clean[:1].upper()
+
+def process_profile_avatar(image_bytes: bytes, max_bytes: int = 4 * 1024 * 1024) -> str:
+    """Validate an uploaded image and return a centered circular WebP data URI.
+
+    The image is center-cropped to a square, resized to 256px, and given a
+    transparent circular mask. Only the processed image is stored in the
+    learner profile; the original upload is never retained.
+    """
+    import base64
+    import io
+
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    if not isinstance(image_bytes, (bytes, bytearray)) or not image_bytes:
+        raise ValueError("Choose an image file to upload.")
+    if len(image_bytes) > max_bytes:
+        raise ValueError("Image must be 4 MB or smaller.")
+
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as source:
+            if source.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValueError("Use a JPG, PNG, or WebP image.")
+            source = ImageOps.exif_transpose(source)
+            source.thumbnail((4096, 4096))
+            image = source.convert("RGBA")
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
+        raise ValueError("That image could not be read. Try another file.") from exc
+
+    width, height = image.size
+    if not width or not height:
+        raise ValueError("The uploaded image has invalid dimensions.")
+
+    side = min(width, height)
+    left = (width - side) // 2
+    top = (height - side) // 2
+    image = image.crop((left, top, left + side, top + side))
+    image = image.resize((256, 256), Image.Resampling.LANCZOS)
+
+    mask = Image.new("L", (256, 256), 0)
+    from PIL import ImageDraw
+    ImageDraw.Draw(mask).ellipse((1, 1, 255, 255), fill=255)
+    image.putalpha(mask)
+
+    output = io.BytesIO()
+    image.save(output, format="WEBP", quality=88, method=6)
+    encoded = base64.b64encode(output.getvalue()).decode("ascii")
+    return "data:image/webp;base64," + encoded
+
