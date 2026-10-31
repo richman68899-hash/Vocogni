@@ -45,7 +45,6 @@ def _learner_context(
     progress = progress if isinstance(progress, dict) else {}
     lines: list[str] = []
 
-    # Only grade level and learning preferences are included from the profile.
     for label, key in (
         ("Grade level", "grade"),
         ("Preferred language", "preferred_language"),
@@ -101,10 +100,7 @@ def _learner_context(
 
 
 def _recent_ai_history(messages: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Include only user/assistant pairs from earlier external-AI tutoring turns.
-
-    Local profile, notes, and progress summaries are intentionally excluded.
-    """
+    """Include only user/assistant pairs from earlier external-AI tutoring turns."""
     result: list[dict[str, str]] = []
     for index, item in enumerate(messages):
         if not isinstance(item, dict):
@@ -252,7 +248,6 @@ def render_assistant(
                     milestones=milestones,
                 )
                 mode = "local"
-
                 if _is_unhandled(reply, route):
                     if ai_enabled and provider_ready:
                         history = _recent_ai_history(messages[:-1])
@@ -264,6 +259,12 @@ def render_assistant(
                         )
                         reply = result["text"]
                         mode = result.get("mode", "fallback")
+                        diagnostic = result.get("fallback_reason")
+                        if diagnostic:
+                            reply += (
+                                "\n\n**AI connection diagnostic:** "
+                                + str(diagnostic).replace(provider_config.get("api_key", ""), "[redacted]")[:300]
+                            )
                     else:
                         reply = (
                             "I can handle saved-profile, progress, mistake, course, and navigation "
