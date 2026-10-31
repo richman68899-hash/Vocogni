@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from ai_prototype.engine import answer, analyze_learning_patterns
-from ai_prototype.llm import is_configured, resolve_config
+from ai_prototype.llm import LLMError, is_configured, resolve_config
 from ai_prototype.patterns import detect_patterns
 from vocogni_ai import _learner_context
 
@@ -57,6 +57,18 @@ class EngineTests(unittest.TestCase):
         result = answer("Help me solve this equation", use_llm=False)
         self.assertEqual(result["mode"], "fallback")
         self.assertIn("what is given", result["text"])
+
+    def test_provider_failure_is_preserved_as_a_safe_diagnostic(self):
+        config = {
+            "base_url": "https://example.test/v1",
+            "model": "example-model",
+            "api_key": "do-not-leak-this",
+        }
+        with patch("ai_prototype.engine.chat_completion", side_effect=LLMError("HTTP 401 unauthorized")):
+            result = answer("hello", llm_config=config)
+        self.assertEqual(result["mode"], "fallback")
+        self.assertEqual(result["fallback_reason"], "HTTP 401 unauthorized")
+        self.assertNotIn("do-not-leak-this", result["fallback_reason"])
 
     def test_pattern_evidence_is_attached_to_answer(self):
         result = answer("How should I improve?", attempts=[
