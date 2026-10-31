@@ -4,7 +4,10 @@ import base64
 import io
 import unittest
 
-from PIL import Image
+try:
+    from PIL import Image
+except ModuleNotFoundError:
+    Image = None
 
 from profile_presentation import (
     display_profile_value,
@@ -44,6 +47,7 @@ class ProfilePresentationTests(unittest.TestCase):
                 self.assertIn('aria-hidden="true"', svg)
                 self.assertIn("stroke-linecap", svg)
 
+    @unittest.skipIf(Image is None, "Pillow is installed by the application test workflow")
     def test_avatar_processing_returns_transparent_circular_png(self):
         source = Image.new("RGB", (400, 200), "red")
         buffer = io.BytesIO()
@@ -58,6 +62,7 @@ class ProfilePresentationTests(unittest.TestCase):
             self.assertEqual(avatar.getpixel((0, 0))[3], 0)
             self.assertEqual(avatar.getpixel((128, 128))[3], 255)
 
+    @unittest.skipIf(Image is None, "Pillow is installed by the application test workflow")
     def test_avatar_processing_rejects_invalid_and_oversized_files(self):
         with self.assertRaises(ValueError):
             process_profile_avatar(b"not an image")
