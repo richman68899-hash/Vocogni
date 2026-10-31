@@ -1,7 +1,9 @@
-"""Unit tests for the isolated experimental AI core."""
+"""Unit tests for Vocogni's LLM adapter and explainable pattern layer."""
 import unittest
+from unittest.mock import patch
 
 from ai_prototype.engine import answer, analyze_learning_patterns
+from ai_prototype.llm import is_configured, resolve_config
 from ai_prototype.patterns import detect_patterns
 
 
@@ -32,6 +34,20 @@ class PatternRecognitionTests(unittest.TestCase):
         self.assertIn("distribution", keys)
 
 
+class ProviderConfigTests(unittest.TestCase):
+    def test_config_can_be_supplied_without_environment_variables(self):
+        config = {
+            "base_url": "https://example.test/v1",
+            "model": "example-model",
+            "api_key": "test-key",
+        }
+        self.assertEqual(resolve_config(config), config)
+        self.assertTrue(is_configured(config))
+
+    def test_partial_provider_config_is_not_configured(self):
+        self.assertFalse(is_configured({"base_url": "https://example.test/v1"}))
+
+
 class EngineTests(unittest.TestCase):
     def test_empty_question_returns_fallback(self):
         self.assertEqual(answer("  ", use_llm=False)["mode"], "fallback")
@@ -47,6 +63,21 @@ class EngineTests(unittest.TestCase):
         ], use_llm=False)
         self.assertEqual(result["patterns"]["patterns"][0]["key"], "sign_error")
         self.assertIn("sign handling", result["text"].lower())
+
+    @patch("ai_prototype.engine.chat_completion", return_value="Let's solve it step by step.")
+    def test_llm_receives_limited_context_and_provider_config(self, mock_chat):
+        config = {"base_url": "https://example.test/v1", "model": "test", "api_key": "secret"}
+        result = answer(
+            "Explain linear equations",
+            history=[{"role": "user", "content": "I am practising algebra."}],
+            learner_context="Grade: 8; preferred language: English.",
+            llm_config=config,
+        )
+        self.assertEqual(result["mode"], "llm")
+        self.assertEqual(result["text"], "Let's solve it step by step.")
+        sent_messages = mock_chat.call_args.args[0]
+        self.assertIn("Grade: 8", sent_messages[0]["content"])
+        self.assertEqual(mock_chat.call_args.kwargs["config"], config)
 
 
 if __name__ == "__main__":
