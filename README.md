@@ -1,203 +1,115 @@
-# Vocogni — Learning Prototype (v1.4 development)
+# Vocogni — Learning Prototype
 
 Vocogni is an applied-learning prototype built around the loop:
 
-**Understand → Solve → Apply → Advance**
+**Diagnose → Understand → Practice → Apply / Transfer → Measure → Update**
 
-The current architecture uses Streamlit, Auth0 OIDC for authentication, and
-Supabase PostgreSQL for durable learner-state persistence. It is still a
-prototype and is not yet production-validated.
-
-The Progress summary and v1.4 lesson diagnostic are transparent rule-based
-logic. No external generative AI or trained diagnostic model is called. The
-v1.4 diagnostic work is on a feature branch and remains unreleased until its
-acceptance tests pass.
-
----
+The application uses Streamlit, Auth0 OIDC for authentication, and Supabase PostgreSQL for durable learner-state persistence. It remains a prototype and is not production-validated.
 
 ## Quick start
 
 ```bash
-# from inside the project folder
 python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+source venv/bin/activate          # Windows: venv\\Scripts\\activate
 
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Streamlit will open the app at `http://localhost:8501`. Run the command
-from the project root (the folder containing `app.py`) so the `assets/`
-and `.streamlit/` folders are found correctly.
+Run from the project root (the folder containing `app.py`).
 
----
+## Optional LLM tutoring
 
-## File tree
+The Study Guide now combines two modes:
 
-```
-vocogni/
-├── app.py                   # Entry point: page config, sidebar, routing
-├── requirements.txt
-├── README.md
-├── .streamlit/
-│   └── config.toml          # Base (light) Streamlit theme colors/fonts
-├── assets/
-│   └── README.txt           # Where to put vocogni_logo.png (see below)
-├── data.py                  # Courses, lessons, question and diagnostic content
-├── diagnostics.py           # Reusable rule-based diagnostic scoring/placement
-├── state.py                 # Session state, durable progress, autosave coordination
-├── logic.py                 # Progress engine — pure functions, no UI code
-├── styles.py                # CSS design tokens + injection
-└── sections/
-    ├── __init__.py
-    ├── profile.py            # Profile
-    ├── browse.py              # Browse (+ delegates into course.py)
-    ├── course.py               # Course detail + interactive lesson flow
-    ├── progress.py            # Progress
-    ├── notes.py                # Notes
-    └── settings.py              # Settings
+- **Local commands:** profile/progress/mistake summaries, recommendations, course listing, and navigation. These run without an external model.
+- **Optional AI tutoring:** open-ended subject explanations and conversational learning support through an OpenAI-compatible Chat Completions provider.
+
+AI tutoring is off by default and requires a session-only opt-in inside the Study Guide. It is not used by the answer checker, diagnostic scoring, progress persistence, or official mastery decisions.
+
+### Configure a provider
+
+The app accepts any provider that implements the OpenAI-compatible `POST /chat/completions` interface.
+
+Set these environment variables on the server:
+
+```bash
+VOCogni_LLM_BASE_URL=https://YOUR_PROVIDER_BASE_URL/v1
+VOCogni_LLM_MODEL=YOUR_MODEL_NAME
+VOCogni_LLM_API_KEY=YOUR_SECRET_API_KEY
 ```
 
-### Why more files than the minimum `app.py` / `requirements.txt` / `README.md`
+Or configure Streamlit secrets:
 
-Separate modules keep authored course content, diagnostic rules, durable
-state, progress logic, styling, and UI rendering independently understandable.
-The diagnostic engine is intentionally framework-free so scoring rules and
-assessment-schema checks can be unit-tested without launching Streamlit.
+```toml
+[llm]
+base_url = "https://YOUR_PROVIDER_BASE_URL/v1"
+model = "YOUR_MODEL_NAME"
+api_key = "YOUR_SECRET_API_KEY"
+```
 
----
+For local development, place the TOML in `.streamlit/secrets.toml` (do not commit that file). For hosted Streamlit, add the values in the app's Secrets settings. Never put provider keys in Python source, Git, browser-side code, or learner-visible configuration.
+
+If no complete provider configuration is present, the AI opt-in is disabled and local Study Guide commands continue to work. Provider-specific endpoint and model compatibility must be checked against the provider's documentation.
+
+### What is sent to the provider
+
+After the learner enables AI tutoring and submits an open-ended request, the server sends:
+- the current message;
+- up to eight recent Study Guide messages; and
+- a limited learning summary that may include grade level, preferred learning settings, course-level accuracy, and recorded mistake tags.
+
+The code does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. A learner can still type private information into the chat, so the interface warns against doing so. Provider retention, training, subprocessors, and data location depend on the configured provider and its terms.
+
+The session opt-in is not persisted. Local account-data commands do not need an external AI call.
 
 ## Architecture
 
-- **`data.py`** — Course, lesson, question, diagnostic, and pathway content
-  as plain Python dictionaries. Nothing here imports Streamlit.
-- **`diagnostics.py`** — Validates the reusable five-item diagnostic schema,
-  scores answers, identifies author-tagged weaknesses, explains placement,
-  and selects the corresponding practice question set. It is rule-based
-  prototype decision support, not a trained AI model.
-- **`state.py`** — Defines session state, durable learner progress, diagnostic
-  records, notes, settings, and autosave coordination.
-- **`logic.py`** — The "brain": answer checking, mistake recording,
-  strengths/weaknesses, common mistakes, recommendations, and the
-  simulated AI summary. Every function takes plain data in and returns
-  plain data out — no `import streamlit` anywhere in this file. That's
-  deliberate: these functions will work unchanged if `progress` starts
-  coming from a real database instead of `st.session_state`.
-- **`styles.py`** — All CSS, generated from the current Settings (theme,
-  text size, motion). See "Design notes" below.
-- **`sections/*.py`** — One module per sidebar item, each exposing a single
-  `render()` function that `app.py` calls. `browse.py` also owns the
-  Browse → Course → Lesson drill-down (`course.py`), since that's one
-  continuous flow rather than a separate nav item.
-- **`app.py`** — Page setup, the sidebar (logo + nav), and routing to
-  whichever section is active. No feature logic lives here.
+- `app.py` — authentication, navigation, persistence coordination, and app routing.
+- `vocogni_ai.py` — integrated Study Guide UI, session opt-in, provider configuration, and minimal learner context.
+- `vocogni_assistant.py` — deterministic account-data commands and navigation.
+- `ai_prototype/llm.py` — standard-library HTTP adapter for OpenAI-compatible providers.
+- `ai_prototype/engine.py` — prompt orchestration, bounded history/context, and fallback.
+- `ai_prototype/patterns.py` — explainable heuristic pattern recognition; not a trained model or validated diagnosis.
+- `logic.py` — answer checking, progress aggregation, and rule-based learning logic.
+- `state.py` — learner session state and durable persistence coordination.
+- `sections/*.py` — learner-facing app sections.
 
-### The core interactive loop
+## Important system boundaries
 
-Browse → select a course → lesson unlocks in sequence → configured foundation
-lessons begin with a one-time baseline diagnostic → the transparent rule engine
-flags missed skill tags and recommends prerequisite review, Easy, Medium, Hard,
-or a real-life project → lesson explanation and routed practice → feedback and
-application → separate diagnostic and practice measures appear on Progress.
-The diagnostic currently covers only the three initial foundation lessons.
+The LLM generates explanations and conversational text. It does not:
+- mark answers correct or incorrect;
+- alter verified answer keys or grading;
+- create durable learner progress;
+- independently declare mastery;
+- confirm a recurring misconception; or
+- automatically label every learner error.
 
----
+The current pattern detector is a small, text-based heuristic. Full Learning Pattern Memory, structured attempt events, intervention tracking, and measured retention/transfer are not yet implemented.
 
-## Design notes
+## Privacy, safety, and deployment limits
 
-- **A quiet interface, not a dashboard collage.** Inter is used throughout
-  the product; IBM Plex Mono is reserved for measured progress values.
-- **Color is functional.** Deep teal marks primary actions and progress.
-  Muted amber is reserved for real-world application tasks. Neutral surfaces
-  and borders separate content without decorative gradients or heavy shadows.
-- **Consistent structure.** Cards, fields, buttons, alerts, and expanders use
-  a shared spacing and radius scale. Interactive elements have visible focus
-  states and layouts adapt to smaller screens.
-- **Learner control remains intact.** Theme, text size, readability spacing,
-  and motion preferences continue to come from Settings.
+- This prototype does not verify or record parent/guardian consent.
+- The session opt-in does not replace legally required consent or a child-safety review.
+- Provider privacy/retention/training terms must be reviewed before real learner data is sent.
+- Do not use real learner data until data minimisation, provider review, access controls, retention/deletion, and applicable legal requirements have been addressed.
+- The model may hallucinate or provide incorrect explanations. Check important answers with trusted course materials or a teacher.
+- The app is not monitored live and does not provide emergency support.
+- Legal notices remain drafts; public child-facing deployment should remain blocked pending appropriate review and safeguards.
 
----
+See:
+- `docs/legal/ai-use-and-safety.md`
+- `docs/legal/privacy-notice.md`
+- `docs/features/ai-learning-core-prototype.md`
+- `docs/features/ai-learning-core-integration.md`
 
-## Known prototype limitations
+## Tests
 
-- **Prototype, not production validated.** Auth0 OIDC handles identity and
-  Supabase stores the learner state. Live persistence, account isolation,
-  failure recovery, and all UI flows still require release-specific tests.
-- **No real generative AI.** The Progress summary and recommendations use
-  templates/rules. The v1.4 diagnostic engine is an explainable rule-based
-  system; it does not call an LLM or claim to infer cognition.
-- **Diagnostics are early heuristics.** Diagnostic content is currently
-  attached to three initial lessons. Five questions and initial placement
-  thresholds are not validated assessment instruments. Learner-facing
-  results should be interpreted as a starting-point signal, not a definitive
-  mastery label.
-- **Baseline and post-lesson values are not equivalent tests.** The Progress
-  page records a diagnostic score and later practice accuracy. Their
-  percentage-point difference is descriptive, not evidence of causal or
-  validated learning gain.
-- **Adaptive scope is limited.** Only lessons with a `diagnostic` config use
-  the placement engine. Future lessons need their own five tagged items,
-  prerequisite review text, and pathway question sets. Existing Settings
-  difficulty preferences still do not constitute machine-learning adaptation.
-- **Three courses by design in the current content model:** Simple Fractions,
-  Algebra Basics, and Word Problems. Current diagnostics are on the first
-  foundation lesson in each course, not all twelve lessons.
-- **Dark mode is a CSS approximation.** Streamlit's native widget chrome may
-  not fully invert under the app-wide CSS override.
-- **Audio depends on browser policy.** A blocked sound cue should not interrupt
-  the learning flow.
-
----
-
-## Connecting a real LLM to the AI progress summary
-
-`logic.generate_progress_summary(profile, progress)` is the one function to
-change; nothing else in the app calls an AI model or needs to know it
-changed.
-
-1. `pip install anthropic` and add `anthropic` to `requirements.txt`.
-2. Provide an API key via an environment variable (e.g. `ANTHROPIC_API_KEY`)
-   or `st.secrets` — never hard-code a key in source.
-3. Keep the function signature exactly as-is:
-   `generate_progress_summary(profile, progress) -> str`.
-4. Inside the function, build a short prompt from the same stats already
-   gathered there (`per_course_stats()`, weakest/strongest topic, top
-   mistakes) and call `client.messages.create(model=..., messages=[...])`,
-   returning the response text instead of the template text.
-5. Wrap the API call in `try/except` and fall back to the current template
-   version on failure or a missing key, so the Progress page always shows
-   something.
-
-## Replacing the recommendation engine
-
-Same pattern: `logic.generate_recommendations(progress)` returns a list of
-strings today. Keep that signature (or evolve it to return structured
-data) and swap the rule checks inside for a call to a real model or
-service — `sections/browse.py` and `sections/progress.py` only read the
-returned list.
-
----
-
-## Testing and release verification
-
-The diagnostic unit tests are included under `tests/test_diagnostics.py`.
-Run from the repository root:
+Run the offline tests:
 
 ```bash
-python -m unittest discover -s tests -v
-python -m py_compile data.py diagnostics.py logic.py state.py sections/course.py sections/progress.py
+python -m unittest discover -s tests -p 'test_ai_prototype.py' -v
+python -m py_compile app.py vocogni_ai.py vocogni_assistant.py ai_prototype/llm.py ai_prototype/engine.py
 ```
 
-These checks cover the reusable scoring and placement engine; they do not
-replace live UI tests. Before releasing v1.4, also complete
-`docs/testing/lesson-diagnostics-acceptance.md`, including persistence after
-refresh/re-login, existing-record compatibility, multi-account isolation,
-mobile layout, and save-failure behavior.
-
-Do not treat a passing syntax/unit-test run as proof that the deployed
-Auth0/Streamlit/Supabase application has been validated.
-
-## Logo
-
-Drop a real `vocogni_logo.png` into `assets/` (see `assets/README.txt`).
-Until then, the sidebar shows a clean text wordmark, as the spec requires.
+These tests do not validate a live provider, deployed Auth0/Supabase integration, UI behavior, educational effectiveness, or legal compliance.
