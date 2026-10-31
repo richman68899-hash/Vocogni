@@ -56,7 +56,7 @@ If no complete provider configuration is present, the AI opt-in is disabled and 
 
 After the learner enables AI tutoring and submits an open-ended request, the server sends:
 - the current message;
-- up to eight recent Study Guide messages; and
+- up to eight messages from previous AI-tutoring turns; local account-data summaries are excluded; and
 - a limited learning summary that may include grade level, preferred learning settings, course-level accuracy, and recorded mistake tags.
 
 The code does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. A learner can still type private information into the chat, so the interface warns against doing so. Provider retention, training, subprocessors, and data location depend on the configured provider and its terms.
