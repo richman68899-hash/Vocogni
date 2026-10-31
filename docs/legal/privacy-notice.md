@@ -24,7 +24,7 @@ Avoid entering sensitive personal information unless the service specifically as
 
 The prototype uses this information to authenticate a learner, restore saved state, display progress, provide supported rule-based learning recommendations, show the learner's notes and settings, and maintain and troubleshoot the application.
 
-If the learner explicitly enables optional AI tutoring for the current session, the service also uses the current assistant message, up to eight recent assistant conversation messages, and a limited learning-context summary to generate a response. The summary may include grade level, selected learning preferences, course-level practice accuracy, and recorded mistake tags. The application does not add the learner's name, email, account ID, saved notes, milestones, age, or country to this summary. A learner can still type personal information into a message; users should not do so.
+If the learner explicitly enables optional AI tutoring for the current session, the service also uses the current assistant message, up to eight messages from prior AI-tutoring turns; local profile, progress, and notes summaries are excluded from chat history, and a limited learning-context summary to generate a response. The summary may include grade level, selected learning preferences, course-level practice accuracy, and recorded mistake tags. The application does not add the learner's name, email, account ID, saved notes, milestones, age, or country to this summary. A learner can still type personal information into a message; users should not do so.
 
 The operator should map every deployed data field and provider to a documented purpose before public launch, and should not collect information merely because it might be useful in the future.
 
