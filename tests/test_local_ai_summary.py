@@ -57,7 +57,7 @@ class LocalProgressSummaryTests(unittest.TestCase):
             {},
             preferences={"ai_preview_response_language": "Bahasa Indonesia"},
         )
-        self.assertIn("no practice questions yet", summary.lower())
+        self.assertIn("have not attempted any practice questions yet", summary.lower())
         self.assertIn("currently generates the local progress summary in English", summary)
 
     def test_summary_engine_does_not_call_provider(self):
