@@ -85,6 +85,19 @@ class WhiteboardComponentTests(unittest.TestCase):
         self.assertIn("state.dragging.resize", js)
         self.assertIn('$("#status-icon use")', js)
 
+    def test_global_keyboard_shortcuts_are_available_without_stealing_text_input(self):
+        html = (COMPONENT / "index.html").read_text(encoding="utf-8")
+        js = (COMPONENT / "whiteboard.js").read_text(encoding="utf-8")
+        self.assertIn('document.addEventListener("keydown"', js)
+        self.assertIn('key==="s"', js)
+        self.assertIn('key==="+"||key==="="', js)
+        self.assertIn('key==="-"||key==="_"', js)
+        self.assertIn('key==="0"', js)
+        self.assertIn('target.closest("input,textarea,select,[contenteditable=\'true\']")', js)
+        self.assertIn('title="Save: Ctrl or Command + S"', html)
+        self.assertIn('title="Zoom: Ctrl or Command + plus or minus', html)
+        self.assertIn('function saveNow()', js)
+
     def test_editor_uses_local_component_and_validates_board_updates(self):
         editor = (ROOT / "sections" / "whiteboard_editor.py").read_text(encoding="utf-8")
         self.assertIn("components.declare_component", editor)
