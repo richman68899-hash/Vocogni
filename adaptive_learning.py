@@ -47,8 +47,7 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             "ratios": [],
             "recent_ratios": [],
             "mistake_tags": defaultdict(int),
-            "lesson_ids": set(),
-            "course_ids": set(),
+            "locations": set(),
         }
 
     # The question registry is the source of truth for stable question-to-skill
@@ -62,8 +61,7 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 "skill_id": skill_id,
                 "mistake_tag": question.get("mistake_tag"),
             }
-            evidence[skill_id]["lesson_ids"].add(record.get("lesson_id"))
-            evidence[skill_id]["course_ids"].add(record.get("course_id"))
+            evidence[skill_id]["locations"].add((record.get("course_id"), record.get("lesson_id")))
 
     for course_id, course_progress in (progress or {}).items():
         if not isinstance(course_progress, dict):
@@ -107,19 +105,17 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             len(item["recent_ratios"][-3:]) if item["recent_ratios"] else None
         )
         item["repeat_errors"] = sum(item["mistake_tags"].values())
-        item["lesson_ids"] = sorted(item["lesson_ids"])
-        item["course_ids"] = sorted(item["course_ids"])
+        item["locations"] = sorted(item["locations"])
         item["mistake_tags"] = dict(item["mistake_tags"])
     return evidence
 
 
 def _lesson_for_skill(skill_id: str, evidence_item: dict[str, Any]) -> tuple[str | None, str | None]:
     # Prefer the lesson containing verified questions for this skill.
-    for course_id in evidence_item.get("course_ids", []):
-        for lesson_id in evidence_item.get("lesson_ids", []):
-            lesson, _ = data.get_lesson(course_id, lesson_id)
-            if lesson:
-                return course_id, lesson_id
+    for course_id, lesson_id in evidence_item.get("locations", []):
+        lesson, _ = data.get_lesson(course_id, lesson_id)
+        if lesson:
+            return course_id, lesson_id
 
     # A prerequisite may not yet have direct evidence. Find any course lesson
     # containing a verified question for that stable skill ID.
