@@ -12,6 +12,7 @@ import streamlit as st
 
 import data
 import logic
+import course_catalog
 from course_presentation import course_card_metadata
 from . import revision_sprint as revision_sprint_section
 
@@ -47,6 +48,32 @@ def _status_for_course(course_id, progress):
     if total > 0 and done >= total:
         return "Completed"
     return "In progress"
+
+
+def _filter_courses(
+    courses,
+    progress,
+    *,
+    search="",
+    status_filter="All",
+    difficulty_filter="All",
+    category_filter="All",
+    subject_filter="All",
+):
+    """Apply the catalog filters in one testable, predictable place."""
+    statuses = {
+        course["id"]: _status_for_course(course["id"], progress)
+        for course in courses
+    }
+    return course_catalog.filter_courses(
+        courses,
+        statuses,
+        search=search,
+        status_filter=status_filter,
+        difficulty_filter=difficulty_filter,
+        category_filter=category_filter,
+        subject_filter=subject_filter,
+    )
 
 
 def _render_grid():
@@ -94,31 +121,77 @@ def _render_grid():
         chips = "".join(f"<span class='vc-recommend-chip'>{html.escape(str(r))}</span>" for r in recs)
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
-    # Search gets its own full-width row. The four filters share a consistent
-    # second row, with CSS wrapping them cleanly on narrow screens.
-    search = st.text_input(
-        "Search courses", value=st.session_state.browse_search,
-        placeholder="Search by course, subject, or topic",
-    )
+    courses = data.all_courses_in_order()
+    difficulties = sorted({c["difficulty"] for c in data.COURSES.values()})
+    category_labels = {item["id"]: item["label"] for item in data.COURSE_CATEGORIES}
+    subject_labels = {item["id"]: item["label"] for item in data.COURSE_SUBJECTS}
+
+    # Seed keyed controls from the previous session-only search state so old
+    # sessions keep their current search when this version first loads.
+    defaults = {
+        "browse_search_input": st.session_state.get("browse_search", ""),
+        "browse_status_filter": "All",
+        "browse_difficulty_filter": "All",
+        "browse_category_filter": "All",
+        "browse_subject_filter": "All",
+    }
+    for key, default in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = default
+
+    allowed_values = {
+        "browse_status_filter": STATUS_OPTIONS,
+        "browse_difficulty_filter": ["All"] + difficulties,
+        "browse_category_filter": ["All"] + list(category_labels),
+        "browse_subject_filter": ["All"] + list(subject_labels),
+    }
+    for key, choices in allowed_values.items():
+        if st.session_state.get(key) not in choices:
+            st.session_state[key] = "All"
+
+    filters_active = any([
+        bool(str(st.session_state.get("browse_search_input", "")).strip()),
+        st.session_state.browse_status_filter != "All",
+        st.session_state.browse_difficulty_filter != "All",
+        st.session_state.browse_category_filter != "All",
+        st.session_state.browse_subject_filter != "All",
+    ])
+    reset_col, search_col = st.columns([1, 5], vertical_alignment="bottom")
+    with reset_col:
+        if st.button(
+            "Clear filters",
+            key="browse_clear_filters",
+            disabled=not filters_active,
+            help="Reset search, status, difficulty, category, and subject.",
+            use_container_width=True,
+        ):
+            for key, default in defaults.items():
+                st.session_state[key] = default if key == "browse_search_input" else "All"
+            st.session_state.browse_search = ""
+            st.rerun()
+    with search_col:
+        search = st.text_input(
+            "Search courses",
+            placeholder="Search by course, subject, or topic",
+            key="browse_search_input",
+        )
 
     status_col, diff_col, category_col, subject_col = st.columns(4, gap="medium")
     with status_col:
         status_filter = st.selectbox(
-            "Status", STATUS_OPTIONS,
-            index=STATUS_OPTIONS.index(st.session_state.browse_status_filter),
+            "Status", STATUS_OPTIONS, key="browse_status_filter"
         )
     with diff_col:
-        difficulties = sorted({c["difficulty"] for c in data.COURSES.values()})
-        diff_filter = st.selectbox("Difficulty", ["All"] + difficulties)
+        diff_filter = st.selectbox(
+            "Difficulty", ["All"] + difficulties, key="browse_difficulty_filter"
+        )
     with category_col:
-        category_labels = {item["id"]: item["label"] for item in data.COURSE_CATEGORIES}
         category_filter = st.selectbox(
             "Category", ["All"] + list(category_labels),
             format_func=lambda key: "All" if key == "All" else category_labels.get(key, key),
             key="browse_category_filter",
         )
     with subject_col:
-        subject_labels = {item["id"]: item["label"] for item in data.COURSE_SUBJECTS}
         subject_filter = st.selectbox(
             "Subject", ["All"] + list(subject_labels),
             format_func=lambda key: "All" if key == "All" else subject_labels.get(key, key),
@@ -126,27 +199,17 @@ def _render_grid():
         )
 
     st.session_state.browse_search = search
-    st.session_state.browse_status_filter = status_filter
 
-    filtered = []
-    for course in data.all_courses_in_order():
-        haystack = " ".join([
-            course["title"], course["short_description"],
-            course.get("category_label", ""), course.get("subject_label", ""),
-            course.get("level", ""), course.get("curriculum", ""),
-        ]).lower()
-        if search and search.lower() not in haystack:
-            continue
-        status = _status_for_course(course["id"], progress)
-        if status_filter != "All" and status != status_filter:
-            continue
-        if diff_filter != "All" and course["difficulty"] != diff_filter:
-            continue
-        if category_filter != "All" and course.get("category_id") != category_filter:
-            continue
-        if subject_filter != "All" and course.get("subject_id") != subject_filter:
-            continue
-        filtered.append(course)
+    filtered = _filter_courses(
+        courses,
+        progress,
+        search=search,
+        status_filter=status_filter,
+        difficulty_filter=diff_filter,
+        category_filter=category_filter,
+        subject_filter=subject_filter,
+    )
+    st.caption(f"Showing {len(filtered)} of {len(courses)} courses")
 
     if not filtered:
         st.markdown(
