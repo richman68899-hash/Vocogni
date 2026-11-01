@@ -417,17 +417,44 @@ def _render_profile_section(section: dict[str, Any], profile: dict[str, Any]) ->
 
 def render() -> None:
     """Render an inline-editable profile with a clear, stateful save action."""
-    st.markdown(
-        "<div class='vc-profile-page-heading'>"
-        "<div class='vc-eyebrow'>YOUR SPACE</div>"
-        "<h1>Your learning profile</h1>"
-        "<p class='vc-page-intro'>Click Edit section to change only the details you need. "
-        "Save Profile turns green when your changes are ready to save. Every field is optional.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    heading_col, shop_col = st.columns([5, 1.45], vertical_alignment="center")
+    with heading_col:
+        st.markdown(
+            "<div class='vc-profile-page-heading'>"
+            "<div class='vc-eyebrow'>YOUR SPACE</div>"
+            "<h1>Your learning profile</h1>"
+            "<p class='vc-page-intro'>Click Edit section to change only the details you need. "
+            "Save Profile turns green when your changes are ready to save. Every field is optional.</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
     profile = st.session_state.profile
+    raw_vocoins = profile.get("vocoins", 0)
+    try:
+        vocoins = max(0, int(raw_vocoins))
+    except (TypeError, ValueError, OverflowError):
+        vocoins = 0
+
+    with shop_col:
+        if st.button("🛍️", key="profile_shop_button", help="Open the Vocoins shop", use_container_width=True):
+            st.session_state.profile_shop_open = not st.session_state.get("profile_shop_open", False)
+        st.markdown(
+            "<div class='vc-profile-vocoins' title='Your Vocoins'>"
+            "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>"
+            "<circle cx='12' cy='12' r='9' fill='none' stroke='currentColor' stroke-width='1.7'/>"
+            "<path d='M6.8 7.2 10.2 17h1.5l2.1-5.7 2.1 5.7h1.5l1.8-9.8h-2l-1.1 6.3-2.1-5.6h-1.2l-2.1 5.6-1.1-6.3z' fill='currentColor'/>"
+            "</svg>"
+            f"<strong>{vocoins:,}</strong><span>Vocoins</span></div>",
+            unsafe_allow_html=True,
+        )
+
+    if st.session_state.get("profile_shop_open", False):
+        with st.container(border=True):
+            st.subheader("Vocoins Shop")
+            st.caption("The shop is being prepared. Your Vocoins balance is displayed here; earning and spending will be enabled when the shop launches.")
+
+
 
     # Handle the save action before drawing the identity card and sections,
     # so the new name and values are visible in the very same run.
