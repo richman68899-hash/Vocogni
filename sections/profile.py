@@ -17,6 +17,7 @@ import streamlit as st
 import data
 from . import learning_rhythm
 import state
+from verified_account import is_current_account_verified, verified_badge_html
 from profile_presentation import (
     display_profile_value as _display,
     profile_icon_svg as _icon_svg,
@@ -247,7 +248,7 @@ def _render_identity_card(profile: dict[str, Any]) -> None:
         )
         st.markdown(
             "<div class='vc-profile-identity-copy'>"
-            f"<div class='vc-profile-name'>{name}</div>"
+            f"<div class='vc-profile-name'><span>{name}</span>{verified_badge_html(22) if is_current_account_verified() else ''}</div>"
             "<div class='vc-profile-identity-subtitle'>Your preferences, interests and learning goals.</div>"
             f"{status}</div>",
             unsafe_allow_html=True,
