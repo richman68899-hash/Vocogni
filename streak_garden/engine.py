@@ -127,7 +127,11 @@ def synchronize_garden(
 
             cycle_key = f"{course_id}:{cycle_start.isoformat()}"
             tree = next(
-                (item for item in result["trees"] if item.get("id") == cycle_key),
+                (
+                    item for item in result["trees"]
+                    if item.get("forest_id") == course_id
+                    and item.get("cycle_start") == cycle_start.isoformat()
+                ),
                 None,
             )
             if tree is not None:
