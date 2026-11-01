@@ -7,9 +7,10 @@ import streamlit as st
 import data
 import learning_maintenance
 import state
+from streak_garden import ui as streak_garden_ui
 
 
-_RED_FLAME = "<span style='color:#ef4444;font-size:1.1rem;' role='img' aria-label='Learning streak'>🔥</span>"
+_WATER_DROP = "<span style='color:#379bd8;font-size:1.1rem;' role='img' aria-label='Water streak'>💧</span>"
 
 
 def _plural_word(count, singular):
@@ -121,9 +122,9 @@ def _render_learning_maintenance(progress, profile):
 
     row = st.columns(4)
     with row[0]:
-        _maintenance_stat_block("Current streak", f"{_RED_FLAME} {summary['current_streak']} {_plural_word(summary['current_streak'], 'day')}")
+        _maintenance_stat_block("Current streak", f"{_WATER_DROP} {summary['current_streak']} {_plural_word(summary['current_streak'], 'day')}")
     with row[1]:
-        _maintenance_stat_block("Longest streak", f"{_RED_FLAME} {summary['longest_streak']} {_plural_word(summary['longest_streak'], 'day')}")
+        _maintenance_stat_block("Longest streak", f"{_WATER_DROP} {summary['longest_streak']} {_plural_word(summary['longest_streak'], 'day')}")
     with row[2]:
         _maintenance_stat_block(
             period_label,
@@ -145,7 +146,7 @@ def _render_learning_maintenance(progress, profile):
         )
 
     week_status = "   ·   ".join(
-        f"{day['label']} {_RED_FLAME if day['active'] else ('—' if not day['future'] else '&nbsp;')}"
+        f"{day['label']} {_WATER_DROP if day['active'] else ('—' if not day['future'] else '&nbsp;')}"
         for day in summary["week_day_cards"]
     )
     st.markdown("**This week's activity**")
@@ -226,5 +227,6 @@ def _render_learning_maintenance(progress, profile):
 
 
 def render(progress, profile):
-    """Render Learning Rhythm below the learner's Profile details."""
+    """Render Learning Rhythm and its visual Streak Garden."""
     _render_learning_maintenance(progress, profile)
+    streak_garden_ui.render(progress, profile)
