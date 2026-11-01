@@ -37,6 +37,7 @@ Important:
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import streamlit as st
 
@@ -48,6 +49,7 @@ import quadratics_visuals
 import logic
 import question_engine
 import state
+import mistake_reflections
 from . import revision_sprint as revision_sprint_section
 
 
@@ -729,7 +731,9 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
                 })
                 if submitted and not checkpoint.get("results"):
                     base["results"] = [{
+                        "answer_id": checkpoint.get("answer_id") or uuid4().hex,
                         "question_id": current_question.get("id"),
+                        "question_prompt": str(current_question.get("prompt") or ""),
                         "correct": bool(checkpoint.get("last_correct")),
                         "user_answer": checkpoint.get("last_answer"),
                         "explanation": current_question.get("explanation", ""),
@@ -1588,6 +1592,7 @@ def _render_question(
                     "last_answer": user_answer,
                     "last_correct": is_correct,
                     "last_marking": marking_result,
+                    "answer_id": result_record["answer_id"],
                     "attempt_number": flow.get("attempt_number", 1),
                     "selected_pathway": flow.get("selected_pathway", "standard"),
                 }
@@ -1604,7 +1609,9 @@ def _render_question(
         flow["last_marking"] = marking_result
 
         result_record = {
+            "answer_id": uuid4().hex,
             "question_id": question.get("id"),
+            "question_prompt": str(question.get("prompt") or ""),
             "user_answer": user_answer,
             "correct": is_correct,
             "explanation": question["explanation"],
@@ -1635,6 +1642,7 @@ def _render_question(
                     "last_answer": user_answer,
                     "last_correct": is_correct,
                     "last_marking": marking_result,
+                    "answer_id": result_record["answer_id"],
                     "results": list(flow["results"]),
                     "current_question_index": idx,
                     "attempt_number": flow.get("attempt_number", 1),
@@ -1646,12 +1654,10 @@ def _render_question(
         # Determine next stage
         # ---------------------------------------------------------------
 
-        if flow.get("structured_lesson") or (
-            settings.get(
-                "feedback_timing",
-                "Immediate",
-            )
-            == "Immediate"
+        if (
+            flow.get("structured_lesson")
+            or not is_correct
+            or settings.get("feedback_timing", "Immediate") == "Immediate"
         ):
 
             flow["stage"] = "feedback"
@@ -1684,6 +1690,98 @@ def _render_question(
                 )
         else:
             _rerun_after_persistence()
+
+
+# ===========================================================================
+# MISTAKE REFLECTION
+# ===========================================================================
+
+def _render_mistake_reflection(course_id, lesson, flow, result) -> None:
+    """Collect an optional learner explanation for this exact incorrect answer."""
+    if not isinstance(result, dict) or result.get("correct") is not False:
+        return
+
+    answer_id = result.get("answer_id")
+    if not isinstance(answer_id, str) or not answer_id.strip():
+        answer_id = uuid4().hex
+        result["answer_id"] = answer_id
+
+    course_progress = st.session_state.progress.setdefault(course_id, {})
+    if not isinstance(course_progress, dict):
+        course_progress = {}
+        st.session_state.progress[course_id] = course_progress
+    existing = mistake_reflections.find_mistake_reflection(
+        course_progress, answer_id
+    )
+    input_key = f"mistake_reflection_input_{answer_id}"
+    if input_key not in st.session_state:
+        st.session_state[input_key] = (
+            existing.get("text", "") if isinstance(existing, dict) else ""
+        )
+
+    title = (
+        "Edit your mistake reflection (optional)"
+        if existing else "What do you think caused this mistake? (optional)"
+    )
+    with st.expander(title, expanded=not bool(existing)):
+        st.caption(
+            "Explain what you think happened in your own words. "
+            "You can leave this blank and continue; this does not change your score."
+        )
+        reflection_text = st.text_area(
+            "Mistake cause",
+            key=input_key,
+            height=90,
+            max_chars=mistake_reflections.MAX_REFLECTION_LENGTH,
+            placeholder=(
+                "For example: I used the right formula but substituted the "
+                "volume in the wrong units."
+            ),
+            label_visibility="collapsed",
+        )
+        if existing:
+            st.caption("A reflection is already saved for this answer. You can update it.")
+        if st.button(
+            "Save reflection",
+            key=f"save_mistake_reflection_{answer_id}",
+            disabled=not bool(reflection_text.strip()),
+        ):
+            try:
+                record = mistake_reflections.upsert_mistake_reflection(
+                    course_progress,
+                    answer_id=answer_id,
+                    course_id=course_id,
+                    lesson_id=lesson["id"],
+                    question_id=str(result.get("question_id") or "unknown"),
+                    attempt_number=int(flow.get("attempt_number", 1) or 1),
+                    text=reflection_text,
+                    question_prompt=result.get("question_prompt"),
+                )
+            except (TypeError, ValueError) as exc:
+                st.warning(str(exc))
+                return
+
+            result["mistake_reflection_id"] = record["answer_id"]
+            if flow.get("structured_lesson"):
+                checkpoint = logic.get_lesson_screen_checkpoint(
+                    st.session_state.progress, course_id, lesson["id"]
+                )
+                checkpoint = dict(checkpoint) if isinstance(checkpoint, dict) else {}
+                checkpoint["results"] = list(flow.get("results", []))
+                checkpoint["answer_id"] = answer_id
+                logic.update_lesson_screen_checkpoint(
+                    st.session_state.progress, course_id, lesson["id"], checkpoint
+                )
+
+            state.mark_persistent_dirty()
+            if state.flush_persistent_save():
+                st.toast("Mistake reflection saved.")
+                st.rerun()
+            else:
+                st.error(
+                    "Your reflection is in this session, but the save was not confirmed. "
+                    "Retry saving before leaving this lesson."
+                )
 
 
 # ===========================================================================
@@ -1740,15 +1838,27 @@ def _render_feedback(
         )
     )
 
-    st.markdown(
-        f"<div class='vc-feedback {feedback_class}'>"
-        f"<strong>{headline}</strong><br>"
-        f"{question['explanation']}"
-        f"</div>",
-        unsafe_allow_html=True,
+    display_settings = st.session_state.get("settings", {})
+    defer_standard_feedback = (
+        not flow.get("structured_lesson")
+        and display_settings.get("feedback_timing", "Immediate") != "Immediate"
     )
 
-    if marking:
+    if defer_standard_feedback:
+        st.info(
+            "Your mistake is recorded. You can add an optional reflection now; "
+            "the full answer explanations will appear in the lesson summary."
+        )
+    else:
+        st.markdown(
+            f"<div class='vc-feedback {feedback_class}'>"
+            f"<strong>{headline}</strong><br>"
+            f"{question['explanation']}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    if marking and not defer_standard_feedback:
         st.markdown(f"**Marking summary:** {marking.get('feedback', '')}")
         if marking.get("typo_warning"):
             st.warning(marking["typo_warning"])
@@ -1767,6 +1877,22 @@ def _render_feedback(
     # -----------------------------------------------------------------------
     # Optional answer-specific sound cues. Both are off by default.
     # -----------------------------------------------------------------------
+
+    if not is_correct:
+        current_result = next(
+            (
+                item for item in reversed(flow.get("results", []))
+                if item.get("question_id") == question.get("id")
+                and item.get("user_answer") == flow.get("last_user_answer")
+            ),
+            flow.get("results", [])[-1] if flow.get("results") else None,
+        )
+        _render_mistake_reflection(
+            flow.get("course_id") or st.session_state.current_course,
+            lesson,
+            flow,
+            current_result,
+        )
 
     if is_correct and display_settings.get("sound", False):
         _play_beep_once()
@@ -1918,6 +2044,10 @@ def _render_complete(
                 f"</div>",
                 unsafe_allow_html=True,
             )
+            if not result.get("correct", False):
+                _render_mistake_reflection(
+                    course_id, lesson, flow, result
+                )
 
     # -----------------------------------------------------------------------
     # Summary
