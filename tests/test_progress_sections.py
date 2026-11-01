@@ -61,6 +61,21 @@ class ProgressSectionsTests(unittest.TestCase):
                         and "Focused practice for this lesson" in (ROOT / "coach.py").read_text(encoding="utf-8"))
                 )
 
+    def test_section_titles_expose_course_selection_dependency(self):
+        expected_scopes = {
+            "overview": "All courses",
+            "topic_detail": "Course selection required",
+            "mastery_receipt": "Course selection required",
+            "recommendations": "All courses",
+            "coach": "Course + lesson selection",
+            "lesson_diagnostics": "Course selection required",
+            "ai_summary": "All courses",
+        }
+        for section_id, scope in expected_scopes.items():
+            with self.subTest(section_id=section_id):
+                self.assertIn(f'"{section_id}": "{scope}"', PROGRESS_SOURCE)
+        self.assertIn('f"{title} · {scope}"', PROGRESS_SOURCE)
+
     def test_mastery_receipt_does_not_nest_expanders(self):
         self.assertEqual(PROGRESS_SOURCE.count("st.expander("), 1)
         self.assertIn("with st.container(border=True):", PROGRESS_SOURCE)
