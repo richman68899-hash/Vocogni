@@ -417,9 +417,9 @@ def _render_recommendations(progress):
 
 def _render_ai_summary(profile, progress):
     st.markdown(
-        "<span class='vc-muted'>A prototype simulation built from your own stored "
-        "statistics \u2014 no AI model is called in Version 1. See README.md for how "
-        "and adapts the report using your saved AI preferences. It runs locally with normal code; no LLM or network request is made.</span>",
+        "<span class='vc-muted'>A locally generated, rule-based learning summary. "
+        "It uses your saved practice statistics and AI preferences; no LLM, external provider, "
+        "or network request is used.</span>",
         unsafe_allow_html=True,
     )
     if st.button("Generate Summary", type="primary"):
