@@ -1882,6 +1882,7 @@ def _render_feedback(
     # Optional answer-specific sound cues. Both are off by default.
     # -----------------------------------------------------------------------
 
+    current_result = None
     if not is_correct:
         current_result = next(
             (
@@ -1901,7 +1902,11 @@ def _render_feedback(
     if is_correct and display_settings.get("sound", False):
         _play_beep_once()
     elif not is_correct and display_settings.get("wrong_answer_sound", False):
-        _play_wrong_answer_ting_once()
+        answer_id = current_result.get("answer_id") if isinstance(current_result, dict) else None
+        sound_key = f"wrong_answer_ting_played_{answer_id}"
+        if answer_id and not st.session_state.get(sound_key, False):
+            st.session_state[sound_key] = True
+            _play_wrong_answer_ting_once()
 
     # -----------------------------------------------------------------------
     # Next question
