@@ -11,7 +11,6 @@ import hmac
 import os
 from pathlib import Path
 
-import streamlit as st
 
 
 VERIFIED_SUBJECT_SETTING = "VOCogni_VERIFIED_USER_SUB"
@@ -33,6 +32,7 @@ def _configured_verified_subject() -> str:
     """Read the owner allowlist from Streamlit Secrets, then environment."""
     configured = ""
     try:
+        import streamlit as st
         configured = str(st.secrets.get(VERIFIED_SUBJECT_SETTING, "") or "").strip()
     except Exception:
         configured = ""
@@ -44,6 +44,7 @@ def _configured_verified_subject() -> str:
 def is_current_account_verified() -> bool:
     """Check the current Auth0/OIDC subject. Fail closed when unavailable."""
     try:
+        import streamlit as st
         actual_subject = st.user.get("sub", "")
     except Exception:
         return False
