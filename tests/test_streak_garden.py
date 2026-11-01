@@ -134,17 +134,17 @@ class StreakGardenEngineTests(unittest.TestCase):
             1,
         )
 
-    def test_capacity_blocks_new_trees_without_discarding_milestones(self):
+    def test_capacity_blocks_new_trees_then_sale_unblocks_oldest_pending_cycle(self):
         state = initialize_garden_state(self.state, self.names, self.start)
         state["forests"]["fractions"]["tree_capacity"] = 5
         state["trees"] = [
             {
                 "id": f"old:{index}",
                 "forest_id": "fractions",
-                "cycle_start": self.start.isoformat(),
+                "cycle_start": (self.start - timedelta(days=7 * (index + 1))).isoformat(),
                 "growth_stage": 1,
                 "status": TreeStatus.ACTIVE.value,
-                "planted_on": self.start.isoformat(),
+                "planted_on": (self.start - timedelta(days=7 * (index + 1))).isoformat(),
                 "sold_on": None,
             }
             for index in range(5)
@@ -154,11 +154,37 @@ class StreakGardenEngineTests(unittest.TestCase):
         } | {
             self.start + timedelta(days=7 + day) for day in range(5)
         }
+        cycle_end = self.start + timedelta(days=11)
         updated, _ = synchronize_garden(
-            state, self.names, {"fractions": dates}, dates,
-            self.start + timedelta(days=11)
+            state, self.names, {"fractions": dates}, dates, cycle_end
         )
         self.assertEqual(len(updated["trees"]), 5)
+
+        sold, _ = sell_tree(updated, "old:0", cycle_end)
+        after_sale, _ = synchronize_garden(
+            sold, self.names, {"fractions": dates}, dates, cycle_end
+        )
+        self.assertEqual(len(after_sale["trees"]), 6)
+        self.assertTrue(any(
+            tree["forest_id"] == "fractions"
+            and tree["cycle_start"] == self.start.isoformat()
+            and tree["status"] == TreeStatus.ACTIVE.value
+            for tree in after_sale["trees"]
+        ))
+
+    def test_course_forest_only_uses_its_own_learning_dates(self):
+        names = {"fractions": "Simple Fractions", "algebra": "Algebra Basics"}
+        state = initialize_garden_state(default_garden_state(), names, self.start)
+        algebra_dates = {self.start + timedelta(days=day) for day in range(5)}
+        updated, _ = synchronize_garden(
+            state,
+            names,
+            {"algebra": algebra_dates},
+            algebra_dates,
+            self.today,
+        )
+        self.assertFalse(any(tree["forest_id"] == "fractions" for tree in updated["trees"]))
+        self.assertTrue(any(tree["forest_id"] == "algebra" for tree in updated["trees"]))
 
     def test_sanitizer_drops_invalid_rows_and_preserves_valid_state(self):
         value = {
