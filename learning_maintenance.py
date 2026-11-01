@@ -160,14 +160,21 @@ def activity_dates_by_course(progress, timezone_label="Prefer not to say"):
         for lesson_attempts in attempts.values():
             active_dates.update(item["local_date"] for item in lesson_attempts)
 
-        # A submitted answer can count even when the learner leaves before
-        # completing the full practice set.
+        # Any fully completed lesson counts, independent of subject, course,
+        # lesson type, or question result. The completion checkpoint is timestamped.
+        # A submitted answer with feedback also counts, even if the learner exits
+        # before finishing the full lesson.
         checkpoints = course_progress.get("lesson_screen_progress", {})
         if isinstance(checkpoints, dict):
             for checkpoint in checkpoints.values():
                 if not isinstance(checkpoint, dict):
                     continue
-                if not checkpoint.get("screen_3_submitted") or not _valid_results(checkpoint):
+                completed_lesson = bool(checkpoint.get("completed"))
+                submitted_answer = (
+                    bool(checkpoint.get("screen_3_submitted"))
+                    and bool(_valid_results(checkpoint))
+                )
+                if not (completed_lesson or submitted_answer):
                     continue
                 active_day = _local_date(checkpoint.get("updated_at"), tz)
                 if active_day is not None:
