@@ -144,24 +144,24 @@ def _completed_attempt_events(course_progress, tz):
     return found_by_lesson
 
 
-def activity_dates(progress, timezone_label="Prefer not to say"):
-    """Return unique local dates with meaningful completed learning activity.
+def activity_dates_by_course(progress, timezone_label="Prefer not to say"):
+    """Return meaningful local learning dates grouped by course ID.
 
-    A day counts when a learner submits an answer that is saved with feedback,
-    completes a practice set, or submits a diagnostic. Opening the app or merely
-    viewing content does not count.
+    This uses the same evidence as the global Learning Rhythm streak:
+    completed practice, saved submitted answers with feedback, and completed
+    diagnostics. App opens and lesson views do not count.
     """
     tz = timezone_from_profile(timezone_label)
-    active_dates = set()
-    for _course_id, course_progress in _iter_course_progress(progress):
+    dates_by_course = {}
+
+    for course_id, course_progress in _iter_course_progress(progress):
+        active_dates = set()
         attempts = _completed_attempt_events(course_progress, tz)
         for lesson_attempts in attempts.values():
             active_dates.update(item["local_date"] for item in lesson_attempts)
 
-        # A saved answer with feedback is meaningful activity even if the
-        # learner leaves before finishing the entire practice set. Keep this
-        # separate from review scheduling: incomplete attempts count as
-        # activity, but do not create a spaced-review due date.
+        # A submitted answer can count even when the learner leaves before
+        # completing the full practice set.
         checkpoints = course_progress.get("lesson_screen_progress", {})
         if isinstance(checkpoints, dict):
             for checkpoint in checkpoints.values():
@@ -177,10 +177,21 @@ def activity_dates(progress, timezone_label="Prefer not to say"):
         if isinstance(diagnostics, dict):
             for record in diagnostics.values():
                 if isinstance(record, dict) and _parse_timestamp(record.get("completed_at")):
-                    active_dates.add(_local_date(record.get("completed_at"), tz))
-    active_dates.discard(None)
-    return active_dates
+                    active_day = _local_date(record.get("completed_at"), tz)
+                    if active_day is not None:
+                        active_dates.add(active_day)
 
+        active_dates.discard(None)
+        if active_dates:
+            dates_by_course[course_id] = active_dates
+
+    return dates_by_course
+
+
+def activity_dates(progress, timezone_label="Prefer not to say"):
+    """Return the union of meaningful local learning dates across courses."""
+    dates_by_course = activity_dates_by_course(progress, timezone_label)
+    return set().union(*dates_by_course.values()) if dates_by_course else set()
 
 
 def activity_days_in_period(active_dates, period="week", today=None):
