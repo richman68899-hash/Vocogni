@@ -28,8 +28,8 @@ button,input{font:inherit}
 .page-label{min-width:34px;text-align:center;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums;color:#526176}
 .backgrounds{gap:3px}
 .export-group{margin-left:auto}
-#stage{width:100%;height:min(62vh,650px);min-height:300px;overflow:auto;background:#fff;border:1px solid #dce1e8;border-radius:10px;touch-action:none;box-shadow:0 1px 3px rgba(25,35,50,.04)}
-#canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;touch-action:none;background:#fff;outline:none}
+#stage{width:100%;height:min(62vh,650px);min-height:300px;overflow:auto;background:#fff;border:1px solid #dce1e8;border-radius:10px;touch-action: none;box-shadow:0 1px 3px rgba(25,35,50,.04)}
+#canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;touch-action: none;background:#fff;outline:none}
 #stage:focus{outline:2px solid #477ed1;outline-offset:1px}
 footer{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:24px;font-size:11px;color:#697386}
 #status{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:7px;background:#eff8f2;color:#28745b}
