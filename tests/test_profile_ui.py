@@ -26,6 +26,16 @@ class ProfileUiTests(unittest.TestCase):
         self.assertIn("state.mark_persistent_dirty()", source)
         self.assertIn("Remove profile picture", source)
 
+    def test_profile_header_has_shop_button_and_vocoins_balance(self):
+        source = (ROOT / "sections" / "profile.py").read_text(encoding="utf-8")
+        state_source = (ROOT / "state.py").read_text(encoding="utf-8")
+        self.assertIn('key="profile_shop_button"', source)
+        self.assertIn("profile_shop_open", source)
+        self.assertIn("Vocoins", source)
+        self.assertIn('profile.get("vocoins", 0)', source)
+        self.assertIn('"vocoins": 0', state_source)
+        self.assertIn("max(0, int(raw_vocoins))", source)
+
     def test_description_is_in_default_durable_profile_schema(self):
         source = (ROOT / "state.py").read_text(encoding="utf-8")
         self.assertIn('"description": ""', source)
