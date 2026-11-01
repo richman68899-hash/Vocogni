@@ -65,11 +65,26 @@ def _save_section_state(section_id):
         state.mark_persistent_dirty()
 
 
+# Make scope visible before opening a section. "All courses" means the
+# feature aggregates learner activity and does not depend on the course
+# currently selected elsewhere. Course-specific panels have their own selector.
+_PROGRESS_SECTION_SCOPE = {
+    "overview": "All courses",
+    "topic_detail": "Course selection required",
+    "mastery_receipt": "Course selection required",
+    "recommendations": "All courses",
+    "coach": "Course + lesson selection",
+    "lesson_diagnostics": "Course selection required",
+    "ai_summary": "All courses",
+}
+
+
 def _progress_section(section_id, title):
-    """Create a stateful expander that saves its open/closed state."""
+    """Create a stateful expander with a clear course-dependency label."""
     _ensure_section_widget_state(section_id)
+    scope = _PROGRESS_SECTION_SCOPE.get(section_id, "Scope not specified")
     return st.expander(
-        title,
+        f"{title} · {scope}",
         expanded=_PROGRESS_SECTION_DEFAULTS[section_id],
         key=_section_widget_key(section_id),
         on_change=_save_section_state,
