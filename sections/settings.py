@@ -134,19 +134,33 @@ def render() -> None:
         active_section = "General"
         st.session_state.settings_active_section = active_section
 
+    # Group the settings destinations by task so the page is scannable
+    # without presenting twelve equally weighted buttons in one grid.
     st.markdown("### Settings categories")
-    nav_cols = st.columns(4, gap="small")
-    for index, (name, description) in enumerate(sections):
-        with nav_cols[index % 4]:
-            st.button(
-                name,
-                key=f"settings_section_{name.lower().replace(' ', '_').replace('&', 'and')}",
-                type="primary" if active_section == name else "secondary",
-                use_container_width=True,
-                help=description,
-                on_click=_select_settings_section,
-                args=(name,),
-            )
+    st.caption(f"Currently viewing **{active_section}**")
+    category_groups = [
+        ("Personalize", [("General", "Quick setups and guided tour"), ("Appearance", "Theme, typography and colours"), ("Focus & sound", "Motion and answer sounds"), ("Reading comfort", "Text and spacing")]),
+        ("Learning", [("Learning", "Feedback and hint preferences"), ("AI", "AI learning support and provider preferences")]),
+        ("Account & privacy", [("Account", "Account and sign-in options"), ("Privacy & safety", "Privacy notices and AI safety")]),
+        ("More", [("Notifications", "Notification preferences"), ("Socials", "Community links and social channels"), ("Upgrade", "Plans and premium features"), ("Misc", "About Vocogni and other options")]),
+    ]
+    group_cols = st.columns(2, gap="medium")
+    for group_index, (group_name, destinations) in enumerate(category_groups):
+        with group_cols[group_index % 2]:
+            with st.container(border=True):
+                st.markdown(f"**{group_name}**")
+                button_cols = st.columns(2, gap="small")
+                for index, (name, description) in enumerate(destinations):
+                    with button_cols[index % 2]:
+                        st.button(
+                            name,
+                            key=f"settings_section_{name.lower().replace(' ', '_').replace('&', 'and')}",
+                            type="primary" if active_section == name else "secondary",
+                            use_container_width=True,
+                            help=description,
+                            on_click=_select_settings_section,
+                            args=(name,),
+                        )
     st.divider()
 
     if active_section == "General":
@@ -400,18 +414,17 @@ def render() -> None:
             st.info("Social links are not configured yet. Only verified official links will be listed.")
 
     if active_section == "AI":
-        st.subheader("AI customization")
+        st.subheader("AI preferences")
         st.caption(
-            "Set your preferred AI learning experience. These controls are a design preview: "
-            "they do not change AI responses or affect lesson behavior yet."
+            "Shape how a future Vocogni tutor should teach, explain, and adapt. "
+            "The controls below are grouped by purpose so you can scan them quickly."
         )
         st.info(
-            "Preview only — preferences are kept in this session and reset when it ends. "
-            "No AI provider, model, or response behavior is currently connected to these controls."
+            "Preview only · Changes stay in this session and reset when it ends. "
+            "They do not change AI responses, lesson behavior, or saved learner settings."
         )
 
-        with st.container(border=True):
-            st.markdown("#### Teaching approach")
+        with st.expander("01 · Teaching approach", expanded=True):
             teaching_col, guidance_col = st.columns(2, gap="large")
             with teaching_col:
                 st.selectbox(
@@ -441,8 +454,7 @@ def render() -> None:
                     help="Choose how the future tutor should respond to an incorrect answer.",
                 )
 
-        with st.container(border=True):
-            st.markdown("#### Adaptation & challenge")
+        with st.expander("02 · Adaptation & challenge", expanded=False):
             adaptation_col, challenge_col = st.columns(2, gap="large")
             with adaptation_col:
                 st.toggle(
@@ -471,8 +483,7 @@ def render() -> None:
                     help="Request questions that apply an idea in a new context.",
                 )
 
-        with st.container(border=True):
-            st.markdown("#### Answer quality & sources")
+        with st.expander("03 · Answer quality & sources", expanded=False):
             quality_col, source_col = st.columns(2, gap="large")
             with quality_col:
                 st.toggle(
@@ -501,8 +512,7 @@ def render() -> None:
                     help="Make uncertainty explicit instead of presenting guesses as facts.",
                 )
 
-        with st.container(border=True):
-            st.markdown("#### Interaction preferences")
+        with st.expander("04 · Interaction preferences", expanded=False):
             interaction_col, context_col = st.columns(2, gap="large")
             with interaction_col:
                 st.toggle(
@@ -531,8 +541,7 @@ def render() -> None:
                     help="Choose how future AI responses should be organized.",
                 )
 
-        with st.container(border=True):
-            st.markdown("#### AI model preferences")
+        with st.expander("05 · Model & capability preferences", expanded=False):
             model_col, capability_col = st.columns(2, gap="large")
             with model_col:
                 st.selectbox(
@@ -561,8 +570,7 @@ def render() -> None:
                     help="Prepare for future AI analysis of uploaded diagrams, images, and worksheets.",
                 )
 
-        with st.container(border=True):
-            st.markdown("#### Boundaries & learner control")
+        with st.expander("06 · Boundaries & learner control", expanded=False):
             safety_col, privacy_col = st.columns(2, gap="large")
             with safety_col:
                 st.toggle(
@@ -592,8 +600,8 @@ def render() -> None:
                 )
 
         st.caption(
-            "These are proposed product preferences, not active privacy controls or safety guarantees. "
-            "Actual data handling, model access, and safety behavior will be documented before those features launch."
+            "These are proposed preferences, not active privacy controls or safety guarantees. "
+            "Actual data handling, model access, and safety behavior must be documented before launch."
         )
 
     if active_section == "Upgrade":
