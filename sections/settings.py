@@ -444,7 +444,6 @@ def render() -> None:
                 st.select_slider(
                     "Explanation depth",
                     options=["Brief", "Balanced", "In-depth"],
-                    value="Balanced",
                     key="ai_preview_explanation_depth",
                     help="Set the amount of reasoning and context in explanations.",
                 )
@@ -467,7 +466,6 @@ def render() -> None:
             with adaptation_col:
                 st.toggle(
                     "Adapt to my demonstrated mastery",
-                    value=True,
                     key="ai_preview_adaptive_mastery",
                     help="Future AI could adjust support based on demonstrated understanding, not just speed.",
                 )
@@ -567,7 +565,6 @@ def render() -> None:
             with capability_col:
                 st.toggle(
                     "Use web research when needed",
-                    value=False,
                     key="ai_preview_web_research",
                     help="Future AI could consult external sources for questions that need current information.",
                 )
