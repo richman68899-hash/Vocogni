@@ -1071,18 +1071,6 @@ def _format_local_summary(body, format_style, language):
     return _wrap_summary(body)
 
 
-def _format_local_summary(body, format_style, language):
-    if format_style == "Bullet points":
-        body = "\n".join(f"- {line}" if line and not line.startswith("- ") else line for line in body.splitlines())
-    elif format_style == "Short paragraphs":
-        body = " ".join(line.strip() for line in body.splitlines() if line.strip())
-    if language == "Bahasa Indonesia":
-        body = _localize_summary_line(body)
-    elif language == "Mandarin":
-        body = _localize_summary_line(body, "Mandarin")
-    return _wrap_summary(body)
-
-
 def _recommend_next_step(progress, weakest_stat):
     course_id = weakest_stat["course_id"]
     course = data.get_course(course_id)
