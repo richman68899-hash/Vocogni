@@ -35,6 +35,10 @@ class ProfileUiTests(unittest.TestCase):
         self.assertIn('profile.get("vocoins", 0)', source)
         self.assertIn('"vocoins": 0', state_source)
         self.assertIn("max(0, int(raw_vocoins))", source)
+        self.assertIn("M7 7.1 12 17l4.8-9.9", source)
+        self.assertIn("justify-content:flex-end", source)
+        self.assertIn("width:max-content", source)
+        self.assertIn("width:16px;height:16px", source)
 
     def test_description_is_in_default_durable_profile_schema(self):
         source = (ROOT / "state.py").read_text(encoding="utf-8")
