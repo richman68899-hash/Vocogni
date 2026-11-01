@@ -135,6 +135,38 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("Notification controls will be added here in a future update.", source)
         self.assertIn("Account and sign-in management will be added here in a future update.", source)
 
+    def test_ai_section_exposes_future_ready_customization_controls_without_claiming_effects(self):
+        source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
+        required_controls = (
+            "ai_preview_teaching_style",
+            "ai_preview_explanation_depth",
+            "ai_preview_hint_strategy",
+            "ai_preview_correction_style",
+            "ai_preview_adaptive_mastery",
+            "ai_preview_challenge_level",
+            "ai_preview_transfer_questions",
+            "ai_preview_reasoning_steps",
+            "ai_preview_check_calculations",
+            "ai_preview_show_sources",
+            "ai_preview_flag_uncertainty",
+            "ai_preview_response_language",
+            "ai_preview_answer_format",
+            "ai_preview_model_preference",
+            "ai_preview_speed_preference",
+            "ai_preview_web_research",
+            "ai_preview_image_input",
+            "ai_preview_age_appropriate",
+            "ai_preview_context_permission",
+            "ai_preview_memory_review",
+        )
+        for key in required_controls:
+            with self.subTest(control=key):
+                self.assertIn(key, source)
+        self.assertIn("they do not change AI responses or affect lesson behavior yet", source)
+        self.assertIn("kept in this session and reset when it ends", source)
+        self.assertIn("not active privacy controls or safety guarantees", source)
+        self.assertNotIn("ai_preview_", "\n".join(settings_model.DEFAULT_SETTINGS.keys()))
+
     def test_wrong_answer_shake_and_sound_are_opt_in_and_respect_motion_preferences(self):
         source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
         self.assertIn('display_settings.get("wrong_answer_sound", False)', source)
