@@ -19,6 +19,7 @@ from version import APP_VERSION
 import state
 from settings_model import (
     DEFAULT_SETTINGS,
+    AI_PREFERENCE_DEFAULTS,
     PRESETS,
     SETTING_OPTIONS,
     SETTING_WIDGET_KEYS,
@@ -110,6 +111,12 @@ def render() -> None:
     """Render the Settings page with clear groupings and auto-save behavior."""
     settings = st.session_state.settings
     _ensure_widget_state(settings)
+    saved_ai_preferences = settings.get("ai_preferences", {})
+    if not isinstance(saved_ai_preferences, dict):
+        saved_ai_preferences = {}
+    for key, default in AI_PREFERENCE_DEFAULTS.items():
+        if key not in st.session_state:
+            st.session_state[key] = saved_ai_preferences.get(key, default)
 
     st.title("Settings")
     st.caption("Adjust the interface and learning support to suit your study preferences. Changes save automatically.")
@@ -420,8 +427,9 @@ def render() -> None:
             "The controls below are grouped by purpose so you can scan them quickly."
         )
         st.info(
-            "Preview only · Changes stay in this session and reset when it ends. "
-            "They do not change AI responses, lesson behavior, or saved learner settings."
+            "These preferences are saved to your learner settings and shape the offline "
+            "rule-based progress summary. No LLM or external AI provider is used here. "
+            "Options requiring web access, image understanding, or a hosted model do not run in this prototype."
         )
 
         with st.expander("01 · Teaching approach", expanded=True):
@@ -436,7 +444,6 @@ def render() -> None:
                 st.select_slider(
                     "Explanation depth",
                     options=["Brief", "Balanced", "In-depth"],
-                    value="Balanced",
                     key="ai_preview_explanation_depth",
                     help="Set the amount of reasoning and context in explanations.",
                 )
@@ -459,7 +466,6 @@ def render() -> None:
             with adaptation_col:
                 st.toggle(
                     "Adapt to my demonstrated mastery",
-                    value=True,
                     key="ai_preview_adaptive_mastery",
                     help="Future AI could adjust support based on demonstrated understanding, not just speed.",
                 )
@@ -559,7 +565,6 @@ def render() -> None:
             with capability_col:
                 st.toggle(
                     "Use web research when needed",
-                    value=False,
                     key="ai_preview_web_research",
                     help="Future AI could consult external sources for questions that need current information.",
                 )
@@ -600,8 +605,9 @@ def render() -> None:
                 )
 
         st.caption(
-            "These are proposed preferences, not active privacy controls or safety guarantees. "
-            "Actual data handling, model access, and safety behavior must be documented before launch."
+            "The local summary uses your saved practice statistics only. It cannot browse the web, "
+            "interpret images, or provide a general-purpose tutoring conversation. Preferences for "
+            "hosted-model capabilities are stored for future use but have no effect on this offline summary."
         )
 
     if active_section == "Upgrade":
@@ -616,6 +622,14 @@ def render() -> None:
             st.caption("Additional product information and small utilities.")
             st.markdown(f"**Vocogni version:** {APP_VERSION}")
             st.caption("Thanks for learning with Vocogni.")
+
+    ai_preferences = {
+        key: st.session_state.get(key, default)
+        for key, default in AI_PREFERENCE_DEFAULTS.items()
+    }
+    if settings.get("ai_preferences") != ai_preferences:
+        settings["ai_preferences"] = ai_preferences
+        state.mark_persistent_dirty()
 
     new_values = {
         setting_key: _safe_value(setting_key, st.session_state[widget_key])
