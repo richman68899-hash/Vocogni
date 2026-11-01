@@ -225,6 +225,17 @@ def _render_topic_detail(progress):
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
+    if st.button(
+        f"Open {course['title']} in Learn",
+        key=f"progress_open_course_{course_id}",
+        use_container_width=True,
+    ):
+        st.session_state.current_course = course_id
+        st.session_state.current_lesson = None
+        st.session_state.lesson_flow = None
+        st.session_state.nav = "Browse"
+        st.rerun()
+
     mistakes = logic.common_mistakes_for_course(progress, course_id)
     if mistakes:
         st.markdown("<h4 style='margin-top:1rem;'>Common mistakes</h4>", unsafe_allow_html=True)
