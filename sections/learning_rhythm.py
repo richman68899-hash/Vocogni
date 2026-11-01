@@ -159,7 +159,7 @@ def _render_learning_maintenance(progress, profile):
         )
     elif summary["current_streak"] > 0:
         st.write(
-            f"Your {summary['current_streak']}-day streak is still in reach. Submit an answer with feedback, complete a practice set, or finish a diagnostic today to continue it."
+            f"Your {summary['current_streak']}-day streak is still in reach. Complete any lesson, submit an answer with feedback, or finish a diagnostic today to continue it."
         )
     elif summary["last_active_day"]:
         st.write(
@@ -168,7 +168,7 @@ def _render_learning_maintenance(progress, profile):
         )
     else:
         st.write(
-            "Start by submitting an answer with feedback, completing a practice set, or finishing a diagnostic. That creates your first recorded learning day."
+            "Start by completing any lesson, submitting an answer with feedback, or finishing a diagnostic. That creates your first recorded learning day."
         )
 
     st.markdown("#### Spaced review")
