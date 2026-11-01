@@ -136,6 +136,7 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
 
     raw_trees = value.get("trees", [])
     seen_tree_ids = set()
+    seen_tree_cycles = set()
     if isinstance(raw_trees, list):
         for raw_tree in raw_trees:
             if not isinstance(raw_tree, dict):
@@ -156,8 +157,12 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
                 or cycle_start is None or planted_on is None
             ):
                 continue
+            cycle_identity = (forest_id, cycle_start.isoformat())
+            if cycle_identity in seen_tree_cycles:
+                continue
             sold_on = _as_date(raw_tree.get("sold_on"))
             seen_tree_ids.add(tree_id)
+            seen_tree_cycles.add(cycle_identity)
             result["trees"].append({
                 "id": tree_id,
                 "forest_id": forest_id,
