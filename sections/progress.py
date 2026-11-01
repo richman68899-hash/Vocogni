@@ -419,11 +419,14 @@ def _render_ai_summary(profile, progress):
     st.markdown(
         "<span class='vc-muted'>A prototype simulation built from your own stored "
         "statistics \u2014 no AI model is called in Version 1. See README.md for how "
-        "to connect a real one later.</span>",
+        "and adapts the report using your saved AI preferences. It runs locally with normal code; no LLM or network request is made.</span>",
         unsafe_allow_html=True,
     )
     if st.button("Generate Summary", type="primary"):
-        st.session_state.ai_summary_text = logic.generate_progress_summary(profile, progress)
+        preferences = st.session_state.get("settings", {}).get("ai_preferences", {})
+        st.session_state.ai_summary_text = logic.generate_progress_summary(
+            profile, progress, preferences=preferences
+        )
 
     summary = st.session_state.get("ai_summary_text")
     if summary:
