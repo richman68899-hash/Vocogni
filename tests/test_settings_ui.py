@@ -167,6 +167,27 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("not active privacy controls or safety guarantees", source)
         self.assertNotIn("ai_preview_", "\n".join(settings_model.DEFAULT_SETTINGS.keys()))
 
+
+    def test_settings_navigation_is_grouped_and_ai_preferences_are_collapsible(self):
+        source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
+        self.assertIn('category_groups = [', source)
+        self.assertIn('("Personalize",', source)
+        self.assertIn('("Learning",', source)
+        self.assertIn('("Account & privacy",', source)
+        self.assertIn('("More",', source)
+        for label in (
+            "01 · Teaching approach",
+            "02 · Adaptation & challenge",
+            "03 · Answer quality & sources",
+            "04 · Interaction preferences",
+            "05 · Model & capability preferences",
+            "06 · Boundaries & learner control",
+        ):
+            with self.subTest(group=label):
+                self.assertIn(f'st.expander("{label}"', source)
+        self.assertIn('Currently viewing **{active_section}**', source)
+        self.assertIn("Preview only · Changes stay in this session", source)
+
     def test_wrong_answer_shake_and_sound_are_opt_in_and_respect_motion_preferences(self):
         source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
         self.assertIn('display_settings.get("wrong_answer_sound", False)', source)
