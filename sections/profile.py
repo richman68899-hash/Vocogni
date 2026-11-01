@@ -440,15 +440,40 @@ def render() -> None:
         if st.button("🛍️", key="profile_shop_button", help="Open the Vocoins shop", use_container_width=True):
             st.session_state.profile_shop_open = not st.session_state.get("profile_shop_open", False)
 
-            "<style>"
-            ".vc-profile-vocoins{display:flex;align-items:center;justify-content:flex-end;"
-            "gap:.32rem;width:max-content;max-width:100%;margin-left:auto;"
-            "white-space:nowrap;color:var(--vc-text);line-height:1.2;}"
-            ".vc-profile-vocoins svg{width:16px;height:16px;flex:0 0 16px;}"
-            ".vc-profile-vocoins strong{font-size:.82rem;font-weight:700;"
-            "font-variant-numeric:tabular-nums;}"
-            ".vc-profile-vocoins span{font-size:.72rem;color:var(--vc-subtext);}"
-            "</style>",
+            st.markdown(
+                """
+                <style>
+                .vc-profile-vocoins {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    gap: .28rem;
+                    width: max-content;
+                    max-width: 100%;
+                    margin-left: auto;
+                    white-space: nowrap;
+                    color: var(--vc-text);
+                    line-height: 1.2;
+                }
+                .vc-profile-vocoins svg {
+                    width: 12px;
+                    height: 12px;
+                    flex: 0 0 12px;
+                }
+                .vc-profile-vocoins strong {
+                    font-size: .82rem;
+                    font-weight: 700;
+                    font-variant-numeric: tabular-nums;
+                }
+                .vc-profile-vocoins span {
+                    margin-left: .16rem;
+                    font-size: .72rem;
+                    color: var(--vc-subtext);
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
         st.markdown(
             "<div class='vc-profile-vocoins' title='Your Vocoins'>"
             "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>"
