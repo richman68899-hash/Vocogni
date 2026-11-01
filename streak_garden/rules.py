@@ -21,6 +21,7 @@ def calculate_streak_summary(active_dates: Iterable[date], today: date) -> dict:
     """A streak remains current through today when its last day was yesterday."""
     today = as_date(today)
     dates = {as_date(item) for item in active_dates if item is not None}
+    dates = {active_day for active_day in dates if active_day <= today}
     ordered = sorted(dates)
 
     longest = run = 0
