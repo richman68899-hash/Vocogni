@@ -407,4 +407,4 @@ def render() -> None:
         st.divider()
         st.header("Terms, privacy & AI safety")
         st.caption("Read what the current prototype does, what learner data it uses, and the limits of its learning support.")
-    render_legal_notices(st)
+        render_legal_notices(st)
