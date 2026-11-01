@@ -87,6 +87,14 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("Incorrect cue off", summary)
         self.assertIn("Wrong-answer shake off", summary)
 
+    def test_socials_ai_upgrade_and_misc_sections_are_available(self):
+        source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
+        for section in ("Socials", "AI", "Upgrade", "Misc"):
+            self.assertIn(f'("{section}",', source)
+            self.assertIn(f'if active_section == "{section}":', source)
+        self.assertIn("Only verified official links will be listed.", source)
+        self.assertIn("No paid plans or upgrade actions are currently available.", source)
+
     def test_settings_page_is_grouped_and_has_no_unrelated_medical_disclaimer(self):
         source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
         self.assertIn("Quick setups", source)
