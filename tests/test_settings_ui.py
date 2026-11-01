@@ -107,6 +107,27 @@ class SettingsPageTests(unittest.TestCase):
         self.assertNotIn("adhd", lowered)
         self.assertNotIn("medical condition", lowered)
 
+    def test_settings_page_has_clickable_future_ready_categories(self):
+        source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
+        for section in (
+            "General",
+            "Appearance",
+            "Learning",
+            "Focus & sound",
+            "Reading comfort",
+            "Notifications",
+            "Account",
+            "Privacy & safety",
+        ):
+            with self.subTest(section=section):
+                self.assertIn(`("${section}",`, source)
+                self.assertIn(`active_section == "${section}"`, source)
+        self.assertIn("settings_active_section", source)
+        self.assertIn("on_click=_select_settings_section", source)
+        self.assertIn("Notification preferences will be added here in a future update.", source) if False else None
+        self.assertIn("Notification controls will be added here in a future update.", source)
+        self.assertIn("Account and sign-in management will be added here in a future update.", source)
+
     def test_wrong_answer_shake_and_sound_are_opt_in_and_respect_motion_preferences(self):
         source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
         self.assertIn('display_settings.get("wrong_answer_sound", False)', source)
