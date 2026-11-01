@@ -41,7 +41,8 @@ class MistakeReflectionUiTests(unittest.TestCase):
 
     def test_reflections_are_saved_as_durable_data_not_notes(self):
         self.assertIn("mistake_reflections.upsert_mistake_reflection(", self.source)
-        self.assertIn("course_progress,\\n                    answer_id=answer_id", self.source)
+        self.assertIn("course_progress,", self.source)
+        self.assertIn("answer_id=answer_id", self.source)
         self.assertIn("state.flush_persistent_save()", self.source)
         self.assertNotIn("st.session_state.notes.append", self.source)
 
