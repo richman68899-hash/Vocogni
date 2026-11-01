@@ -400,10 +400,201 @@ def render() -> None:
             st.info("Social links are not configured yet. Only verified official links will be listed.")
 
     if active_section == "AI":
+        st.subheader("AI customization")
+        st.caption(
+            "Set your preferred AI learning experience. These controls are a design preview: "
+            "they do not change AI responses or affect lesson behavior yet."
+        )
+        st.info(
+            "Preview only — preferences are kept in this session and reset when it ends. "
+            "No AI provider, model, or response behavior is currently connected to these controls."
+        )
+
         with st.container(border=True):
-            st.subheader("AI learning support")
-            st.caption("Manage AI learning features and understand how AI is used in Vocogni.")
-            st.info("AI provider and model controls are not available in this version. Existing lesson and safety settings remain unchanged.")
+            st.markdown("#### Teaching approach")
+            teaching_col, guidance_col = st.columns(2, gap="large")
+            with teaching_col:
+                st.selectbox(
+                    "Teaching style",
+                    ["Adaptive", "Socratic (ask me questions)", "Direct and concise", "Detailed instructor"],
+                    key="ai_preview_teaching_style",
+                    help="Choose how the future AI tutor should communicate and guide a lesson.",
+                )
+                st.select_slider(
+                    "Explanation depth",
+                    options=["Brief", "Balanced", "In-depth"],
+                    value="Balanced",
+                    key="ai_preview_explanation_depth",
+                    help="Set the amount of reasoning and context in explanations.",
+                )
+            with guidance_col:
+                st.selectbox(
+                    "Hint strategy",
+                    ["On request", "Progressive hints", "Guided questions", "Worked example first"],
+                    key="ai_preview_hint_strategy",
+                    help="Choose how support should be revealed when you are stuck.",
+                )
+                st.selectbox(
+                    "Correction style",
+                    ["Explain the misconception", "Show the corrected method", "Ask me to find the error"],
+                    key="ai_preview_correction_style",
+                    help="Choose how the future tutor should respond to an incorrect answer.",
+                )
+
+        with st.container(border=True):
+            st.markdown("#### Adaptation & challenge")
+            adaptation_col, challenge_col = st.columns(2, gap="large")
+            with adaptation_col:
+                st.toggle(
+                    "Adapt to my demonstrated mastery",
+                    value=True,
+                    key="ai_preview_adaptive_mastery",
+                    help="Future AI could adjust support based on demonstrated understanding, not just speed.",
+                )
+                st.toggle(
+                    "Remember learning preferences",
+                    value=True,
+                    key="ai_preview_remember_preferences",
+                    help="Future AI could reuse your selected explanation and feedback preferences.",
+                )
+            with challenge_col:
+                st.selectbox(
+                    "Challenge level",
+                    ["Adaptive", "Build confidence", "Standard", "Stretch me"],
+                    key="ai_preview_challenge_level",
+                    help="Set the intended level of challenge for future practice recommendations.",
+                )
+                st.toggle(
+                    "Include transfer questions",
+                    value=True,
+                    key="ai_preview_transfer_questions",
+                    help="Request questions that apply an idea in a new context.",
+                )
+
+        with st.container(border=True):
+            st.markdown("#### Answer quality & sources")
+            quality_col, source_col = st.columns(2, gap="large")
+            with quality_col:
+                st.toggle(
+                    "Show reasoning steps",
+                    value=True,
+                    key="ai_preview_reasoning_steps",
+                    help="Ask the future AI tutor to explain the main steps behind an answer.",
+                )
+                st.toggle(
+                    "Double-check calculations",
+                    value=True,
+                    key="ai_preview_check_calculations",
+                    help="Request an additional consistency check for mathematical results.",
+                )
+            with source_col:
+                st.toggle(
+                    "Show sources when available",
+                    value=True,
+                    key="ai_preview_show_sources",
+                    help="Display references for claims that rely on external information.",
+                )
+                st.toggle(
+                    "Flag uncertain answers",
+                    value=True,
+                    key="ai_preview_flag_uncertainty",
+                    help="Make uncertainty explicit instead of presenting guesses as facts.",
+                )
+
+        with st.container(border=True):
+            st.markdown("#### Interaction preferences")
+            interaction_col, context_col = st.columns(2, gap="large")
+            with interaction_col:
+                st.toggle(
+                    "Allow follow-up questions",
+                    value=True,
+                    key="ai_preview_follow_up_questions",
+                    help="Let the future tutor ask short questions to check understanding.",
+                )
+                st.toggle(
+                    "Use examples from everyday life",
+                    value=True,
+                    key="ai_preview_everyday_examples",
+                    help="Prefer practical examples when they help explain a concept.",
+                )
+            with context_col:
+                st.selectbox(
+                    "Response language",
+                    ["Match lesson language", "English", "Bahasa Indonesia", "Mandarin"],
+                    key="ai_preview_response_language",
+                    help="Choose the preferred language for future AI explanations.",
+                )
+                st.selectbox(
+                    "Answer format",
+                    ["Structured steps", "Short paragraphs", "Bullet points", "Exam-style response"],
+                    key="ai_preview_answer_format",
+                    help="Choose how future AI responses should be organized.",
+                )
+
+        with st.container(border=True):
+            st.markdown("#### AI model preferences")
+            model_col, capability_col = st.columns(2, gap="large")
+            with model_col:
+                st.selectbox(
+                    "Model preference",
+                    ["Automatic (recommended)", "Fast", "Balanced", "Advanced reasoning"],
+                    key="ai_preview_model_preference",
+                    help="A future provider integration could map this preference to available models.",
+                )
+                st.selectbox(
+                    "Response speed",
+                    ["Prioritize speed", "Balanced", "Prioritize depth"],
+                    key="ai_preview_speed_preference",
+                    help="Set the trade-off between response time and deeper analysis.",
+                )
+            with capability_col:
+                st.toggle(
+                    "Use web research when needed",
+                    value=False,
+                    key="ai_preview_web_research",
+                    help="Future AI could consult external sources for questions that need current information.",
+                )
+                st.toggle(
+                    "Support image and worksheet input",
+                    value=True,
+                    key="ai_preview_image_input",
+                    help="Prepare for future AI analysis of uploaded diagrams, images, and worksheets.",
+                )
+
+        with st.container(border=True):
+            st.markdown("#### Boundaries & learner control")
+            safety_col, privacy_col = st.columns(2, gap="large")
+            with safety_col:
+                st.toggle(
+                    "Keep explanations age-appropriate",
+                    value=True,
+                    key="ai_preview_age_appropriate",
+                    help="A future AI integration should keep explanations suitable for the learner's age.",
+                )
+                st.toggle(
+                    "Stay within the lesson topic",
+                    value=False,
+                    key="ai_preview_lesson_scope",
+                    help="Prefer answers focused on the current course unless broader context is requested.",
+                )
+            with privacy_col:
+                st.toggle(
+                    "Ask before using personal learning context",
+                    value=True,
+                    key="ai_preview_context_permission",
+                    help="Future AI should request permission before using optional personal context.",
+                )
+                st.toggle(
+                    "Let me review AI memory",
+                    value=True,
+                    key="ai_preview_memory_review",
+                    help="A future memory feature should provide learner visibility and control.",
+                )
+
+        st.caption(
+            "These are proposed product preferences, not active privacy controls or safety guarantees. "
+            "Actual data handling, model access, and safety behavior will be documented before those features launch."
+        )
 
     if active_section == "Upgrade":
         with st.container(border=True):
