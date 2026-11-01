@@ -120,11 +120,10 @@ class SettingsPageTests(unittest.TestCase):
             "Privacy & safety",
         ):
             with self.subTest(section=section):
-                self.assertIn(f\'("{section}",\', source)
-                self.assertIn(f\'active_section == "{section}"\', source)
+                self.assertIn('("' + section + '",', source)
+                self.assertIn('active_section == "' + section + '"', source)
         self.assertIn("settings_active_section", source)
         self.assertIn("on_click=_select_settings_section", source)
-        self.assertIn("Notification preferences will be added here in a future update.", source) if False else None
         self.assertIn("Notification controls will be added here in a future update.", source)
         self.assertIn("Account and sign-in management will be added here in a future update.", source)
 
