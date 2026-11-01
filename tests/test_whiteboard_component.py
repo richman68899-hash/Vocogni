@@ -23,32 +23,49 @@ class WhiteboardComponentTests(unittest.TestCase):
     def test_component_has_core_drawing_tools_and_accessible_controls(self):
         html = (COMPONENT / "index.html").read_text(encoding="utf-8")
         for tool in (
-            'data-tool="select"',
-            'data-tool="pen"',
-            'data-tool="highlighter"',
-            'data-tool="eraser"',
-            'data-tool="text"',
-            'data-tool="sticky"',
-            'data-tool="hand"',
-            'data-tool="rectangle"',
-            'data-tool="ellipse"',
-            'data-tool="triangle"',
-            'data-tool="line"',
-            'data-tool="arrow"',
+            'data-tool="select"', 'data-tool="pen"', 'data-tool="highlighter"',
+            'data-tool="eraser"', 'data-tool="text"', 'data-tool="sticky"',
+            'data-tool="hand"', 'data-tool="rectangle"', 'data-tool="ellipse"',
+            'data-tool="triangle"', 'data-tool="line"', 'data-tool="arrow"',
         ):
             with self.subTest(tool=tool):
                 self.assertIn(tool, html)
         for action in (
-            'id="undo"', 'id="redo"', 'id="duplicate"',
-            'id="delete-selected"', 'id="previous-page"',
-            'id="next-page"', 'id="new-page"', 'id="duplicate-page"',
-            'id="delete-page"', 'id="export-png"', 'id="export-pdf"',
-            'id="export-json"', 'id="save-now"', 'id="clear-page"', 'id="zoom"',
+            'id="undo"', 'id="redo"', 'id="duplicate"', 'id="delete-selected"',
+            'id="previous-page"', 'id="next-page"', 'id="new-page"',
+            'id="duplicate-page"', 'id="delete-page"', 'id="export-png"',
+            'id="export-pdf"', 'id="export-json"', 'id="save-now"',
+            'id="clear-page"', 'id="zoom-out"', 'id="zoom-in"',
         ):
             with self.subTest(action=action):
                 self.assertIn(action, html)
+        for tool in (
+            "Select and move", "Pan canvas", "Pen", "Highlighter", "Eraser",
+            "Text", "Sticky note", "Rectangle", "Ellipse", "Triangle", "Line", "Arrow",
+        ):
+            self.assertIn(f'aria-label="{tool}"', html)
+        self.assertIn('data-background="grid"', html)
+        self.assertIn('data-background="plain"', html)
+        self.assertIn('data-background="dots"', html)
+        self.assertIn('data-background="dark"', html)
 
-    def test_component_uses_bidirectional_streamlit_messages_and_acknowledged_saves(self):
+    def test_toolbar_is_icon_only_but_keeps_accessible_discovery(self):
+        html = (COMPONENT / "index.html").read_text(encoding="utf-8")
+        css = (COMPONENT / "whiteboard.css").read_text(encoding="utf-8")
+        self.assertIn('class="icon-defs"', html)
+        self.assertIn('<svg><use href="#i-select"/></svg>', html)
+        self.assertIn('title="Select and move"', html)
+        self.assertIn('aria-label="Select and move"', html)
+        self.assertIn('class="sr-only"', html)
+        self.assertIn(".sr-only{position:absolute", css)
+        self.assertNotIn(">Select</button>", html)
+        self.assertNotIn(">Undo</button>", html)
+        self.assertNotIn(">Export PNG</button>", html)
+        self.assertNotIn("<option", html)
+        self.assertNotIn(">Graph grid<", html)
+        self.assertNotIn(">Plain<", html)
+
+    def test_component_uses_bidirectional_messages_and_acknowledged_saves(self):
         js = (COMPONENT / "whiteboard.js").read_text(encoding="utf-8")
         self.assertIn("streamlit:componentReady", js)
         self.assertIn("streamlit:render", js)
@@ -60,8 +77,13 @@ class WhiteboardComponentTests(unittest.TestCase):
         self.assertIn("function exportSvg", js)
         self.assertIn("function pdf", js)
         self.assertIn('$("#clear-page")', js)
-        self.assertIn('$("#zoom")', js)
+        self.assertIn('$("#zoom-out")', js)
+        self.assertIn('$("#zoom-in")', js)
+        self.assertIn("function setZoom", js)
+        self.assertIn("function setBackground", js)
+        self.assertIn('document.querySelectorAll("[data-background]")', js)
         self.assertIn("state.dragging.resize", js)
+        self.assertIn('$("#status-icon use")', js)
 
     def test_editor_uses_local_component_and_validates_board_updates(self):
         editor = (ROOT / "sections" / "whiteboard_editor.py").read_text(encoding="utf-8")
