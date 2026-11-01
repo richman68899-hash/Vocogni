@@ -187,7 +187,7 @@ class SettingsPageTests(unittest.TestCase):
                 self.assertIn(f'st.expander("{label}"', source)
         self.assertIn('Currently viewing **{active_section}**', source)
         self.assertIn("rule-based progress summary", source)
-        self.assertIn("no LLM or external AI provider", source)
+        self.assertIn("No LLM or external AI provider is used here.", source)
 
     def test_wrong_answer_shake_and_sound_are_opt_in_and_respect_motion_preferences(self):
         source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
