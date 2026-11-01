@@ -23,8 +23,9 @@ _STAGE_ASSETS = {
 }
 
 
-def _asset_html(filename: str, alt: str, width: int = 72) -> str:
+def _asset_html(filename: str, alt: str, width: int = 72, height: int | None = None) -> str:
     """Embed a local, original SVG so the interface has no remote asset dependency."""
+    height = int(height or width)
     path = _ART_DIR / filename
     try:
         encoded = base64.b64encode(path.read_bytes()).decode("ascii")
@@ -32,7 +33,7 @@ def _asset_html(filename: str, alt: str, width: int = 72) -> str:
         return f"<span role='img' aria-label='{alt}'>🌳</span>"
     return (
         f"<img src='data:image/svg+xml;base64,{encoded}' alt='{alt}' "
-        f"width='{width}' height='{width}' style='object-fit:contain;display:block;margin:auto'/>"
+        f"width='{width}' height='{height}' style='object-fit:contain;display:block;margin:auto'/>"
     )
 
 
@@ -134,7 +135,7 @@ def _render_milestone_card(
         with metric:
             st.metric("Trees", f"{forest['active_tree_count']}/{forest['tree_capacity']}")
         st.progress(int(forest["percentage"]))
-        scene = _asset_html("forest_landscape.svg", "Illustrated green forest landscape", 260)
+        scene = _asset_html("forest_landscape.svg", "Illustrated green forest landscape", 520, 190)
         st.markdown(
             "<div style='border-radius:14px;overflow:hidden;background:var(--vc-surface-alt,rgba(128,128,128,.08));padding:.35rem'>"
             + scene + "</div>",
