@@ -136,11 +136,12 @@ def render(progress: dict, profile: dict) -> None:
         "Meaningful learning adds water to your garden. Five learning days in a "
         "seven-day forest cycle plant a tree; further days grow it."
     )
-    wallet_col, streak_col = st.columns(2)
+    wallet_col, trees_col = st.columns(2)
     with wallet_col:
         st.metric("Dew", summary["dew_balance"], help="Earn Dew through learning and milestone growth.")
-    with streak_col:
-        st.metric("Water streak", f"{summary['current_streak']} days")
+    with trees_col:
+        total_trees = sum(forest["active_tree_count"] for forest in summary["forests"])
+        st.metric("Growing trees", total_trees)
 
     if not summary["forests"]:
         st.info("Your course forests will appear here.")
