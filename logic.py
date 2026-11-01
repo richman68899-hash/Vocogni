@@ -1030,10 +1030,11 @@ def generate_progress_summary(profile, progress, preferences=None):
             "not a diagnosis or proof of mastery."
         )
 
-    if language == "Bahasa Indonesia":
-        lines = [_localize_summary_line(line) for line in lines]
-    elif language == "Mandarin":
-        lines = [_localize_summary_line(line, "Mandarin") for line in lines]
+    if language not in {"Match lesson language", "English"}:
+        lines.append(
+            f"Language preference saved: {language}. This prototype currently generates "
+            "the local progress summary in English."
+        )
 
     if format_style == "Short paragraphs":
         body = " ".join(line.strip() for line in lines if line.strip())
@@ -1053,42 +1054,21 @@ def generate_progress_summary(profile, progress, preferences=None):
     return _wrap_summary(body)
 
 
-def _localize_summary_line(line, language="Bahasa Indonesia"):
-    """Translate fixed summary guidance; preserve learner/course labels and figures."""
-    if not line:
-        return line
-    translations = {
-        "Hi ": "Halo ",
-        "Here is your current learning snapshot.": "Berikut ringkasan perkembangan belajarmu saat ini.",
-        "Across ": "Dari ",
-        " active course(s), you have answered ": " kursus aktif, kamu menjawab ",
-        " questions correctly (": " soal dengan benar (",
-        " overall accuracy).": " akurasi keseluruhan).",
-        "Your strongest recorded area is ": "Area terkuat yang tercatat adalah ",
-        "The course that currently needs the most attention is ": "Kursus yang paling perlu diperhatikan saat ini adalah ",
-        "Review these recorded mistake categories:": "Kategori kesalahan yang tercatat untuk ditinjau:",
-        "Recommended next step:": "Langkah berikutnya yang disarankan:",
-        "Evidence note:": "Catatan bukti:",
-        "Reasoning check:": "Pemeriksaan penalaran:",
-        "Accuracy check:": "Pemeriksaan ketelitian:",
-        "Transfer:": "Penerapan:",
-        "Practice focus:": "Fokus latihan:",
-        "Hint strategy:": "Strategi petunjuk:",
-    }
-    if language == "Mandarin":
-        translations = {
-            "Hi ": "你好，",
-            "Here is your current learning snapshot.": "以下是你目前的学习概况。",
-            "Recommended next step:": "建议的下一步：",
-            "Evidence note:": "证据说明：",
-            "Reasoning check:": "推理检查：",
-            "Accuracy check:": "准确性检查：",
-            "Review these recorded mistake categories:": "请复习以下已记录的错误类别：",
-        }
-    for source, target in translations.items():
-        if line.startswith(source):
-            return target + line[len(source):]
-    return line
+def _format_local_summary(body, format_style, language):
+    """Format an empty-state summary and disclose the current language limitation."""
+    if language not in {"Match lesson language", "English"}:
+        body += (
+            f"\n\nLanguage preference saved: {language}. "
+            "This prototype currently generates the local progress summary in English."
+        )
+    if format_style == "Bullet points":
+        body = "\n".join(
+            f"- {line}" if line and not line.startswith("- ") else line
+            for line in body.splitlines()
+        )
+    elif format_style == "Short paragraphs":
+        body = " ".join(line.strip() for line in body.splitlines() if line.strip())
+    return _wrap_summary(body)
 
 
 def _format_local_summary(body, format_style, language):
