@@ -71,6 +71,7 @@ def blank_course_progress():
         "questions_attempted": 0,
         "correct_answers": 0,
         "mistakes": {},
+        "mistake_reflections": [],
         "diagnostics": {},
         "lesson_assessments": {},
         "practice_attempts": {},

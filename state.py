@@ -122,6 +122,7 @@ def _default_course_progress() -> dict[str, Any]:
         "questions_attempted": 0,
         "correct_answers": 0,
         "mistakes": {},
+        "mistake_reflections": [],
         # Diagnostic attempts and lesson outcome comparisons are stored
         # separately so pre-assessment scores do not inflate practice accuracy.
         "diagnostics": {},
