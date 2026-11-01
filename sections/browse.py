@@ -12,6 +12,7 @@ import streamlit as st
 
 import data
 import logic
+import course_catalog
 from course_presentation import course_card_metadata
 from . import revision_sprint as revision_sprint_section
 
@@ -60,30 +61,19 @@ def _filter_courses(
     subject_filter="All",
 ):
     """Apply the catalog filters in one testable, predictable place."""
-    query = str(search or "").strip().casefold()
-    filtered = []
-    for course in courses:
-        haystack = " ".join([
-            str(course.get("title", "")),
-            str(course.get("short_description", "")),
-            str(course.get("category_label", "")),
-            str(course.get("subject_label", "")),
-            str(course.get("level", "")),
-            str(course.get("curriculum", "")),
-        ]).casefold()
-        if query and query not in haystack:
-            continue
-        course_status = _status_for_course(course["id"], progress)
-        if status_filter != "All" and course_status != status_filter:
-            continue
-        if difficulty_filter != "All" and course.get("difficulty") != difficulty_filter:
-            continue
-        if category_filter != "All" and course.get("category_id") != category_filter:
-            continue
-        if subject_filter != "All" and course.get("subject_id") != subject_filter:
-            continue
-        filtered.append(course)
-    return filtered
+    statuses = {
+        course["id"]: _status_for_course(course["id"], progress)
+        for course in courses
+    }
+    return course_catalog.filter_courses(
+        courses,
+        statuses,
+        search=search,
+        status_filter=status_filter,
+        difficulty_filter=difficulty_filter,
+        category_filter=category_filter,
+        subject_filter=subject_filter,
+    )
 
 
 def _render_grid():
