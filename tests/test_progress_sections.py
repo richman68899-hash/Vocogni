@@ -52,7 +52,7 @@ class ProgressSectionsTests(unittest.TestCase):
             "Turns saved activity into suggested next actions",
             "Focused practice for this lesson",
             "Shows the selected topic's entry-diagnostic baseline",
-            "A prototype simulation built from your own stored",
+            "A locally generated, rule-based learning summary.",
         ):
             with self.subTest(description=description):
                 self.assertTrue(
