@@ -25,6 +25,10 @@ def _number(value: Any, default: float = 0.0) -> float:
 
 
 def _result_ratio(result: dict[str, Any]) -> float:
+    # Binary VQE records usually store only "correct"; marked responses store
+    # score/max_marks. Do not interpret a missing score as zero for correct items.
+    if "score" not in result and "marks_awarded" not in result:
+        return 1.0 if result.get("correct") else 0.0
     maximum = _number(result.get("max_marks"), 1.0)
     earned = _number(result.get("score", result.get("marks_awarded")), 0.0)
     if maximum > 0:
@@ -54,7 +58,10 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
         question = record.get("question", {})
         skill_id = question.get("skill_id")
         if skill_id in evidence:
-            question_map[(record.get("course_id"), record.get("lesson_id"), record.get("question_id"))] = skill_id
+            question_map[(record.get("course_id"), record.get("lesson_id"), record.get("question_id"))] = {
+                "skill_id": skill_id,
+                "mistake_tag": question.get("mistake_tag"),
+            }
             evidence[skill_id]["lesson_ids"].add(record.get("lesson_id"))
             evidence[skill_id]["course_ids"].add(record.get("course_id"))
 
@@ -77,9 +84,8 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                     if not isinstance(result, dict):
                         continue
                     qid = str(result.get("question_id") or "")
-                    skill_id = result.get("skill_id")
-                    if skill_id not in evidence:
-                        skill_id = question_map.get((course_id, lesson_id, qid))
+                    metadata = question_map.get((course_id, lesson_id, qid), {})
+                    skill_id = result.get("skill_id") or metadata.get("skill_id")
                     if skill_id not in evidence:
                         continue
                     item = evidence[skill_id]
@@ -87,7 +93,7 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                     item["attempts"] += 1
                     item["ratios"].append(ratio)
                     item["recent_ratios"].append((str(attempt.get("completed_at") or ""), ratio))
-                    tag = result.get("mistake_tag") or result.get("skill_tag")
+                    tag = result.get("mistake_tag") or result.get("skill_tag") or metadata.get("mistake_tag")
                     if not result.get("correct") and tag:
                         item["mistake_tags"][str(tag)] += 1
 
