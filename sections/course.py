@@ -1558,6 +1558,10 @@ def _render_question(
         else:
             is_correct = logic.check_answer(question, user_answer)
 
+        # Stable identity links any later reflection to this exact answer,
+        # including when a structured lesson is restored after a rerun.
+        answer_id = uuid4().hex
+
         # ---------------------------------------------------------------
         # Update durable learner progress
         # ---------------------------------------------------------------
@@ -1592,7 +1596,7 @@ def _render_question(
                     "last_answer": user_answer,
                     "last_correct": is_correct,
                     "last_marking": marking_result,
-                    "answer_id": result_record["answer_id"],
+                    "answer_id": answer_id,
                     "attempt_number": flow.get("attempt_number", 1),
                     "selected_pathway": flow.get("selected_pathway", "standard"),
                 }
@@ -1609,7 +1613,7 @@ def _render_question(
         flow["last_marking"] = marking_result
 
         result_record = {
-            "answer_id": uuid4().hex,
+            "answer_id": answer_id,
             "question_id": question.get("id"),
             "question_prompt": str(question.get("prompt") or ""),
             "user_answer": user_answer,
@@ -1642,7 +1646,7 @@ def _render_question(
                     "last_answer": user_answer,
                     "last_correct": is_correct,
                     "last_marking": marking_result,
-                    "answer_id": result_record["answer_id"],
+                    "answer_id": answer_id,
                     "results": list(flow["results"]),
                     "current_question_index": idx,
                     "attempt_number": flow.get("attempt_number", 1),
