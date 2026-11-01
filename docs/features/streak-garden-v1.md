@@ -37,7 +37,7 @@ No Supabase table migration is needed for v1. Old learner records safely receive
 
 Run:
 
-    python -m unittest tests.test_streak_garden -v
+    python -m unittest discover -s tests -p 'test_streak_garden.py' -v
     python -m unittest discover -s tests -v
     python -m py_compile app.py learning_maintenance.py state.py sections/learning_rhythm.py streak_garden/*.py
 
