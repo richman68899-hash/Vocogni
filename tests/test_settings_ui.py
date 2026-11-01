@@ -135,7 +135,7 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("Notification controls will be added here in a future update.", source)
         self.assertIn("Account and sign-in management will be added here in a future update.", source)
 
-    def test_ai_section_exposes_future_ready_customization_controls_without_claiming_effects(self):
+    def test_ai_section_preferences_are_saved_and_feed_the_offline_summary(self):
         source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
         required_controls = (
             "ai_preview_teaching_style",
@@ -162,9 +162,9 @@ class SettingsPageTests(unittest.TestCase):
         for key in required_controls:
             with self.subTest(control=key):
                 self.assertIn(key, source)
-        self.assertIn("They do not change AI responses, lesson behavior, or saved learner settings.", source)
-        self.assertIn("Changes stay in this session and reset when it ends.", source)
-        self.assertIn("not active privacy controls or safety guarantees", source)
+        self.assertIn("These preferences are saved to your learner settings", source)
+        self.assertIn('settings["ai_preferences"] = ai_preferences', source)
+        self.assertIn("AI_PREFERENCE_DEFAULTS", source)
         self.assertNotIn("ai_preview_", "\n".join(settings_model.DEFAULT_SETTINGS.keys()))
 
 
@@ -186,7 +186,8 @@ class SettingsPageTests(unittest.TestCase):
             with self.subTest(group=label):
                 self.assertIn(f'st.expander("{label}"', source)
         self.assertIn('Currently viewing **{active_section}**', source)
-        self.assertIn("Preview only · Changes stay in this session", source)
+        self.assertIn("rule-based progress summary", source)
+        self.assertIn("no LLM or external AI provider", source)
 
     def test_wrong_answer_shake_and_sound_are_opt_in_and_respect_motion_preferences(self):
         source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
