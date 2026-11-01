@@ -6,7 +6,7 @@
   const ctx = canvas.getContext("2d");
   const stage = $("#stage");
   const state = {
-    board:null, pageId:null, tool:"select", color:"#273142", width:4, selected:null,
+    board:null, pageId:null, tool:"select", color:"#273142", width:4, zoom:100, selected:null,
     drawing:null, dragging:null, handStart:null, history:[], future:[],
     pending:null, pendingRev:0, ack_event_id:null, initialized:false
   };
@@ -14,9 +14,38 @@
   const uid = () => (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : "wb-" + Date.now() + "-" + Math.random().toString(16).slice(2);
   const activePage = () => state.board && state.board.pages.find(p => p.id === state.pageId);
   const objects = () => { const p=activePage(); if (!p) return []; if (!Array.isArray(p.objects)) p.objects=[]; return p.objects; };
-  const status = text => { $("#status").textContent = text; };
+  function status(message) {
+    const el = $("#status");
+    const lower = String(message || "").toLowerCase();
+    const icon = lower.includes("saved to") ? "i-check"
+      : lower.includes("saving") || lower.includes("pending") || lower.includes("queued") ? "i-cloud"
+      : lower.includes("failed") || lower.includes("cannot") || lower.includes("limit") || lower.includes("allow pop") ? "i-alert"
+      : lower.includes("undo") ? "i-undo" : lower.includes("redo") ? "i-redo" : "i-info";
+    el.title = message;
+    el.setAttribute("aria-label", message);
+    el.dataset.state = icon === "i-check" ? "saved" : icon === "i-alert" ? "warning" : icon === "i-cloud" ? "pending" : "idle";
+    $("#status-label").textContent = message;
+    $("#status-icon use").setAttribute("href", "#" + icon);
+  }
   function currentPageIndex() { return Math.max(0, state.board.pages.findIndex(p=>p.id===state.pageId)); }
-  function updatePageLabel() { $("#page-label").textContent = "Page " + (currentPageIndex()+1) + " / " + state.board.pages.length; }
+  function updatePageLabel() {
+    const count = currentPageIndex()+1;
+    $("#page-label").textContent = count + " / " + state.board.pages.length;
+    $("#page-label").setAttribute("aria-label", "Page " + count + " of " + state.board.pages.length);
+  }
+  function setZoom(value) {
+    state.zoom = Math.max(50, Math.min(150, value));
+    canvas.style.width = state.zoom + "%";
+    $("#zoom-level").textContent = state.zoom + "%";
+    $("#zoom-level").setAttribute("aria-label", "Zoom " + state.zoom + " percent");
+  }
+  function setBackground(background) {
+    if (!activePage() || activePage().background === background) return;
+    snapshot();
+    activePage().background = background;
+    renderCanvas();
+    changed();
+  }
 
   function postPending() {
     if (!state.pending || !state.board) return;
@@ -114,7 +143,12 @@
     if(!state.board||!activePage())return;
     drawBackground();objects().forEach(drawObject);
     if(state.selected){const obj=objects().find(o=>o.id===state.selected);if(obj){const b=bounds(obj);ctx.save();ctx.strokeStyle="#477ed1";ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.strokeRect(b.x-5,b.y-5,b.w+10,b.h+10);ctx.setLineDash([]);if(obj.type==="sticky"||(obj.type==="shape"&&["rect","ellipse","triangle"].includes(obj.shape))){ctx.fillStyle="#ffffff";ctx.strokeStyle="#477ed1";ctx.fillRect(b.x+b.w-5,b.y+b.h-5,10,10);ctx.strokeRect(b.x+b.w-5,b.y+b.h-5,10,10);}ctx.restore();}}
-    $("#background").value=activePage().background||"grid";updatePageLabel();
+    document.querySelectorAll("[data-background]").forEach(button => {
+      const active = button.dataset.background === (activePage().background || "grid");
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    updatePageLabel();
   }
   function position(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*1200/r.width,y:(e.clientY-r.top)*800/r.height};}
   function objectAt(p){const arr=objects();for(let i=arr.length-1;i>=0;i--){const b=bounds(arr[i]);if(p.x>=b.x-8&&p.x<=b.x+b.w+8&&p.y>=b.y-8&&p.y<=b.y+b.h+8)return arr[i];}return null;}
@@ -146,13 +180,17 @@
     $("#undo").addEventListener("click",undoFn);$("#redo").addEventListener("click",redoFn);
     $("#duplicate").addEventListener("click",duplicateSelected);$("#delete-selected").addEventListener("click",deleteSelected);
     $("#clear-page").addEventListener("click",()=>{if(!objects().length||!window.confirm("Clear every object from this page?"))return;snapshot();activePage().objects=[];state.selected=null;renderCanvas();changed();});
-    $("#zoom").addEventListener("change",e=>{canvas.style.width=e.target.value+"%";});
+    $("#zoom-out").addEventListener("click",()=>setZoom(state.zoom-25));
+    $("#zoom-in").addEventListener("click",()=>setZoom(state.zoom+25));
+    $("#zoom-reset").addEventListener("click",()=>setZoom(100));
     $("#save-now").addEventListener("click",()=>{if(state.pending)postPending();else changed();});
     $("#previous-page").addEventListener("click",()=>movePage(-1));$("#next-page").addEventListener("click",()=>movePage(1));
     $("#new-page").addEventListener("click",()=>{if(state.board.pages.length>=40){status("Page limit reached");return;}snapshot();const n=state.board.pages.length+1;const page={id:uid(),title:"Page "+n,width:1200,height:800,background:"grid",objects:[]};state.board.pages.push(page);state.pageId=page.id;state.selected=null;renderCanvas();changed();});
     $("#duplicate-page").addEventListener("click",()=>{if(state.board.pages.length>=40){status("Page limit reached");return;}snapshot();const copy=clone(activePage());copy.id=uid();copy.title="Page "+(state.board.pages.length+1);state.board.pages.splice(currentPageIndex()+1,0,copy);state.pageId=copy.id;state.selected=null;renderCanvas();changed();});
     $("#delete-page").addEventListener("click",()=>{if(state.board.pages.length<=1){status("A board must have at least one page");return;}if(!window.confirm("Delete this page?"))return;snapshot();const idx=currentPageIndex();state.board.pages.splice(idx,1);state.pageId=state.board.pages[Math.max(0,idx-1)].id;state.selected=null;renderCanvas();changed();});
-    $("#background").addEventListener("change",e=>{snapshot();activePage().background=e.target.value;renderCanvas();changed();});
+    document.querySelectorAll("[data-background]").forEach(button => {
+      button.addEventListener("click",()=>setBackground(button.dataset.background));
+    });
     $("#export-png").addEventListener("click",()=>canvas.toBlob(blob=>{if(blob)download(blob,"vocogni-whiteboard.png");}));
     $("#export-json").addEventListener("click",()=>download(new Blob([JSON.stringify(state.board,null,2)],{type:"application/json"}),"vocogni-whiteboard.json"));
     $("#export-pdf").addEventListener("click",pdf);
