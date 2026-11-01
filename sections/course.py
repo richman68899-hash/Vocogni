@@ -2048,10 +2048,7 @@ def _render_complete(
                 f"</div>",
                 unsafe_allow_html=True,
             )
-            if not result.get("correct", False):
-                _render_mistake_reflection(
-                    course_id, lesson, flow, result
-                )
+
 
     # -----------------------------------------------------------------------
     # Summary
