@@ -191,6 +191,52 @@ class LearningMaintenanceTests(unittest.TestCase):
         self.assertEqual(schedules[lessons[1]["id"]]["due_date"], date(2026, 10, 29))
         self.assertEqual(schedules[lessons[2]["id"]]["interval_days"], 7)
 
+    def test_any_completed_lesson_checkpoint_counts_without_question_results(self):
+        progress = _progress(
+            attempts=[],
+            checkpoints={
+                "fractions_l2": {
+                    "updated_at": "2026-10-22T12:00:00+00:00",
+                    "completed": True,
+                    "screen_3_submitted": False,
+                    "results": [],
+                    "completed_screens": [1, 2, 3],
+                }
+            },
+        )
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 22)},
+        )
+
+    def test_completed_lessons_across_different_courses_share_the_daily_streak(self):
+        progress = {
+            "fractions": {
+                "practice_attempts": {},
+                "diagnostics": {},
+                "lesson_screen_progress": {
+                    "fractions_l1": {
+                        "updated_at": "2026-10-22T12:00:00+00:00",
+                        "completed": True,
+                    }
+                },
+            },
+            "algebra": {
+                "practice_attempts": {},
+                "diagnostics": {},
+                "lesson_screen_progress": {
+                    "algebra_l1": {
+                        "updated_at": "2026-10-23T12:00:00+00:00",
+                        "completed": True,
+                    }
+                },
+            },
+        }
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 22), date(2026, 10, 23)},
+        )
+
     def test_complete_checkpoint_can_backfill_a_missing_attempt_record(self):
         progress = _progress(
             attempts=[],
