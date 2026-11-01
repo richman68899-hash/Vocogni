@@ -76,6 +76,7 @@ import data
 import milestones as milestone_logic
 import whiteboard_data
 import persistence
+from streak_garden.models import default_garden_state, sanitize_garden_state
 
 
 # ===========================================================================
@@ -191,6 +192,7 @@ def init_session_state() -> None:
         "milestones": [],
         "next_milestone_id": 1,
         "settings": _default_settings(),
+        "streak_garden": default_garden_state(),
 
         # ------------------------------------------------------------------
         # Current learning session
@@ -453,6 +455,9 @@ def _build_persistent_state() -> dict[str, Any]:
         "settings": deepcopy(
             st.session_state.settings
         ),
+        "streak_garden": deepcopy(
+            st.session_state.streak_garden
+        ),
         "next_note_id": int(
             st.session_state.next_note_id
         ),
@@ -695,6 +700,7 @@ def load_saved_learner_state() -> None:
         "whiteboards",
         "settings",
         "next_note_id",
+        "streak_garden",
     }
 
     looks_like_full_state = any(
@@ -796,6 +802,12 @@ def load_saved_learner_state() -> None:
 
         st.session_state.settings = _merge_settings(
             saved.get("settings")
+        )
+
+        # Versioned Streak Garden data is additive; older accounts receive
+        # an empty garden without changing their existing learner progress.
+        st.session_state.streak_garden = sanitize_garden_state(
+            saved.get("streak_garden")
         )
 
         # -----------------------------------------------------------
