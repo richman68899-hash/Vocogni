@@ -124,6 +124,10 @@ def render() -> None:
         ("Notifications", "Notification preferences"),
         ("Account", "Account and sign-in options"),
         ("Privacy & safety", "Privacy notices and AI safety"),
+        ("Socials", "Community links and social channels"),
+        ("AI", "AI learning support and provider information"),
+        ("Upgrade", "Plans and premium features"),
+        ("Misc", "About Vocogni and other options"),
     ]
     active_section = st.session_state.get("settings_active_section", "General")
     if active_section not in {item[0] for item in sections}:
@@ -388,6 +392,31 @@ def render() -> None:
             st.subheader("Account")
             st.caption("Account and sign-in management will be added here in a future update.")
             st.info("No account-management controls are available here yet.")
+
+    if active_section == "Socials":
+        with st.container(border=True):
+            st.subheader("Vocogni Socials")
+            st.caption("Official community and social channels will appear here.")
+            st.info("Social links are not configured yet. Only verified official links will be listed.")
+
+    if active_section == "AI":
+        with st.container(border=True):
+            st.subheader("AI learning support")
+            st.caption("Manage AI learning features and understand how AI is used in Vocogni.")
+            st.info("AI provider and model controls are not available in this version. Existing lesson and safety settings remain unchanged.")
+
+    if active_section == "Upgrade":
+        with st.container(border=True):
+            st.subheader("Upgrade Vocogni")
+            st.caption("Plan information and premium feature comparisons will be shown here.")
+            st.info("No paid plans or upgrade actions are currently available.")
+
+    if active_section == "Misc":
+        with st.container(border=True):
+            st.subheader("More")
+            st.caption("Additional product information and small utilities.")
+            st.markdown(f"**Vocogni version:** {APP_VERSION}")
+            st.caption("Thanks for learning with Vocogni.")
 
     new_values = {
         setting_key: _safe_value(setting_key, st.session_state[widget_key])
