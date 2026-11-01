@@ -909,52 +909,198 @@ def get_mistake_coach(progress):
 #      page always shows something.
 # ---------------------------------------------------------------------------
 
-def generate_progress_summary(profile, progress):
+def generate_progress_summary(profile, progress, preferences=None):
+    """Generate a personalized progress report using deterministic local rules only."""
+    preferences = preferences if isinstance(preferences, dict) else {}
     name = (profile.get("name") or "").strip() or "there"
     stats = per_course_stats(progress)
-    attempted = [s for s in stats if s["questions_attempted"] > 0]
+    attempted = [item for item in stats if item["questions_attempted"] > 0]
+
+    style = preferences.get("ai_preview_teaching_style", "Adaptive")
+    depth = preferences.get("ai_preview_explanation_depth", "Balanced")
+    format_style = preferences.get("ai_preview_answer_format", "Structured steps")
+    challenge = preferences.get("ai_preview_challenge_level", "Adaptive")
+    correction = preferences.get("ai_preview_correction_style", "Explain the misconception")
+    language = preferences.get("ai_preview_response_language", "Match lesson language")
+    use_reasoning = preferences.get("ai_preview_reasoning_steps", True)
+    check_calculations = preferences.get("ai_preview_check_calculations", True)
+    show_uncertainty = preferences.get("ai_preview_flag_uncertainty", True)
+    use_transfer = preferences.get("ai_preview_transfer_questions", True)
+    everyday_examples = preferences.get("ai_preview_everyday_examples", True)
+    ask_follow_up = preferences.get("ai_preview_follow_up_questions", True)
+    adaptive = preferences.get("ai_preview_adaptive_mastery", True)
+    lesson_scope = preferences.get("ai_preview_lesson_scope", False)
+    hint_strategy = preferences.get("ai_preview_hint_strategy", "On request")
 
     if not attempted:
         body = (
-            f"Hi {name}. You haven't attempted any practice questions yet.\n\n"
-            "Start any course from the Browse page — this summary will "
-            "update with real feedback based on your activity."
+            f"Hi {name}. You have not attempted any practice questions yet.\n\n"
+            "Start a course from Browse. Once you record practice, this local summary "
+            "can identify activity patterns and suggest a next step."
         )
-        return _wrap_summary(body)
+        return _format_local_summary(body, format_style, language)
 
-    strongest = max(attempted, key=lambda s: s["accuracy"])
-    weakest = min(attempted, key=lambda s: s["accuracy"])
+    strongest = max(attempted, key=lambda item: item["accuracy"])
+    weakest = min(attempted, key=lambda item: item["accuracy"])
+    total_attempted = sum(item["questions_attempted"] for item in attempted)
+    total_correct = sum(item["correct_answers"] for item in attempted)
+    overall_accuracy = total_correct / total_attempted * 100 if total_attempted else 0
 
-    lines = [f"Hi {name}. Here is where your practice stands right now.", ""]
-
-    if strongest["accuracy"] >= 80:
+    lines = [f"Hi {name}. Here is your current learning snapshot.", ""]
+    lines.append(
+        f"Across {len(attempted)} active course(s), you have answered "
+        f"{total_correct} of {total_attempted} questions correctly "
+        f"({overall_accuracy:.0f}% overall accuracy)."
+    )
+    if strongest["course_id"] == weakest["course_id"]:
         lines.append(
-            f"You have made strong progress in {strongest['topic_label']}, "
-            f"answering {strongest['accuracy']:.0f}% of attempted questions "
-            "correctly."
+            f"Your current recorded accuracy in {strongest['topic_label']} is "
+            f"{strongest['accuracy']:.0f}%."
         )
     else:
         lines.append(
-            f"Your strongest area so far is {strongest['topic_label']}, at "
-            f"{strongest['accuracy']:.0f}% accuracy."
+            f"Your strongest recorded area is {strongest['topic_label']} "
+            f"({strongest['accuracy']:.0f}%)."
         )
-
-    if weakest["course_id"] != strongest["course_id"]:
         lines.append(
-            f"Your main difficulty right now is {weakest['topic_label']} "
-            f"({weakest['accuracy']:.0f}% accuracy)."
+            f"The course that currently needs the most attention is {weakest['topic_label']} "
+            f"({weakest['accuracy']:.0f}%)."
         )
 
     if weakest["top_mistakes"]:
-        lines.append("")
-        lines.append("You should review:")
-        for i, (tag, _count) in enumerate(weakest["top_mistakes"], start=1):
-            lines.append(f"{i}. {tag}")
+        lines.extend(["", "Review these recorded mistake categories:"])
+        for tag, count in weakest["top_mistakes"][:3]:
+            lines.append(f"- {tag} ({count} recorded)")
+        if correction == "Show the corrected method":
+            lines.append("For each category, revisit the worked method before trying another question.")
+        elif correction == "Ask me to find the error":
+            lines.append("When reviewing, first identify the exact step where your method diverged.")
+        else:
+            lines.append("Focus on why the error occurred, not only on memorising the correction.")
 
-    lines.append("")
-    lines.append(f"Recommended next step: {_recommend_next_step(progress, weakest)}")
+    next_step = _recommend_next_step(progress, weakest)
+    if lesson_scope:
+        next_step = f"Stay within {weakest['topic_label']}: {next_step}"
+    lines.extend(["", f"Recommended next step: {next_step}"])
 
-    return _wrap_summary("\n".join(lines))
+    if adaptive:
+        lines.append(
+            "Challenge guidance: use your recorded accuracy to decide whether to consolidate "
+            "the current skill or move to a harder application."
+        )
+    if challenge == "Build confidence":
+        lines.append("Practice focus: consolidate one manageable skill and aim for consistent accuracy.")
+    elif challenge == "Stretch me":
+        lines.append("Practice focus: after reviewing errors, attempt a less familiar application question.")
+    elif challenge == "Standard":
+        lines.append("Practice focus: complete a balanced set of questions on the next lesson.")
+
+    if use_transfer:
+        lines.append("Transfer: include at least one question that applies the same idea in a new context.")
+    if hint_strategy == "Progressive hints":
+        lines.append("Hint strategy: reveal one small clue at a time, then retry independently.")
+    elif hint_strategy == "Guided questions":
+        lines.append("Hint strategy: ask what is known, what is required, and which relationship connects them.")
+    elif hint_strategy == "Worked example first":
+        lines.append("Hint strategy: study one worked example, then solve a similar question without looking.")
+    elif hint_strategy == "On request":
+        lines.append("Hint strategy: request a hint only after making an initial attempt.")
+
+    if style == "Socratic (ask me questions)" and ask_follow_up:
+        lines.extend(["", "Check your understanding: Which step in the course needing attention feels least secure, and why?"])
+    elif style == "Direct and concise":
+        lines.append("Priority: review the weakest course, practise the next incomplete lesson, then check accuracy.")
+    elif style == "Detailed instructor" and depth == "In-depth":
+        lines.append(
+            "How to use this report: treat accuracy as a snapshot of recorded attempts. "
+            "Review the mistake category, practise the underlying method, and then test it on a different question."
+        )
+    elif depth == "Brief":
+        lines.append("Keep the next session focused on one lesson and one review target.")
+
+    if everyday_examples:
+        lines.append("Where useful, connect the next practice question to a familiar real-world situation.")
+    if use_reasoning:
+        lines.append("Reasoning check: explain why the chosen method fits the question before calculating.")
+    if check_calculations:
+        lines.append("Accuracy check: verify units, signs, and the final result where relevant.")
+    if show_uncertainty:
+        lines.append(
+            "Evidence note: these recommendations are rule-based interpretations of saved activity, "
+            "not a diagnosis or proof of mastery."
+        )
+
+    if language == "Bahasa Indonesia":
+        lines = [_localize_summary_line(line) for line in lines]
+    elif language == "Mandarin":
+        lines = [_localize_summary_line(line, "Mandarin") for line in lines]
+
+    if format_style == "Short paragraphs":
+        body = " ".join(line.strip() for line in lines if line.strip())
+    elif format_style == "Bullet points":
+        body = "\n".join(
+            line if line.startswith("- ") else (f"- {line}" if line and not line.endswith(":") else line)
+            for line in lines
+        )
+    elif format_style == "Exam-style response":
+        body = "\n".join(lines)
+        body = "Performance overview\n" + body
+    else:
+        body = "\n".join(lines)
+
+    if depth == "Brief":
+        body = "\n".join(body.splitlines()[:8])
+    return _wrap_summary(body)
+
+
+def _localize_summary_line(line, language="Bahasa Indonesia"):
+    """Translate fixed summary guidance; preserve learner/course labels and figures."""
+    if not line:
+        return line
+    translations = {
+        "Hi ": "Halo ",
+        "Here is your current learning snapshot.": "Berikut ringkasan perkembangan belajarmu saat ini.",
+        "Across ": "Dari ",
+        " active course(s), you have answered ": " kursus aktif, kamu menjawab ",
+        " questions correctly (": " soal dengan benar (",
+        " overall accuracy).": " akurasi keseluruhan).",
+        "Your strongest recorded area is ": "Area terkuat yang tercatat adalah ",
+        "The course that currently needs the most attention is ": "Kursus yang paling perlu diperhatikan saat ini adalah ",
+        "Review these recorded mistake categories:": "Kategori kesalahan yang tercatat untuk ditinjau:",
+        "Recommended next step:": "Langkah berikutnya yang disarankan:",
+        "Evidence note:": "Catatan bukti:",
+        "Reasoning check:": "Pemeriksaan penalaran:",
+        "Accuracy check:": "Pemeriksaan ketelitian:",
+        "Transfer:": "Penerapan:",
+        "Practice focus:": "Fokus latihan:",
+        "Hint strategy:": "Strategi petunjuk:",
+    }
+    if language == "Mandarin":
+        translations = {
+            "Hi ": "你好，",
+            "Here is your current learning snapshot.": "以下是你目前的学习概况。",
+            "Recommended next step:": "建议的下一步：",
+            "Evidence note:": "证据说明：",
+            "Reasoning check:": "推理检查：",
+            "Accuracy check:": "准确性检查：",
+            "Review these recorded mistake categories:": "请复习以下已记录的错误类别：",
+        }
+    for source, target in translations.items():
+        if line.startswith(source):
+            return target + line[len(source):]
+    return line
+
+
+def _format_local_summary(body, format_style, language):
+    if format_style == "Bullet points":
+        body = "\n".join(f"- {line}" if line and not line.startswith("- ") else line for line in body.splitlines())
+    elif format_style == "Short paragraphs":
+        body = " ".join(line.strip() for line in body.splitlines() if line.strip())
+    if language == "Bahasa Indonesia":
+        body = _localize_summary_line(body)
+    elif language == "Mandarin":
+        body = _localize_summary_line(body, "Mandarin")
+    return _wrap_summary(body)
 
 
 def _recommend_next_step(progress, weakest_stat):
