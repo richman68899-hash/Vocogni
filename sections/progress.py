@@ -8,6 +8,7 @@ import data
 import logic
 import coach
 import state
+import adaptive_learning
 
 
 # The overview stays open on first use; detailed panels start collapsed to
@@ -404,15 +405,55 @@ def _render_lesson_diagnostics(progress):
 def _render_recommendations(progress):
     st.caption("Turns saved activity into suggested next actions, so you know what to practise next.")
     recs = logic.generate_recommendations(progress)
-    if not recs:
+    if recs:
+        chips = "".join(f"<span class='vc-recommend-chip'>{r}</span>" for r in recs)
+        st.markdown(f"<div>{chips}</div>", unsafe_allow_html=True)
+    else:
         st.markdown(
-            "<span class='vc-muted'>Nothing to recommend yet \u2014 start a course "
-            "to see personalized suggestions here.</span>",
+            "<span class='vc-muted'>No broad course recommendation yet. "
+            "Complete a diagnostic or practice set to build useful evidence.</span>",
             unsafe_allow_html=True,
         )
-        return
-    chips = "".join(f"<span class='vc-recommend-chip'>{r}</span>" for r in recs)
-    st.markdown(f"<div>{chips}</div>", unsafe_allow_html=True)
+
+    st.markdown("#### Learning Intelligence")
+    plan = adaptive_learning.build_learning_plan(progress, limit=3)
+    st.caption(
+        "Offline recommendations based on saved question-level results, recurring "
+        "errors, and known skill prerequisites. No LLM or network request is used."
+    )
+    if not plan["actions"]:
+        st.info(
+            "More question-level evidence is needed before Vocogni can identify "
+            "a specific skill to review. Start with a verified practice set."
+        )
+    else:
+        for index, action in enumerate(plan["actions"], start=1):
+            with st.container(border=True):
+                st.markdown(f"**{index}. {action['skill']}**")
+                st.caption(
+                    f"{action['course_title']} · {action['lesson_title']} · "
+                    f"{action['attempts']} recorded answers"
+                )
+                st.write(action["reason"])
+                st.write("**Recommended action:** " + action["action"])
+                if action["is_prerequisite_review"]:
+                    st.caption("Prerequisite review: this skill supports a weaker downstream skill.")
+                if action["accuracy_percent"] is not None:
+                    st.caption(f"Recorded practice performance: {action['accuracy_percent']}%")
+                if st.button(
+                    "Open recommended lesson",
+                    key=f"learning_intelligence_open_{action['course_id']}_{action['lesson_id']}_{index}",
+                    use_container_width=True,
+                    type="primary" if index == 1 else "secondary",
+                ):
+                    st.session_state.current_course = action["course_id"]
+                    st.session_state.current_lesson = action["lesson_id"]
+                    st.session_state.lesson_flow = state.new_lesson_flow(
+                        action["course_id"], action["lesson_id"]
+                    )
+                    st.session_state.nav = "Browse"
+                    st.rerun()
+    st.caption(plan["evidence_note"])
 
 
 def _render_ai_summary(profile, progress):
