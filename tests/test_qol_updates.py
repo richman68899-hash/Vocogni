@@ -1,9 +1,7 @@
 """Regression tests for five small learner-experience improvements."""
 import unittest
 from pathlib import Path
-from unittest.mock import patch
-
-from sections import browse
+from course_catalog import filter_courses
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,31 +37,30 @@ class BrowseFilterQolTests(unittest.TestCase):
         ]
 
     def test_empty_filters_show_every_course(self):
-        with patch("sections.browse._status_for_course", return_value="Not started"):
-            result = browse._filter_courses(self.courses, {})
+        result = filter_courses(
+            self.courses,
+            {"fractions": "Not started", "chemistry": "Not started"},
+        )
         self.assertEqual([course["id"] for course in result], ["fractions", "chemistry"])
 
     def test_search_is_case_insensitive_and_combines_with_other_filters(self):
-        with patch(
-            "sections.browse._status_for_course",
-            side_effect=lambda course_id, _progress: (
-                "In progress" if course_id == "chemistry" else "Not started"
-            ),
-        ):
-            result = browse._filter_courses(
-                self.courses,
-                {},
-                search="CAMBRIDGE",
-                status_filter="In progress",
-                difficulty_filter="Intermediate",
-                category_filter="science",
-                subject_filter="chemistry",
-            )
+        result = filter_courses(
+            self.courses,
+            {"fractions": "Not started", "chemistry": "In progress"},
+            search="CAMBRIDGE",
+            status_filter="In progress",
+            difficulty_filter="Intermediate",
+            category_filter="science",
+            subject_filter="chemistry",
+        )
         self.assertEqual([course["id"] for course in result], ["chemistry"])
 
     def test_non_matching_search_returns_no_courses(self):
-        with patch("sections.browse._status_for_course", return_value="Not started"):
-            result = browse._filter_courses(self.courses, {}, search="biology")
+        result = filter_courses(
+            self.courses,
+            {"fractions": "Not started", "chemistry": "Not started"},
+            search="biology",
+        )
         self.assertEqual(result, [])
 
     def test_clear_filters_resets_all_five_controls_and_catalog_shows_count(self):
