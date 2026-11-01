@@ -1128,12 +1128,26 @@ html {
 }
 .vc-profile-identity-copy { min-width: 0; }
 .vc-profile-name {
+    align-items: center;
     color: var(--vc-text);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.38rem;
     font-size: 1.28rem;
     font-weight: 650;
     letter-spacing: -0.035em;
     line-height: 1.25;
+    min-width: 0;
     overflow-wrap: anywhere;
+}
+.vc-profile-name > span:first-child { overflow-wrap: anywhere; }
+.vc-verified-badge {
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 1.18rem;
+    object-fit: contain;
+    vertical-align: middle;
+    width: 1.18rem;
 }
 .vc-profile-identity-subtitle {
     color: var(--vc-subtext);
