@@ -42,7 +42,7 @@ class LocalProgressSummaryTests(unittest.TestCase):
                 "ai_preview_check_calculations": False,
             },
         )
-        self.assertIn("60% overall accuracy", summary)
+        self.assertIn("75% overall accuracy", summary)
         self.assertIn("Priority:", summary)
         self.assertIn("Stretch me", summary) if "Stretch me" in summary else self.assertIn("less familiar application", summary)
         self.assertIn("Transfer:", summary)
