@@ -79,7 +79,16 @@ class MistakeReflectionTests(unittest.TestCase):
         self.assertEqual(len(value), MAX_REFLECTION_LENGTH)
 
     def test_answer_evidence_is_not_modified(self):
-        original = {"questions_attempted": 1, "correct_answers": 0, "mistakes": {"Other": 1}}
+        self.course_progress.update({
+            "questions_attempted": 1,
+            "correct_answers": 0,
+            "mistakes": {"Other": 1},
+        })
+        before = {
+            "questions_attempted": self.course_progress["questions_attempted"],
+            "correct_answers": self.course_progress["correct_answers"],
+            "mistakes": dict(self.course_progress["mistakes"]),
+        }
         upsert_mistake_reflection(
             self.course_progress,
             answer_id="answer-1",
@@ -90,11 +99,14 @@ class MistakeReflectionTests(unittest.TestCase):
             text="I rushed the calculation.",
             now="2026-11-01T10:00:00+00:00",
         )
-        self.assertEqual(original, {
-            "questions_attempted": 1,
-            "correct_answers": 0,
-            "mistakes": {"Other": 1},
-        })
+        self.assertEqual(
+            {
+                "questions_attempted": self.course_progress["questions_attempted"],
+                "correct_answers": self.course_progress["correct_answers"],
+                "mistakes": self.course_progress["mistakes"],
+            },
+            before,
+        )
 
 
 if __name__ == "__main__":
