@@ -25,6 +25,36 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "custom_accent_color": "#176B5B",
 }
 
+
+# Preferences consumed by the deterministic, offline progress-summary engine.
+# Values are stored inside the existing learner settings bundle.
+AI_PREFERENCE_DEFAULTS = {
+    "ai_preview_teaching_style": "Adaptive",
+    "ai_preview_explanation_depth": "Balanced",
+    "ai_preview_hint_strategy": "On request",
+    "ai_preview_correction_style": "Explain the misconception",
+    "ai_preview_adaptive_mastery": True,
+    "ai_preview_remember_preferences": True,
+    "ai_preview_challenge_level": "Adaptive",
+    "ai_preview_transfer_questions": True,
+    "ai_preview_reasoning_steps": True,
+    "ai_preview_check_calculations": True,
+    "ai_preview_show_sources": True,
+    "ai_preview_flag_uncertainty": True,
+    "ai_preview_follow_up_questions": True,
+    "ai_preview_everyday_examples": True,
+    "ai_preview_response_language": "Match lesson language",
+    "ai_preview_answer_format": "Structured steps",
+    "ai_preview_model_preference": "Automatic (recommended)",
+    "ai_preview_speed_preference": "Balanced",
+    "ai_preview_web_research": False,
+    "ai_preview_image_input": True,
+    "ai_preview_age_appropriate": True,
+    "ai_preview_lesson_scope": False,
+    "ai_preview_context_permission": True,
+    "ai_preview_memory_review": True,
+}
+
 SETTING_WIDGET_KEYS = {
     "appearance": "settings_appearance",
     "text_size": "settings_text_size",
