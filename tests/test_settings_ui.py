@@ -162,8 +162,8 @@ class SettingsPageTests(unittest.TestCase):
         for key in required_controls:
             with self.subTest(control=key):
                 self.assertIn(key, source)
-        self.assertIn("they do not change AI responses or affect lesson behavior yet", source)
-        self.assertIn("kept in this session and reset when it ends", source)
+        self.assertIn("They do not change AI responses, lesson behavior, or saved learner settings.", source)
+        self.assertIn("Changes stay in this session and reset when it ends.", source)
         self.assertIn("not active privacy controls or safety guarantees", source)
         self.assertNotIn("ai_preview_", "\n".join(settings_model.DEFAULT_SETTINGS.keys()))
 
