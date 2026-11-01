@@ -439,11 +439,22 @@ def render() -> None:
     with shop_col:
         if st.button("🛍️", key="profile_shop_button", help="Open the Vocoins shop", use_container_width=True):
             st.session_state.profile_shop_open = not st.session_state.get("profile_shop_open", False)
+
+            "<style>"
+            ".vc-profile-vocoins{display:flex;align-items:center;justify-content:flex-end;"
+            "gap:.32rem;width:max-content;max-width:100%;margin-left:auto;"
+            "white-space:nowrap;color:var(--vc-text);line-height:1.2;}"
+            ".vc-profile-vocoins svg{width:16px;height:16px;flex:0 0 16px;}"
+            ".vc-profile-vocoins strong{font-size:.82rem;font-weight:700;"
+            "font-variant-numeric:tabular-nums;}"
+            ".vc-profile-vocoins span{font-size:.72rem;color:var(--vc-subtext);}"
+            "</style>",
         st.markdown(
             "<div class='vc-profile-vocoins' title='Your Vocoins'>"
             "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>"
             "<circle cx='12' cy='12' r='9' fill='none' stroke='currentColor' stroke-width='1.7'/>"
-            "<path d='M6.8 7.2 10.2 17h1.5l2.1-5.7 2.1 5.7h1.5l1.8-9.8h-2l-1.1 6.3-2.1-5.6h-1.2l-2.1 5.6-1.1-6.3z' fill='currentColor'/>"
+            "<path d='M7.2 7.1 12 17l4.8-9.9' fill='none' stroke='currentColor' "
+            "stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>"
             "</svg>"
             f"<strong>{vocoins:,}</strong><span>Vocoins</span></div>",
             unsafe_allow_html=True,
