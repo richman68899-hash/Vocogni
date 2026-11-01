@@ -159,16 +159,55 @@ def render_course_detail() -> None:
         )
     )
 
-    next_lesson = logic.next_incomplete_lesson(
-        progress,
-        course_id,
-    )
+    next_lesson = logic.next_incomplete_lesson(progress, course_id)
+    diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
+    diagnostic_done = logic.course_diagnostic_completed(progress, course_id)
 
-    next_lesson_id = (
-        next_lesson["id"]
-        if next_lesson
-        else None
-    )
+    # The course-entry diagnostic is reported separately from completed
+    # learning lessons. Once its result is saved, don't keep pointing the
+    # "next lesson" indicator back at that diagnostic item.
+    if (
+        diagnostic_done
+        and diagnostic_lesson_id
+        and next_lesson
+        and next_lesson.get("id") == diagnostic_lesson_id
+    ):
+        next_lesson = next(
+            (
+                lesson for lesson in course["lessons"]
+                if lesson.get("id") != diagnostic_lesson_id
+                and lesson.get("id") not in completed
+            ),
+            None,
+        )
+
+    next_lesson_id = next_lesson["id"] if next_lesson else None
+
+    quick_target = None
+    quick_is_diagnostic = bool(diagnostic_lesson_id and not diagnostic_done)
+    if quick_is_diagnostic:
+        quick_target, _ = data.get_lesson(course_id, diagnostic_lesson_id)
+    else:
+        quick_target = next_lesson
+
+    if quick_target:
+        quick_label = (
+            "Start course-entry diagnostic"
+            if quick_is_diagnostic
+            else f"Continue to {quick_target.get('title', 'next lesson')}"
+        )
+        if st.button(
+            quick_label,
+            key=f"course_quick_continue_{course_id}",
+            type="primary",
+        ):
+            target_id = quick_target["id"]
+            st.session_state.current_lesson = target_id
+            flow = state.new_lesson_flow(course_id, target_id)
+            if quick_is_diagnostic:
+                flow["launch_mode"] = "course_diagnostic"
+            st.session_state.lesson_flow = flow
+            st.rerun()
 
     # -----------------------------------------------------------------------
     # Lesson list
