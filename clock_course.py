@@ -327,6 +327,11 @@ LESSONS = [
             "<p>When you make an error, classify it: <strong>hand role</strong>, <strong>minute count</strong>, "
             "<strong>hour position</strong>, <strong>combining the hands</strong>, or <strong>elapsed time</strong>. "
             "Then return to the lesson that teaches that exact step.</p>"
+            "<h4>Make the skill stick</h4>"
+            "<p>After the first pass, repeat a short mixed check after <strong>1 day, 3 days, and 7 days</strong>. "
+            "Hide the diagram first. Reconstruct the two hand roles, read unfamiliar clock positions, explain the "
+            "hour hand's location, and solve one schedule problem. If an error returns, identify the exact step "
+            "that failed and practise that step with a new time. Do not just repeat the same answer.</p>"
         ),
         (
             "This is a cumulative assessment. Use the method from the lessons, but do not open the worked examples "
