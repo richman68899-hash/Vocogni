@@ -14,7 +14,9 @@ or fetched from a real database per logged-in user (later).
 """
 
 import base64
+import hashlib
 import io
+import json
 import math
 import struct
 from datetime import datetime, timezone
@@ -1060,6 +1062,32 @@ _SUMMARY_COPY = {
 }
 
 
+
+def progress_summary_signature(profile, progress, preferences=None):
+    """Stable cache key: summary output must refresh when its inputs change."""
+    profile = profile if isinstance(profile, dict) else {}
+    progress = progress if isinstance(progress, dict) else {}
+    preferences = preferences if isinstance(preferences, dict) else {}
+    profile_context = {
+        "preferred_language": profile.get("preferred_language", "English"),
+        "name": (
+            profile.get("name", "")
+            if preferences.get("ai_preview_context_permission", True)
+            else ""
+        ),
+    }
+    payload = json.dumps(
+        {
+            "profile": profile_context,
+            "progress": progress,
+            "preferences": preferences,
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+        default=str,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
 def _summary_language(profile, preferences):
     """Resolve explicit language, or use the learner's saved language for auto mode."""
     selected = preferences.get("ai_preview_response_language", "Match lesson language")
@@ -1271,32 +1299,6 @@ def generate_progress_summary(profile, progress, preferences=None):
         ])
 
     lines.extend(["", copy["limits"], copy["footer"]])
-
-    # Short mode trims optional detail while retaining the key recommendation,
-    # privacy/capability disclosures, and evidence limitation.
-    if depth == "Brief" and attempted:
-        essential = [
-            lines[0],
-            "",
-            copy["overall"].format(
-                courses=len(attempted),
-                correct=sum(item["correct_answers"] for item in attempted),
-                attempted=sum(item["questions_attempted"] for item in attempted),
-                accuracy=f"{sum(item['correct_answers'] for item in attempted) / max(1, sum(item['questions_attempted'] for item in attempted)) * 100:.0f}",
-            ),
-            copy["weakest"].format(
-                course=min(attempted, key=lambda item: item["accuracy"])["topic_label"],
-                accuracy=f"{min(attempted, key=lambda item: item['accuracy'])['accuracy']:.0f}",
-            ),
-        ]
-        for line in lines:
-            if line.startswith("Recommended next step:") or line.startswith("建议的下一步：") or line.startswith("下一步仅围绕 ") or line.startswith("Langkah berikutnya yang disarankan:") or line.startswith("Batasi langkah berikutnya pada "):
-                essential.append(line)
-        essential.extend(
-            line for line in lines
-            if line in {copy["brief_uncertain"], copy["uncertain"], copy["limits"], copy["footer"], copy["memory_on"], copy["memory_off"], copy["context_off"], copy["safety"]}
-        )
-        lines = essential
 
     return _format_progress_summary(lines, format_style)
 
