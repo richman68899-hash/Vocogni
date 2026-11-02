@@ -205,6 +205,34 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn('"Show hint"', source)
         self.assertIn('if hint_mode == "Medium":', source)
 
+    def test_focus_sound_controls_flush_changes_immediately(self):
+        settings_source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")
+        focus_section = settings_source.split('if active_section == "Focus & sound":', 1)[1].split(
+            'if active_section == "Reading comfort":', 1
+        )[0]
+
+        for setting_key in ("animations", "sound", "wrong_answer_sound", "answer_shake"):
+            with self.subTest(setting=setting_key):
+                widget_block = focus_section.split(
+                    f'key=SETTING_WIDGET_KEYS["{setting_key}"],', 1
+                )[1].split(")", 1)[0]
+                self.assertIn("on_change=_persist_setting_widget", widget_block)
+                self.assertIn(f'args=("{setting_key}",)', widget_block)
+
+        save_helper = settings_source.split("def _save_settings_now()", 1)[1].split(
+            "def _persist_setting_widget", 1
+        )[0]
+        self.assertIn("state.mark_persistent_dirty()", save_helper)
+        self.assertIn("state.flush_persistent_save()", save_helper)
+
+        setting_callback = settings_source.split("def _persist_setting_widget", 1)[1].split(
+            "def _persist_ai_preference", 1
+        )[0]
+        self.assertIn("_save_settings_now()", setting_callback)
+
+        app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn('st.session_state.pop("_settings_save_confirmation_pending", False)', app_source)
+
 
 if __name__ == "__main__":
     unittest.main()
