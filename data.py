@@ -1251,6 +1251,7 @@ COURSE_SUBJECTS = [
 from chemistry_course import CHEMISTRY_COURSE
 from quadratics_course import QUADRATICS_COURSE
 from geometry_course import GEOMETRY_COURSE
+from clock_course import ANALOG_CLOCKS_COURSE
 
 COURSES[CHEMISTRY_COURSE["id"]] = CHEMISTRY_COURSE
 COURSE_ORDER.append(CHEMISTRY_COURSE["id"])
@@ -1258,6 +1259,8 @@ COURSES[QUADRATICS_COURSE["id"]] = QUADRATICS_COURSE
 COURSE_ORDER.append(QUADRATICS_COURSE["id"])
 COURSES[GEOMETRY_COURSE["id"]] = GEOMETRY_COURSE
 COURSE_ORDER.append(GEOMETRY_COURSE["id"])
+COURSES[ANALOG_CLOCKS_COURSE["id"]] = ANALOG_CLOCKS_COURSE
+COURSE_ORDER.append(ANALOG_CLOCKS_COURSE["id"])
 
 _SUBJECT_BY_COURSE = {
     "fractions": "mathematics",
@@ -1266,6 +1269,7 @@ _SUBJECT_BY_COURSE = {
     "chemistry_9701": "chemistry",
     "quadratics_graphs": "mathematics",
     "basic_geometry": "mathematics",
+    "analog_clocks": "mathematics",
 }
 _CATEGORY_LABELS = {item["id"]: item["label"] for item in COURSE_CATEGORIES}
 _SUBJECT_LABELS = {item["id"]: item["label"] for item in COURSE_SUBJECTS}
