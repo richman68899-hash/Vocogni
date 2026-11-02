@@ -1306,6 +1306,38 @@ def generate_progress_summary(profile, progress, preferences=None):
     return _format_progress_summary(lines, format_style, copy["exam_heading"])
 
 
+def _recommend_next_step(progress, weakest_stat):
+    """Recommend the next incomplete lesson in the weakest recorded course."""
+    course_id = weakest_stat["course_id"]
+    course = data.get_course(course_id)
+    lesson = next_incomplete_lesson(progress, course_id)
+    if lesson is not None:
+        return f"Complete the “{lesson['title']}” lesson in {course['topic_label']}."
+    return f"Revisit the {course['topic_label']} lessons for extra practice."
+
+
+def _format_local_summary(body, format_style, language):
+    """Retain the legacy empty-state formatter for older internal callers."""
+    if language not in {"Match lesson language", "English"}:
+        body += (
+            f"\n\nLanguage preference saved: {language}. "
+            "This prototype currently generates the local progress summary in English."
+        )
+    if format_style == "Bullet points":
+        body = "\n".join(
+            f"- {line}" if line and not line.startswith("- ") else line
+            for line in body.splitlines()
+        )
+    elif format_style == "Short paragraphs":
+        body = " ".join(line.strip() for line in body.splitlines() if line.strip())
+    return _wrap_summary(body)
+
+
+def _wrap_summary(body):
+    """Apply the standard product title to a locally generated summary."""
+    return "Vocogni Learning Summary — Prototype\n\n" + body
+
+
 # ---------------------------------------------------------------------------
 # Optional answer-feedback sounds — generated with the standard library only.
 # They are short, low-volume cues, and are never required for scoring.
