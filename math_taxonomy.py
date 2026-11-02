@@ -122,5 +122,89 @@ SKILLS = {
             "Ignoring a constraint after calculating a ratio",
         ],
         "curriculum_alignment": "Provisional lower-secondary mapping; not an official curriculum code",
+    },,
+    "math.time.clock_parts": {
+        "label": "Analog clock hand roles",
+        "strand": "Time and Measure",
+        "grade_bands": [3, 4, 5, 6, 7, 8, 9],
+        "prerequisites": [],
+        "learning_objectives": [
+            "Distinguish the hour hand from the minute hand",
+            "Explain one full minute-hand rotation as 60 minutes",
+            "Connect the movement of both hands",
+        ],
+        "common_misconceptions": [
+            "Reading the long minute hand as the hour hand",
+            "Treating the two hands as independent pointers",
+        ],
+        "curriculum_alignment": "Foundational time-reading skill; general planning tag",
     },
+    "math.time.minute_counting": {
+        "label": "Counting minutes on an analog clock",
+        "strand": "Time and Measure",
+        "grade_bands": [3, 4, 5, 6, 7, 8, 9],
+        "prerequisites": ["math.time.clock_parts"],
+        "learning_objectives": [
+            "Count five-minute groups around the dial",
+            "Add individual minute marks between numbered positions",
+            "Read exact minute values",
+        ],
+        "common_misconceptions": [
+            "Reading the minute-hand number as the minute value",
+            "Ignoring the small one-minute marks",
+        ],
+        "curriculum_alignment": "Foundational time-reading skill; general planning tag",
+    },
+    "math.time.hour_hand_position": {
+        "label": "Hour-hand position and hour intervals",
+        "strand": "Time and Measure",
+        "grade_bands": [3, 4, 5, 6, 7, 8, 9],
+        "prerequisites": ["math.time.clock_parts", "math.time.minute_counting"],
+        "learning_objectives": [
+            "Interpret the hour hand between numbered positions",
+            "Identify the last hour number passed",
+            "Distinguish the current hour from the next hour",
+        ],
+        "common_misconceptions": [
+            "Choosing the number nearest to the hour hand",
+            "Assuming the hour hand jumps only when the minute hand reaches 12",
+        ],
+        "curriculum_alignment": "Foundational time-reading skill; general planning tag",
+    },
+    "math.time.reading_analog_time": {
+        "label": "Reading complete analog times",
+        "strand": "Time and Measure",
+        "grade_bands": [3, 4, 5, 6, 7, 8, 9],
+        "prerequisites": [
+            "math.time.clock_parts",
+            "math.time.minute_counting",
+            "math.time.hour_hand_position",
+        ],
+        "learning_objectives": [
+            "Combine the hour and minute readings",
+            "Use past, to, quarter past, half past, and quarter to",
+            "Translate between analog, digital, and spoken time",
+        ],
+        "common_misconceptions": [
+            "Swapping the hour and minute values",
+            "Changing to the next hour before the hour hand reaches it",
+        ],
+        "curriculum_alignment": "Foundational time-reading skill; general planning tag",
+    },
+    "math.time.elapsed_time": {
+        "label": "Elapsed time and schedules",
+        "strand": "Time and Measure",
+        "grade_bands": [3, 4, 5, 6, 7, 8, 9],
+        "prerequisites": ["math.time.reading_analog_time"],
+        "learning_objectives": [
+            "Measure the time between two clock readings",
+            "Use jumps to the next hour to calculate elapsed minutes",
+            "Apply time calculations to schedules and durations",
+        ],
+        "common_misconceptions": [
+            "Subtracting clock digits without accounting for the hour boundary",
+            "Confusing the displayed minute value with elapsed minutes",
+        ],
+        "curriculum_alignment": "Foundational time-reading skill; general planning tag",
+    }
 }
