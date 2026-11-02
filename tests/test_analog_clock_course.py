@@ -1,5 +1,7 @@
 """Regression tests for Analog Clock Foundations and its VQE integration."""
 
+import unittest
+
 import adaptive_learning
 import clock_course
 import clock_math
@@ -9,7 +11,7 @@ import math_taxonomy
 import question_engine
 
 
-class AnalogClockCourseTests:
+class AnalogClockCourseTests(unittest.TestCase):
     def test_course_is_registered_with_complete_lesson_flow(self):
         course = data.get_course("analog_clocks")
         assert course is not None
@@ -114,3 +116,7 @@ class AnalogClockCourseTests:
             "math.time.reading_analog_time",
             "math.time.elapsed_time",
         }
+
+
+if __name__ == "__main__":
+    unittest.main()
