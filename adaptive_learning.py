@@ -216,6 +216,11 @@ _DIAGNOSTIC_SKILL_TAG_MAP = {
     ("word_problems", "translating relationships"): "math.problem_solving.expression_translation",
     ("word_problems", "selecting relevant information"): "math.problem_solving.expression_translation",
     ("word_problems", "building a cost model"): "math.problem_solving.linear_cost_models",
+    ("analog_clocks", "clock hand roles"): "math.time.clock_parts",
+    ("analog_clocks", "counting minute groups of five"): "math.time.minute_counting",
+    ("analog_clocks", "hour hand position"): "math.time.hour_hand_position",
+    ("analog_clocks", "combining both hands"): "math.time.reading_analog_time",
+    ("analog_clocks", "elapsed time"): "math.time.elapsed_time",
 }
 
 

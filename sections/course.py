@@ -46,6 +46,7 @@ import diagnostics
 import chemistry_grading
 import math_grading
 import quadratics_visuals
+import clock_visuals
 import logic
 import question_engine
 import state
@@ -866,9 +867,14 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
             unsafe_allow_html=True,
         )
         if lesson.get("visual_key"):
-            quadratics_visuals.render_lesson_visual(
-                lesson, key_prefix=f"course_{course_id}"
-            )
+            if str(lesson.get("visual_key", "")).startswith("clock_"):
+                clock_visuals.render_lesson_visual(
+                    lesson, key_prefix=f"course_{course_id}_{lesson['id']}"
+                )
+            else:
+                quadratics_visuals.render_lesson_visual(
+                    lesson, key_prefix=f"course_{course_id}"
+                )
         if lesson.get("diagnostic") and diagnostic_result:
             st.info(
                 f"Diagnostic placement: {diagnostic_result.get('outcome_label', 'Start with the core idea')}. "

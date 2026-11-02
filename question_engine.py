@@ -45,6 +45,11 @@ PILOT_LESSONS = {
     ("algebra", "algebra_l2"),
     ("word_problems", "wp_l1"),
     ("basic_geometry", "geometry_l1"),
+    ("analog_clocks", "clock_l1"),
+    ("analog_clocks", "clock_l2"),
+    ("analog_clocks", "clock_l3"),
+    ("analog_clocks", "clock_l4"),
+    ("analog_clocks", "clock_l5"),
 }
 
 _REQUIRED_REVIEW_CHECKS = {
@@ -63,11 +68,12 @@ def _review(
     reviewed_content: dict[str, Any],
     *,
     pathway: str | None = None,
+    grade_bands: tuple[int, ...] | None = None,
 ) -> dict[str, Any]:
     return {
         "version": 1,
         "skill_id": skill_id,
-        "grade_bands": [7, 8, 9],
+        "grade_bands": list(grade_bands or GRADE_BANDS),
         "strand": math_taxonomy.SKILLS[skill_id]["strand"],
         "topic": topic,
         "purpose": purpose,
@@ -457,6 +463,295 @@ VERIFICATION_REGISTRY = {
 }
 
 
+# Analog Clock Foundations: curated question snapshots. These reviewed values
+# deliberately remain explicit so a future content edit invalidates its VQE item.
+VERIFICATION_REGISTRY.update({
+    "clock_l1_q1": _review(
+        "math.time.clock_parts", "Clock hand roles", "conceptual", 1,
+        {
+            "type": "mc",
+            "prompt": "Which hand tells you the minutes on a standard analog clock?",
+            "options": ["The longer hand", "The shorter hand", "Both hands equally", "The hand nearest 12"],
+            "answer": "The longer hand",
+            "explanation": "The longer hand is the minute hand. It makes one complete turn every 60 minutes.",
+            "skill_tag": "Clock hand roles",
+            "mistake_tag": "Clock hand roles",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l1_q2": _review(
+        "math.time.clock_parts", "Clock hand roles", "conceptual", 1,
+        {
+            "type": "numeric",
+            "prompt": "The minute hand makes one complete turn. How many minutes have passed?",
+            "answer": 60,
+            "tolerance": 0.01,
+            "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "One complete turn of the minute hand represents 60 minutes, or one hour.",
+            "skill_tag": "Clock hand roles",
+            "mistake_tag": "Clock hand roles",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l1_q3": _review(
+        "math.time.clock_parts", "Clock hand roles", "conceptual", 1,
+        {
+            "type": "mc",
+            "prompt": "At 5:00, the minute hand is at 12. After one full minute-hand turn, where will the hour hand point?",
+            "options": ["6", "5", "12", "11"],
+            "answer": "6",
+            "explanation": "A full minute-hand turn is 60 minutes. During that hour, the hour hand advances from 5 to 6.",
+            "skill_tag": "Clock hand roles",
+            "mistake_tag": "Clock hand roles",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l2_q1": _review(
+        "math.time.minute_counting", "Counting minutes", "practice", 1,
+        {
+            "type": "numeric",
+            "prompt": "The minute hand points exactly to 7. How many minutes past the hour is it?",
+            "answer": 35, "tolerance": 0.01, "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "Each number is five minutes for the minute hand: 7 × 5 = 35 minutes.",
+            "skill_tag": "Counting minute groups of five",
+            "mistake_tag": "Counting minute groups of five",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l2_q2": _review(
+        "math.time.minute_counting", "Counting minutes", "practice", 2,
+        {
+            "type": "numeric",
+            "prompt": "The minute hand points to 4 and then sits two small marks beyond it. How many minutes past the hour?",
+            "answer": 22, "tolerance": 0.01, "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "Number 4 gives 4 × 5 = 20 minutes. Two extra marks give 20 + 2 = 22 minutes.",
+            "skill_tag": "Counting individual minute ticks",
+            "mistake_tag": "Counting individual minute ticks",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l2_q3": _review(
+        "math.time.minute_counting", "Counting minutes", "practice", 1,
+        {
+            "type": "numeric",
+            "prompt": "The minute hand points exactly to 11. How many minutes past the hour is it?",
+            "answer": 55, "tolerance": 0.01, "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "Eleven groups of five minutes give 11 × 5 = 55 minutes.",
+            "skill_tag": "Counting minute groups of five",
+            "mistake_tag": "Counting minute groups of five",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l2_q4": _review(
+        "math.time.minute_counting", "Counting minutes", "practice", 2,
+        {
+            "type": "numeric",
+            "prompt": "The minute hand points to 2 and then passes six small marks. How many minutes past the hour?",
+            "answer": 16, "tolerance": 0.01, "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "Number 2 means 10 minutes. Add six individual minute marks: 10 + 6 = 16.",
+            "skill_tag": "Counting individual minute ticks",
+            "mistake_tag": "Counting individual minute ticks",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l3_q1": _review(
+        "math.time.hour_hand_position", "Hour hand position", "practice", 1,
+        {
+            "type": "mc",
+            "prompt": "At 3:40, the short hour hand is between 3 and 4. Which hour is currently in progress?",
+            "options": ["3 o'clock", "4 o'clock", "40 o'clock", "The nearest hour, 4"],
+            "answer": "3 o'clock",
+            "explanation": "The short hand has passed 3 but has not reached 4. The current hour is still 3.",
+            "skill_tag": "Hour hand position",
+            "mistake_tag": "Hour hand position",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l3_q2": _review(
+        "math.time.hour_hand_position", "Hour hand position", "practice", 2,
+        {
+            "type": "mc",
+            "prompt": "At 7:55, where should the short hour hand be?",
+            "options": [
+                "Between 7 and 8, very close to 8",
+                "Exactly on 7",
+                "Exactly on 8",
+                "Halfway between 7 and 8",
+            ],
+            "answer": "Between 7 and 8, very close to 8",
+            "explanation": "The hour hand moves gradually. At 55 minutes past 7, it is near 8 but has not arrived there.",
+            "skill_tag": "Hour hand position",
+            "mistake_tag": "Hour hand position",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l3_q3": _review(
+        "math.time.hour_hand_position", "Hour hand position", "practice", 2,
+        {
+            "type": "mc",
+            "prompt": "The short hand is halfway between 5 and 6, and the long hand points to 6. What time is shown?",
+            "options": ["5:30", "6:30", "5:06", "6:05"],
+            "answer": "5:30",
+            "explanation": "The long hand at 6 means 30 minutes. The short hand halfway from 5 to 6 means the 5 o'clock hour is halfway through.",
+            "skill_tag": "Hour hand position",
+            "mistake_tag": "Hour hand position",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l4_q1": _review(
+        "math.time.reading_analog_time", "Reading complete analog times", "practice", 1,
+        {
+            "type": "mc",
+            "prompt": "The long hand points to 5 and the short hand is just past 9. What time is shown?",
+            "options": ["9:25", "5:09", "9:05", "10:25"],
+            "answer": "9:25",
+            "explanation": "The long hand at 5 means 25 minutes. The short hand has passed 9, so the time is 9:25.",
+            "skill_tag": "Combining hour and minute hands",
+            "mistake_tag": "Combining hour and minute hands",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l4_q2": _review(
+        "math.time.reading_analog_time", "Reading complete analog times", "practice", 2,
+        {
+            "type": "mc",
+            "prompt": "What digital time means 'quarter to 3'?",
+            "options": ["2:45", "3:15", "2:15", "3:45"],
+            "answer": "2:45",
+            "explanation": "A quarter hour is 15 minutes. Quarter to 3 means 15 minutes before 3:00, which is 2:45.",
+            "skill_tag": "Reading past and to language",
+            "mistake_tag": "Reading past and to language",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l4_q3": _review(
+        "math.time.reading_analog_time", "Reading complete analog times", "practice", 2,
+        {
+            "type": "mc",
+            "prompt": "The minute hand shows 52 minutes and the short hand is close to 9 but has not reached it. What time is shown?",
+            "options": ["8:52", "9:52", "8:12", "9:08"],
+            "answer": "8:52",
+            "explanation": "The minute hand gives 52. The short hand has passed 8 and is approaching 9, so it is still 8:52.",
+            "skill_tag": "Combining hour and minute hands",
+            "mistake_tag": "Combining hour and minute hands",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l4_q4": _review(
+        "math.time.reading_analog_time", "Reading complete analog times", "practice", 1,
+        {
+            "type": "mc",
+            "prompt": "Which digital time is 'quarter past 10'?",
+            "options": ["10:15", "10:45", "9:45", "11:15"],
+            "answer": "10:15",
+            "explanation": "Quarter past means 15 minutes after the hour: 10:15.",
+            "skill_tag": "Reading past and to language",
+            "mistake_tag": "Reading past and to language",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l5_q1": _review(
+        "math.time.elapsed_time", "Elapsed time", "practice", 2,
+        {
+            "type": "numeric",
+            "prompt": "How many minutes pass from 2:47 to 3:18?",
+            "answer": 31, "tolerance": 0.01, "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "2:47 to 3:00 is 13 minutes. 3:00 to 3:18 is 18 minutes. Total: 13 + 18 = 31 minutes.",
+            "skill_tag": "Elapsed time across an hour",
+            "mistake_tag": "Elapsed time across an hour",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l5_q2": _review(
+        "math.time.elapsed_time", "Elapsed time", "practice", 2,
+        {
+            "type": "numeric",
+            "prompt": "How many minutes pass from 9:50 to 10:15?",
+            "answer": 25, "tolerance": 0.01, "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "9:50 to 10:00 is 10 minutes. Add 15 minutes to reach 10:15. Total: 25 minutes.",
+            "skill_tag": "Elapsed time across an hour",
+            "mistake_tag": "Elapsed time across an hour",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l5_q3": _review(
+        "math.time.elapsed_time", "Elapsed time", "application", 3,
+        {
+            "type": "mc",
+            "prompt": "A film starts at 16:35 and lasts 1 hour 25 minutes. When does it finish?",
+            "options": ["18:00", "17:50", "18:10", "19:00"],
+            "answer": "18:00",
+            "explanation": "16:35 + 1 hour = 17:35. Add 25 minutes to reach 18:00.",
+            "skill_tag": "Time in a real schedule",
+            "mistake_tag": "Time in a real schedule",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l5_q4": _review(
+        "math.time.elapsed_time", "Elapsed time", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "A club meeting begins at 4:20 and lasts 45 minutes. When does it end?",
+            "options": ["5:05", "5:00", "4:65", "5:15"],
+            "answer": "5:05",
+            "explanation": "Add 40 minutes to reach 5:00, then add the remaining 5 minutes. The meeting ends at 5:05.",
+            "skill_tag": "Time in a real schedule",
+            "mistake_tag": "Time in a real schedule",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_entry_l2_q1": _review(
+        "math.time.minute_counting", "Counting minutes", "practice", 2,
+        {
+            "type": "mc",
+            "prompt": "The minute hand points to 9 and then two small marks beyond it. How many minutes past the hour?",
+            "options": ["47", "45", "52", "9"],
+            "answer": "47",
+            "explanation": "The 9 represents 45 minutes. Add two extra minute marks: 45 + 2 = 47.",
+            "skill_tag": "Counting individual minute ticks",
+            "mistake_tag": "Counting individual minute ticks",
+        },
+        pathway="level_2",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_entry_l3_q1": _review(
+        "math.time.reading_analog_time", "Reading complete analog times", "practice", 3,
+        {
+            "type": "mc",
+            "prompt": "The minute hand points to 9 and the short hand is between 4 and 5, close to 5. What time is shown?",
+            "options": ["4:45", "5:45", "4:09", "9:04"],
+            "answer": "4:45",
+            "explanation": "The minute hand at 9 means 45 minutes. The hour hand has passed 4 but has not reached 5: 4:45.",
+            "skill_tag": "Combining both hands",
+            "mistake_tag": "Combining both hands",
+        },
+        pathway="level_3",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_entry_project_q1": _review(
+        "math.time.elapsed_time", "Elapsed time", "application", 3,
+        {
+            "type": "mc",
+            "prompt": "A club activity starts at 11:42 and lasts 38 minutes. When does it finish?",
+            "options": ["12:20", "12:10", "11:80", "1:20"],
+            "answer": "12:20",
+            "explanation": "11:42 to 12:00 is 18 minutes. The remaining 20 minutes bring the finish time to 12:20.",
+            "skill_tag": "Elapsed time",
+            "mistake_tag": "Elapsed time",
+        },
+        pathway="project",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+})
+
+
 def is_vqe_pilot_lesson(course_id: str, lesson_id: str) -> bool:
     """Whether a lesson opts into strict verified-only retrieval."""
     return (str(course_id), str(lesson_id)) in PILOT_LESSONS
@@ -704,10 +999,14 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
     if skill_id not in math_taxonomy.SKILLS:
         issues.append(f"Unknown VQE skill_id '{skill_id}'.")
     grade_bands = metadata.get("grade_bands")
-    if not isinstance(grade_bands, list) or not grade_bands or any(
-        band not in GRADE_BANDS for band in grade_bands
+    allowed_grade_bands = set(range(3, 10))
+    if (
+        not isinstance(grade_bands, list)
+        or not grade_bands
+        or len(grade_bands) != len(set(grade_bands))
+        or any(type(band) is not int or band not in allowed_grade_bands for band in grade_bands)
     ):
-        issues.append("Question needs valid Grade 7–9 planning-band metadata.")
+        issues.append("Question needs valid Grade 3–9 planning-band metadata.")
     if issues:
         return "needs_review", issues
     return "verified", []
