@@ -122,6 +122,35 @@ def _render_grid():
         st.markdown(f"<div style='margin:0.4rem 0 1.1rem 0;'>{chips}</div>", unsafe_allow_html=True)
 
     courses = data.all_courses_in_order()
+
+    # A low-friction resume action keeps an unfinished course one click away.
+    # Course order is used as a stable fallback because the current progress
+    # schema does not record a reliable last-opened timestamp.
+    in_progress = [
+        course for course in courses
+        if _status_for_course(course["id"], progress) == "In progress"
+    ]
+    if in_progress:
+        resume_course = in_progress[0]
+        resume_pct = logic.course_lesson_progress_percent(progress, resume_course["id"])
+        with st.container(border=True):
+            resume_col, action_col = st.columns([4, 1.35], vertical_alignment="center")
+            with resume_col:
+                st.markdown("<div class='vc-eyebrow'>Pick up where you left off</div>", unsafe_allow_html=True)
+                st.markdown(f"**{html.escape(str(resume_course.get('title', 'Your course')))}**")
+                st.caption(f"{resume_pct}% complete · Continue your next lesson or review a previous one.")
+            with action_col:
+                if st.button(
+                    "Continue",
+                    key=f"browse_resume_{resume_course['id']}",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    st.session_state.current_course = resume_course["id"]
+                    st.session_state.current_lesson = None
+                    st.session_state.lesson_flow = None
+                    st.rerun()
+
     difficulties = sorted({c["difficulty"] for c in data.COURSES.values()})
     category_labels = {item["id"]: item["label"] for item in data.COURSE_CATEGORIES}
     subject_labels = {item["id"]: item["label"] for item in data.COURSE_SUBJECTS}

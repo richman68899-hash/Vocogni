@@ -182,6 +182,10 @@ def main() -> None:
 
     state.init_session_state()
     _load_persistent_state()
+
+    # Apply the learner's saved theme before rendering any authenticated UI.
+    # This avoids a late style injection after the page content has appeared.
+    st.markdown(styles.build_css(st.session_state.settings), unsafe_allow_html=True)
     onboarding.render_tutorial(st)
 
     _render_logo()
@@ -216,10 +220,6 @@ def main() -> None:
         st.toast("Changes saved", icon="✅")
 
     _render_persistence_status()
-    st.markdown(
-        styles.build_css(st.session_state.settings),
-        unsafe_allow_html=True,
-    )
 
 
 if __name__ == "__main__":
