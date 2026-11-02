@@ -1545,6 +1545,61 @@ section[data-testid="stSidebar"] button[data-testid^="stBaseButton-"] {
     }
 }
 
+
+/* Course catalogue polish: clearer card hierarchy and lightweight hover feedback. */
+[data-testid="stVerticalBlockBorderWrapper"]:has(.vc-course-progress-label) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1rem 1rem 0.75rem !important;
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:has(.vc-course-progress-label):hover {
+    border-color: var(--vc-accent) !important;
+    box-shadow: 0 3px 14px rgba(20, 40, 32, 0.055);
+}
+.vc-course-progress-label {
+    color: var(--vc-subtext);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+}
+.vc-recommend-chip {
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.vc-page-intro {
+    text-wrap: pretty;
+}
+.stApp [data-testid="stMarkdownContainer"] ul,
+.stApp [data-testid="stMarkdownContainer"] ol {
+    padding-left: 1.35rem;
+}
+.stApp [data-testid="stMarkdownContainer"] li {
+    margin: 0.22rem 0;
+    line-height: 1.58;
+}
+.stApp [data-testid="stDataFrame"],
+.stApp [data-testid="stTable"] {
+    max-width: 100%;
+}
+.stApp button:focus-visible,
+.stApp a:focus-visible,
+.stApp input:focus-visible,
+.stApp textarea:focus-visible,
+.stApp [role="combobox"]:focus-visible {
+    outline: 2px solid var(--vc-accent) !important;
+    outline-offset: 2px !important;
+}
+@media (max-width: 760px) {
+    .vc-page-intro {
+        margin-bottom: 1.1rem;
+        font-size: 0.94rem;
+    }
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.vc-course-progress-label) {
+        padding: 0.85rem 0.85rem 0.65rem !important;
+    }
+}
+
 </style>
 """)
 
