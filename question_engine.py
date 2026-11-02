@@ -999,10 +999,14 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
     if skill_id not in math_taxonomy.SKILLS:
         issues.append(f"Unknown VQE skill_id '{skill_id}'.")
     grade_bands = metadata.get("grade_bands")
-    if not isinstance(grade_bands, list) or not grade_bands or any(
-        band not in GRADE_BANDS for band in grade_bands
+    allowed_grade_bands = set(range(3, 10))
+    if (
+        not isinstance(grade_bands, list)
+        or not grade_bands
+        or len(grade_bands) != len(set(grade_bands))
+        or any(type(band) is not int or band not in allowed_grade_bands for band in grade_bands)
     ):
-        issues.append("Question needs valid Grade 7–9 planning-band metadata.")
+        issues.append("Question needs valid Grade 3–9 planning-band metadata.")
     if issues:
         return "needs_review", issues
     return "verified", []
