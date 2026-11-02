@@ -107,6 +107,57 @@ def _current_widget_values(settings: dict[str, Any]) -> dict[str, Any]:
     return current
 
 
+def _persist_setting_widget(setting_key: str) -> None:
+    """Persist one changed preference immediately from its widget callback."""
+    widget_key = SETTING_WIDGET_KEYS[setting_key]
+    settings = st.session_state.get("settings")
+    if not isinstance(settings, dict):
+        settings = dict(DEFAULT_SETTINGS)
+
+    value = _safe_value(
+        setting_key,
+        st.session_state.get(widget_key, DEFAULT_SETTINGS[setting_key]),
+    )
+    updates = {setting_key: value}
+    # Keep the legacy reduced_motion field synchronized with the visible toggle.
+    if setting_key == "animations":
+        updates["reduced_motion"] = not value
+
+    if _settings_changed(settings, updates):
+        updated_settings = dict(settings)
+        updated_settings.update(updates)
+        st.session_state.settings = updated_settings
+        state.mark_persistent_dirty()
+
+
+def _persist_ai_preference(preference_key: str) -> None:
+    """Persist one AI preference immediately from its widget callback."""
+    if preference_key not in AI_PREFERENCE_DEFAULTS:
+        return
+
+    settings = st.session_state.get("settings")
+    if not isinstance(settings, dict):
+        settings = dict(DEFAULT_SETTINGS)
+
+    preferences = settings.get("ai_preferences", {})
+    if not isinstance(preferences, dict):
+        preferences = {}
+
+    value = st.session_state.get(
+        preference_key,
+        AI_PREFERENCE_DEFAULTS[preference_key],
+    )
+    if preferences.get(preference_key, AI_PREFERENCE_DEFAULTS[preference_key]) == value:
+        return
+
+    updated_preferences = dict(preferences)
+    updated_preferences[preference_key] = value
+    updated_settings = dict(settings)
+    updated_settings["ai_preferences"] = updated_preferences
+    st.session_state.settings = updated_settings
+    state.mark_persistent_dirty()
+
+
 def render() -> None:
     """Render the Settings page with clear groupings and auto-save behavior."""
     settings = st.session_state.settings
@@ -226,12 +277,16 @@ def render() -> None:
                     SETTING_OPTIONS["appearance"],
                     horizontal=True,
                     key=SETTING_WIDGET_KEYS["appearance"],
+                    on_change=_persist_setting_widget,
+                    args=("appearance",),
                 )
                 st.radio(
                     "Text size",
                     SETTING_OPTIONS["text_size"],
                     horizontal=True,
                     key=SETTING_WIDGET_KEYS["text_size"],
+                    on_change=_persist_setting_widget,
+                    args=("text_size",),
                 )
 
             with style_col:
@@ -239,18 +294,24 @@ def render() -> None:
                     "Interface font",
                     SETTING_OPTIONS["font_family"],
                     key=SETTING_WIDGET_KEYS["font_family"],
+                    on_change=_persist_setting_widget,
+                    args=("font_family",),
                     help="Changes the typeface throughout lessons, navigation, and settings.",
                 )
                 st.selectbox(
                     "Background tone",
                     SETTING_OPTIONS["background_tone"],
                     key=SETTING_WIDGET_KEYS["background_tone"],
+                    on_change=_persist_setting_widget,
+                    args=("background_tone",),
                     help="Choose a neutral, warm paper-like, or cool blue-grey workspace.",
                 )
                 st.selectbox(
                     "Corner style",
                     SETTING_OPTIONS["corner_style"],
                     key=SETTING_WIDGET_KEYS["corner_style"],
+                    on_change=_persist_setting_widget,
+                    args=("corner_style",),
                     help="Changes the shape of cards, inputs, and buttons across the app.",
                 )
 
@@ -258,11 +319,15 @@ def render() -> None:
                 st.toggle(
                     "Use a custom accent colour",
                     key=SETTING_WIDGET_KEYS["use_custom_accent"],
+                    on_change=_persist_setting_widget,
+                    args=("use_custom_accent",),
                     help="Customize buttons, links, progress indicators, and active navigation.",
                 )
                 st.color_picker(
                     "Accent colour",
                     key=SETTING_WIDGET_KEYS["custom_accent_color"],
+                    on_change=_persist_setting_widget,
+                    args=("custom_accent_color",),
                     disabled=not st.session_state[SETTING_WIDGET_KEYS["use_custom_accent"]],
                     help="Low-contrast colours are adjusted automatically to keep controls readable.",
                 )
@@ -310,6 +375,8 @@ def render() -> None:
                     "Feedback timing",
                     SETTING_OPTIONS["feedback_timing"],
                     key=SETTING_WIDGET_KEYS["feedback_timing"],
+                    on_change=_persist_setting_widget,
+                    args=("feedback_timing",),
                     help=(
                         "Immediate gives feedback after each question. "
                         "After submission shows a combined summary at the end of the lesson."
@@ -325,6 +392,8 @@ def render() -> None:
                         "Hard": "No hints",
                     }.get(value, value),
                     key=SETTING_WIDGET_KEYS["difficulty"],
+                    on_change=_persist_setting_widget,
+                    args=("difficulty",),
                     help=(
                         "On request reveals an authored hint only when you ask. "
                         "Automatic hints show authored support immediately. No hints hides it. "
@@ -346,21 +415,29 @@ def render() -> None:
                 st.toggle(
                     "Motion and transitions",
                     key=SETTING_WIDGET_KEYS["animations"],
+                    on_change=_persist_setting_widget,
+                    args=("animations",),
                     help="Turn this off to suppress the app's transitions and smooth scrolling.",
                 )
                 st.toggle(
                     "Correct-answer sound",
                     key=SETTING_WIDGET_KEYS["sound"],
+                    on_change=_persist_setting_widget,
+                    args=("sound",),
                     help="Plays a brief, warm bass-and-chime cue after a fully correct lesson answer. Off by default.",
                 )
                 st.toggle(
                     "Incorrect-answer cue",
                     key=SETTING_WIDGET_KEYS["wrong_answer_sound"],
+                    on_change=_persist_setting_widget,
+                    args=("wrong_answer_sound",),
                     help="Plays a short descending bell cue after an incorrect lesson answer. Off by default.",
                 )
                 st.toggle(
                     "Wrong-answer shake",
                     key=SETTING_WIDGET_KEYS["answer_shake"],
+                    on_change=_persist_setting_widget,
+                    args=("answer_shake",),
                     help="Adds a brief horizontal shake to incorrect-answer feedback. Off by default.",
                 )
                 if st.session_state[SETTING_WIDGET_KEYS["answer_shake"]]:
@@ -378,11 +455,15 @@ def render() -> None:
                 st.toggle(
                     "Larger text",
                     key=SETTING_WIDGET_KEYS["larger_text"],
+                    on_change=_persist_setting_widget,
+                    args=("larger_text",),
                     help="Raises the base text size beyond the selected text-size setting.",
                 )
                 st.toggle(
                     "High-readability spacing",
                     key=SETTING_WIDGET_KEYS["high_readability"],
+                    on_change=_persist_setting_widget,
+                    args=("high_readability",),
                     help="Increases line spacing to make longer text blocks easier to track.",
                 )
                 st.caption("These options change display and motion only, not lesson content. Typography, colour, and card shape are controlled above.")
@@ -439,12 +520,16 @@ def render() -> None:
                     "Teaching style",
                     ["Adaptive", "Socratic (ask me questions)", "Direct and concise", "Detailed instructor"],
                     key="ai_preview_teaching_style",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_teaching_style",),
                     help="Choose how the future AI tutor should communicate and guide a lesson.",
                 )
                 st.select_slider(
                     "Explanation depth",
                     options=["Brief", "Balanced", "In-depth"],
                     key="ai_preview_explanation_depth",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_explanation_depth",),
                     help="Set the amount of reasoning and context in explanations.",
                 )
             with guidance_col:
@@ -452,12 +537,16 @@ def render() -> None:
                     "Hint strategy",
                     ["On request", "Progressive hints", "Guided questions", "Worked example first"],
                     key="ai_preview_hint_strategy",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_hint_strategy",),
                     help="Choose how support should be revealed when you are stuck.",
                 )
                 st.selectbox(
                     "Correction style",
                     ["Explain the misconception", "Show the corrected method", "Ask me to find the error"],
                     key="ai_preview_correction_style",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_correction_style",),
                     help="Choose how the future tutor should respond to an incorrect answer.",
                 )
 
@@ -467,12 +556,16 @@ def render() -> None:
                 st.toggle(
                     "Adapt to my demonstrated mastery",
                     key="ai_preview_adaptive_mastery",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_adaptive_mastery",),
                     help="Future AI could adjust support based on demonstrated understanding, not just speed.",
                 )
                 st.toggle(
                     "Remember learning preferences",
                     value=True,
                     key="ai_preview_remember_preferences",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_remember_preferences",),
                     help="Future AI could reuse your selected explanation and feedback preferences.",
                 )
             with challenge_col:
@@ -480,12 +573,16 @@ def render() -> None:
                     "Challenge level",
                     ["Adaptive", "Build confidence", "Standard", "Stretch me"],
                     key="ai_preview_challenge_level",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_challenge_level",),
                     help="Set the intended level of challenge for future practice recommendations.",
                 )
                 st.toggle(
                     "Include transfer questions",
                     value=True,
                     key="ai_preview_transfer_questions",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_transfer_questions",),
                     help="Request questions that apply an idea in a new context.",
                 )
 
@@ -496,12 +593,16 @@ def render() -> None:
                     "Show reasoning steps",
                     value=True,
                     key="ai_preview_reasoning_steps",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_reasoning_steps",),
                     help="Ask the future AI tutor to explain the main steps behind an answer.",
                 )
                 st.toggle(
                     "Double-check calculations",
                     value=True,
                     key="ai_preview_check_calculations",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_check_calculations",),
                     help="Request an additional consistency check for mathematical results.",
                 )
             with source_col:
@@ -509,12 +610,16 @@ def render() -> None:
                     "Show sources when available",
                     value=True,
                     key="ai_preview_show_sources",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_show_sources",),
                     help="Display references for claims that rely on external information.",
                 )
                 st.toggle(
                     "Flag uncertain answers",
                     value=True,
                     key="ai_preview_flag_uncertainty",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_flag_uncertainty",),
                     help="Make uncertainty explicit instead of presenting guesses as facts.",
                 )
 
@@ -525,12 +630,16 @@ def render() -> None:
                     "Allow follow-up questions",
                     value=True,
                     key="ai_preview_follow_up_questions",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_follow_up_questions",),
                     help="Let the future tutor ask short questions to check understanding.",
                 )
                 st.toggle(
                     "Use examples from everyday life",
                     value=True,
                     key="ai_preview_everyday_examples",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_everyday_examples",),
                     help="Prefer practical examples when they help explain a concept.",
                 )
             with context_col:
@@ -538,12 +647,16 @@ def render() -> None:
                     "Response language",
                     ["Match lesson language", "English", "Bahasa Indonesia", "Mandarin"],
                     key="ai_preview_response_language",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_response_language",),
                     help="Choose the preferred language for future AI explanations.",
                 )
                 st.selectbox(
                     "Answer format",
                     ["Structured steps", "Short paragraphs", "Bullet points", "Exam-style response"],
                     key="ai_preview_answer_format",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_answer_format",),
                     help="Choose how future AI responses should be organized.",
                 )
 
@@ -554,24 +667,32 @@ def render() -> None:
                     "Model preference",
                     ["Automatic (recommended)", "Fast", "Balanced", "Advanced reasoning"],
                     key="ai_preview_model_preference",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_model_preference",),
                     help="A future provider integration could map this preference to available models.",
                 )
                 st.selectbox(
                     "Response speed",
                     ["Prioritize speed", "Balanced", "Prioritize depth"],
                     key="ai_preview_speed_preference",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_speed_preference",),
                     help="Set the trade-off between response time and deeper analysis.",
                 )
             with capability_col:
                 st.toggle(
                     "Use web research when needed",
                     key="ai_preview_web_research",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_web_research",),
                     help="Future AI could consult external sources for questions that need current information.",
                 )
                 st.toggle(
                     "Support image and worksheet input",
                     value=True,
                     key="ai_preview_image_input",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_image_input",),
                     help="Prepare for future AI analysis of uploaded diagrams, images, and worksheets.",
                 )
 
@@ -582,12 +703,16 @@ def render() -> None:
                     "Keep explanations age-appropriate",
                     value=True,
                     key="ai_preview_age_appropriate",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_age_appropriate",),
                     help="A future AI integration should keep explanations suitable for the learner's age.",
                 )
                 st.toggle(
                     "Stay within the lesson topic",
                     value=False,
                     key="ai_preview_lesson_scope",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_lesson_scope",),
                     help="Prefer answers focused on the current course unless broader context is requested.",
                 )
             with privacy_col:
@@ -595,12 +720,16 @@ def render() -> None:
                     "Ask before using personal learning context",
                     value=True,
                     key="ai_preview_context_permission",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_context_permission",),
                     help="Future AI should request permission before using optional personal context.",
                 )
                 st.toggle(
                     "Let me review AI memory",
                     value=True,
                     key="ai_preview_memory_review",
+                    on_change=_persist_ai_preference,
+                    args=("ai_preview_memory_review",),
                     help="A future memory feature should provide learner visibility and control.",
                 )
 
