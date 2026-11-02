@@ -421,6 +421,50 @@ def _render_recommendations(progress):
         "Offline recommendations based on saved question-level results, recurring "
         "errors, and known skill prerequisites. No LLM or network request is used."
     )
+    st.markdown("#### Skill trajectory")
+    trajectory = adaptive_learning.build_skill_trajectories(progress, limit=5)
+    st.caption(
+        "For registered maths skills, compares the latest three recorded answers "
+        "with the three immediately before them. Six answers are required before "
+        "Vocogni reports a direction of change."
+    )
+    counts = trajectory["trend_counts"]
+    trend_columns = st.columns(4)
+    for column, label in zip(
+        trend_columns,
+        ("Improving", "Needs attention", "Steady", "Building evidence"),
+    ):
+        with column:
+            _stat_block(label, counts.get(label, 0))
+
+    if not trajectory["skills"]:
+        st.info("No registered skill-level practice evidence is available yet. Complete a verified practice set to start a trajectory.")
+    else:
+        for item in trajectory["skills"]:
+            with st.container(border=True):
+                st.markdown(f"**{item['skill']} · {item['trend']}**")
+                previous = item["previous_window_accuracy_percent"]
+                recent = item["recent_window_accuracy_percent"]
+                if previous is None:
+                    remaining = max(0, 6 - item["attempts"])
+                    st.caption(
+                        f"{item['attempts']} recorded answers so far. "
+                        f"{remaining} more needed before a trend can be shown."
+                    )
+                    st.write(f"Latest three-answer window: {recent}%")
+                else:
+                    change = item["change_percentage_points"]
+                    st.write(
+                        f"Previous three answers: {previous}% → "
+                        f"Latest three answers: {recent}% "
+                        f"({change:+d} percentage points)."
+                    )
+                st.caption(
+                    f"{item['attempts']} recorded answers · "
+                    f"{item['overall_accuracy_percent']}% overall performance"
+                )
+    st.caption(trajectory["evidence_note"])
+
     if not plan["actions"]:
         st.info(
             "More question-level evidence is needed before Vocogni can identify "
