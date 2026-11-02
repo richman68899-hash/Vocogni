@@ -215,7 +215,7 @@ class SettingsPageTests(unittest.TestCase):
             with self.subTest(setting=setting_key):
                 widget_block = focus_section.split(
                     f'key=SETTING_WIDGET_KEYS["{setting_key}"],', 1
-                )[1].split("\\n                )", 1)[0]
+                )[1].split("\n                )", 1)[0]
                 self.assertIn("on_change=_persist_setting_widget", widget_block)
                 self.assertIn(f'args=("{setting_key}",)', widget_block)
 
