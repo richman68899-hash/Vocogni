@@ -211,7 +211,6 @@ _DIAGNOSTIC_SKILL_TAG_MAP = {
     ("algebra", "meaning of a variable"): "math.algebra.variables_expressions",
     ("algebra", "solving a one-step equation"): "math.algebra.linear_equations",
     ("algebra", "solving equations with brackets"): "math.algebra.linear_equations",
-    ("algebra", "applying algebra to pricing"): "math.problem_solving.linear_cost_models",
     ("word_problems", "choosing a basic operation"): "math.problem_solving.expression_translation",
     ("word_problems", "translating key words"): "math.problem_solving.expression_translation",
     ("word_problems", "translating relationships"): "math.problem_solving.expression_translation",
