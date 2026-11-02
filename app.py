@@ -209,7 +209,10 @@ def main() -> None:
     previous_save_count = int(st.session_state.get("_persistent_save_count", 0) or 0)
     state.flush_persistent_save()
     current_save_count = int(st.session_state.get("_persistent_save_count", 0) or 0)
-    if current_save_count > previous_save_count:
+    settings_save_confirmation = bool(
+        st.session_state.pop("_settings_save_confirmation_pending", False)
+    )
+    if current_save_count > previous_save_count or settings_save_confirmation:
         st.toast("Changes saved", icon="✅")
 
     _render_persistence_status()
