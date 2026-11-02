@@ -949,6 +949,7 @@ _SUMMARY_COPY = {
         "challenge": "Challenge level",
         "language": "Response language",
         "format": "Answer format",
+        "exam_heading": "Performance overview",
         "footer": "Generated locally from saved Vocogni learning data.",
     },
     "Bahasa Indonesia": {
@@ -1003,6 +1004,7 @@ _SUMMARY_COPY = {
         "challenge": "Tingkat tantangan",
         "language": "Bahasa respons",
         "format": "Format jawaban",
+        "exam_heading": "Gambaran performa",
         "footer": "Dibuat secara lokal dari data belajar Vocogni yang tersimpan.",
     },
     "Mandarin": {
@@ -1057,6 +1059,7 @@ _SUMMARY_COPY = {
         "challenge": "挑战程度",
         "language": "回复语言",
         "format": "答案格式",
+        "exam_heading": "学习表现概览",
         "footer": "本摘要由 Vocogni 已保存的学习数据在本地生成。",
     },
 }
@@ -1096,12 +1099,12 @@ def _summary_language(profile, preferences):
     normalized = str(selected or "English").strip().casefold()
     if normalized in {"bahasa indonesia", "indonesian", "indonesia"}:
         return "Bahasa Indonesia"
-    if normalized in {"mandarin", "chinese", "中文", "汉语"}:
+    if normalized in {"mandarin", "mandarin chinese", "chinese", "中文", "汉语"}:
         return "Mandarin"
     return "English"
 
 
-def _format_progress_summary(lines, format_style):
+def _format_progress_summary(lines, format_style, exam_heading="Performance overview"):
     """Apply the selected output structure without changing the evidence."""
     if format_style == "Short paragraphs":
         body = " ".join(line.strip() for line in lines if line.strip())
@@ -1111,7 +1114,7 @@ def _format_progress_summary(lines, format_style):
             for line in lines
         )
     elif format_style == "Exam-style response":
-        body = "Performance overview\n" + "\n".join(lines)
+        body = exam_heading + "\n" + "\n".join(lines)
     else:
         body = "\n".join(lines)
     return _wrap_summary(body)
@@ -1300,7 +1303,7 @@ def generate_progress_summary(profile, progress, preferences=None):
 
     lines.extend(["", copy["limits"], copy["footer"]])
 
-    return _format_progress_summary(lines, format_style)
+    return _format_progress_summary(lines, format_style, copy["exam_heading"])
 
 
 # ---------------------------------------------------------------------------
