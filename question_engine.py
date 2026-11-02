@@ -706,8 +706,7 @@ VERIFICATION_REGISTRY.update({
             "mistake_tag": "Time in a real schedule",
         },
         grade_bands=(3, 4, 5, 6, 7, 8, 9),
-    ),,
-
+    ),
     "clock_entry_l2_q1": _review(
         "math.time.minute_counting", "Counting minutes", "practice", 2,
         {
