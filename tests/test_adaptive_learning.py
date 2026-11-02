@@ -149,5 +149,119 @@ class AdaptiveLearningTests(unittest.TestCase):
 
 
 
+    def test_intervention_timeline_connects_mapped_diagnostic_to_verified_practice(self):
+        progress = {
+            "fractions": {
+                "diagnostics": {
+                    "fractions_l1": {
+                        "completed_at": "2026-10-30T09:00:00+00:00",
+                        "answer_review": [
+                            {"skill_tag": "Equivalent fractions", "correct": False},
+                            {"skill_tag": "Comparing fractions", "correct": True},
+                            {"skill_tag": "Unmapped diagnostic label", "correct": False},
+                        ],
+                    }
+                },
+                "practice_attempts": {
+                    "fractions_l1": [{
+                        "attempt_number": 1,
+                        "pathway_label": "Level 2 — Medium",
+                        "completed_at": "2026-10-31T09:00:00+00:00",
+                        "results": [
+                            {"question_id": "q1", "skill_id": "math.number.fraction_representation",
+                             "verification_status": "verified", "correct": True, "score": 1, "max_marks": 1},
+                            {"question_id": "q2", "skill_id": "math.number.fraction_representation",
+                             "verification_status": "verified", "correct": True, "score": 1, "max_marks": 1},
+                            {"question_id": "q3", "skill_id": "math.number.fraction_representation",
+                             "verification_status": "needs_review", "correct": False, "score": 0, "max_marks": 1},
+                        ],
+                    }],
+                },
+            }
+        }
+        before = repr(progress)
+        result = adaptive_learning.build_intervention_timeline(progress)
+        self.assertEqual(result["events_total"], 2)
+        practice = next(item for item in result["events"] if item["event_type"] == "practice")
+        self.assertEqual(practice["total_items"], 2)
+        self.assertEqual(practice["accuracy_percent"], 100)
+        self.assertEqual(practice["comparison"]["direction"], "Higher recorded performance")
+        self.assertEqual(practice["comparison"]["change_percentage_points"], 50)
+        self.assertEqual(repr(progress), before)
+
+    def test_intervention_timeline_requires_two_answers_per_comparison(self):
+        progress = {
+            "algebra": {
+                "diagnostics": {
+                    "algebra_l1": {
+                        "completed_at": "2026-10-30T09:00:00+00:00",
+                        "answer_review": [
+                            {"skill_tag": "Meaning of a variable", "correct": False},
+                        ],
+                    }
+                },
+                "practice_attempts": {
+                    "algebra_l1": [{
+                        "pathway_label": "Level 1 — Easy",
+                        "completed_at": "2026-10-31T09:00:00+00:00",
+                        "results": [
+                            {"question_id": "q1", "skill_id": "math.algebra.variables_expressions",
+                             "verification_status": "verified", "correct": True},
+                        ],
+                    }],
+                },
+            }
+        }
+        result = adaptive_learning.build_intervention_timeline(progress)
+        self.assertEqual(result["comparable_events"], 0)
+        practice = next(item for item in result["events"] if item["event_type"] == "practice")
+        self.assertIsNone(practice["comparison"])
+        self.assertEqual(practice["total_items"], 1)
+
+    def test_intervention_timeline_groups_verified_coach_answers_by_day(self):
+        progress = {
+            "algebra": {
+                "coach": {
+                    "attempts": [
+                        {"lesson_id": "algebra_l1", "skill_id": "math.algebra.variables_expressions",
+                         "verification_status": "verified", "correct": True,
+                         "completed_at": "2026-11-01T09:00:00+00:00"},
+                        {"lesson_id": "algebra_l1", "skill_id": "math.algebra.variables_expressions",
+                         "verification_status": "verified", "correct": False,
+                         "completed_at": "2026-11-01T10:00:00+00:00"},
+                        {"lesson_id": "algebra_l1", "skill_id": "math.algebra.variables_expressions",
+                         "verification_status": "needs_review", "correct": True,
+                         "completed_at": "2026-11-01T11:00:00+00:00"},
+                    ]
+                }
+            }
+        }
+        result = adaptive_learning.build_intervention_timeline(progress)
+        self.assertEqual(result["events_total"], 1)
+        event = result["events"][0]
+        self.assertEqual(event["event_type"], "coach")
+        self.assertEqual(event["total_items"], 2)
+        self.assertEqual(event["accuracy_percent"], 50)
+
+    def test_intervention_timeline_ignores_unmapped_diagnostics_and_empty_progress(self):
+        empty = adaptive_learning.build_intervention_timeline({})
+        self.assertEqual(empty["events"], [])
+        progress = {
+            "fractions": {
+                "diagnostics": {
+                    "fractions_l1": {
+                        "completed_at": "2026-10-30T09:00:00+00:00",
+                        "answer_review": [
+                            {"skill_tag": "Unknown label", "correct": False},
+                        ],
+                    }
+                }
+            }
+        }
+        result = adaptive_learning.build_intervention_timeline(progress)
+        self.assertEqual(result["events"], [])
+
+
+
 if __name__ == "__main__":
     unittest.main()

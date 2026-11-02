@@ -7,6 +7,7 @@ is required. Scores are prioritisation heuristics, not validated diagnoses.
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Any
 
 import data
@@ -194,6 +195,289 @@ def build_skill_trajectories(progress: dict[str, Any], limit: int = 5) -> dict[s
             "A 15-percentage-point change sets the Improving or Needs attention "
             "label; smaller changes are Steady. These are short-term practice "
             "signals, not validated measures of retention, transfer, or mastery."
+        ),
+    }
+
+
+# Diagnostic labels are authored wording, not stable skill IDs. These explicit
+# mappings connect the current lower-secondary diagnostic items to the VQE
+# skill taxonomy. Unmapped tags are deliberately left unclassified.
+_DIAGNOSTIC_SKILL_TAG_MAP = {
+    ("fractions", "meaning of the denominator"): "math.number.fraction_representation",
+    ("fractions", "representing fractions"): "math.number.fraction_representation",
+    ("fractions", "equivalent fractions"): "math.number.fraction_representation",
+    ("fractions", "comparing fractions"): "math.number.fraction_representation",
+    ("fractions", "applying fractions in context"): "math.number.fraction_operations",
+    ("algebra", "meaning of a variable"): "math.algebra.variables_expressions",
+    ("algebra", "solving a one-step equation"): "math.algebra.linear_equations",
+    ("algebra", "solving equations with brackets"): "math.algebra.linear_equations",
+    ("word_problems", "choosing a basic operation"): "math.problem_solving.expression_translation",
+    ("word_problems", "translating key words"): "math.problem_solving.expression_translation",
+    ("word_problems", "translating relationships"): "math.problem_solving.expression_translation",
+    ("word_problems", "selecting relevant information"): "math.problem_solving.expression_translation",
+    ("word_problems", "building a cost model"): "math.problem_solving.linear_cost_models",
+}
+
+
+def _normalise_label(value: Any) -> str:
+    return " ".join(str(value or "").strip().casefold().split())
+
+
+def _parse_event_timestamp(value: Any) -> datetime | None:
+    """Parse saved ISO timestamps; treat naive legacy timestamps as UTC."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _event_ratio(result: dict[str, Any]) -> float:
+    """Use awarded marks for marked answers and correctness for binary items."""
+    return _result_ratio(result)
+
+
+def _course_lesson_labels(course_id: str, lesson_id: str) -> tuple[str, str]:
+    course = data.get_course(course_id)
+    lesson, _ = data.get_lesson(course_id, lesson_id)
+    return (
+        str(course.get("title", course_id)) if course else str(course_id),
+        str(lesson.get("title", lesson_id)) if lesson else str(lesson_id),
+    )
+
+
+def build_intervention_timeline(
+    progress: dict[str, Any],
+    limit: int = 12,
+) -> dict[str, Any]:
+    """Build a chronological, per-skill record of diagnostics and interventions.
+
+    Includes explicitly mapped diagnostic skill tags, verified question-level
+    practice attempts, and verified Coach answers. Unverified/generated items
+    are excluded. Comparisons are shown only when both events contain at least
+    two answers; they remain descriptive because the question sets may differ.
+    """
+    if not isinstance(progress, dict):
+        progress = {}
+
+    events: list[dict[str, Any]] = []
+
+    for raw_course_id, course_progress in progress.items():
+        course_id = str(raw_course_id)
+        if not isinstance(course_progress, dict):
+            continue
+        course_title, _ = _course_lesson_labels(course_id, "")
+
+        # 1) Baseline diagnostic results, grouped by the explicit diagnostic
+        # skill-tag mapping above.
+        diagnostics = course_progress.get("diagnostics", {})
+        if isinstance(diagnostics, dict):
+            for lesson_id, diagnostic in diagnostics.items():
+                if not isinstance(diagnostic, dict):
+                    continue
+                completed = _parse_event_timestamp(diagnostic.get("completed_at"))
+                if completed is None:
+                    continue
+                lesson_title = _course_lesson_labels(course_id, str(lesson_id))[1]
+                by_skill: dict[str, list[float]] = defaultdict(list)
+                review = diagnostic.get("answer_review", [])
+                if not isinstance(review, list):
+                    review = []
+                for result in review:
+                    if not isinstance(result, dict):
+                        continue
+                    tag = _normalise_label(result.get("skill_tag"))
+                    skill_id = _DIAGNOSTIC_SKILL_TAG_MAP.get((course_id, tag))
+                    if skill_id not in math_taxonomy.SKILLS:
+                        continue
+                    by_skill[skill_id].append(_event_ratio(result))
+
+                for skill_id, ratios in by_skill.items():
+                    if not ratios:
+                        continue
+                    events.append({
+                        "event_id": f"diagnostic:{course_id}:{lesson_id}:{skill_id}",
+                        "course_id": course_id,
+                        "course_title": course_title,
+                        "lesson_id": str(lesson_id),
+                        "lesson_title": lesson_title,
+                        "skill_id": skill_id,
+                        "skill": math_taxonomy.SKILLS[skill_id]["label"],
+                        "event_type": "baseline",
+                        "intervention_label": "Diagnostic baseline",
+                        "completed_at": completed.isoformat(),
+                        "_sort_at": completed,
+                        "correct_answers": sum(1 for ratio in ratios if ratio >= 0.999),
+                        "total_items": len(ratios),
+                        "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
+                    })
+
+        # 2) Saved lesson / revision-sprint practice. A skill is included only
+        # when its answer provenance explicitly marks it as VQE-verified.
+        attempts_by_lesson = course_progress.get("practice_attempts", {})
+        if isinstance(attempts_by_lesson, dict):
+            for lesson_id, attempts in attempts_by_lesson.items():
+                if not isinstance(attempts, list):
+                    continue
+                lesson_title = _course_lesson_labels(course_id, str(lesson_id))[1]
+                for attempt_index, attempt in enumerate(attempts):
+                    if not isinstance(attempt, dict):
+                        continue
+                    completed = _parse_event_timestamp(attempt.get("completed_at"))
+                    if completed is None:
+                        continue
+                    grouped: dict[str, list[float]] = defaultdict(list)
+                    results = attempt.get("results", [])
+                    if not isinstance(results, list):
+                        continue
+                    for result in results:
+                        if not isinstance(result, dict):
+                            continue
+                        skill_id = result.get("skill_id")
+                        if (
+                            result.get("verification_status") != "verified"
+                            or not isinstance(skill_id, str)
+                            or skill_id not in math_taxonomy.SKILLS
+                        ):
+                            continue
+                        grouped[skill_id].append(_event_ratio(result))
+
+                    pathway = str(attempt.get("pathway_label") or "").strip()
+                    if not pathway:
+                        raw_pathway = str(attempt.get("pathway") or "").strip()
+                        pathway = (
+                            "Personalized Revision Sprint"
+                            if raw_pathway == "revision_sprint"
+                            else raw_pathway.replace("_", " ").title() or "Practice"
+                        )
+
+                    for skill_id, ratios in grouped.items():
+                        if not ratios:
+                            continue
+                        events.append({
+                            "event_id": (
+                                f"practice:{course_id}:{lesson_id}:"
+                                f"{attempt.get('attempt_number', attempt_index + 1)}:"
+                                f"{skill_id}:{completed.isoformat()}"
+                            ),
+                            "course_id": course_id,
+                            "course_title": course_title,
+                            "lesson_id": str(lesson_id),
+                            "lesson_title": lesson_title,
+                            "skill_id": skill_id,
+                            "skill": math_taxonomy.SKILLS[skill_id]["label"],
+                            "event_type": "practice",
+                            "intervention_label": pathway,
+                            "completed_at": completed.isoformat(),
+                            "_sort_at": completed,
+                            "correct_answers": sum(1 for ratio in ratios if ratio >= 0.999),
+                            "total_items": len(ratios),
+                            "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
+                        })
+
+        # 3) Coach answers are stored individually. Group verified Coach
+        # attempts by skill and UTC calendar day to avoid treating each answer
+        # as a separate intervention event.
+        coach_data = course_progress.get("coach", {})
+        coach_attempts = coach_data.get("attempts", []) if isinstance(coach_data, dict) else []
+        coach_groups: dict[tuple[str, str, str], list[tuple[datetime, float]]] = defaultdict(list)
+        if isinstance(coach_attempts, list):
+            for result in coach_attempts:
+                if not isinstance(result, dict):
+                    continue
+                skill_id = result.get("skill_id")
+                completed = _parse_event_timestamp(result.get("completed_at"))
+                if (
+                    result.get("verification_status") != "verified"
+                    or not isinstance(skill_id, str)
+                    or skill_id not in math_taxonomy.SKILLS
+                    or completed is None
+                ):
+                    continue
+                lesson_id = str(result.get("lesson_id") or "")
+                day = completed.date().isoformat()
+                coach_groups[(lesson_id, skill_id, day)].append(
+                    (completed, 1.0 if result.get("correct") else 0.0)
+                )
+
+        for (lesson_id, skill_id, day), rows in coach_groups.items():
+            rows.sort(key=lambda item: item[0])
+            ratios = [ratio for _, ratio in rows]
+            completed = rows[-1][0]
+            lesson_title = _course_lesson_labels(course_id, lesson_id)[1]
+            events.append({
+                "event_id": f"coach:{course_id}:{lesson_id}:{skill_id}:{day}",
+                "course_id": course_id,
+                "course_title": course_title,
+                "lesson_id": lesson_id,
+                "lesson_title": lesson_title,
+                "skill_id": skill_id,
+                "skill": math_taxonomy.SKILLS[skill_id]["label"],
+                "event_type": "coach",
+                "intervention_label": "Coach practice",
+                "completed_at": completed.isoformat(),
+                "_sort_at": completed,
+                "correct_answers": sum(1 for ratio in ratios if ratio >= 0.999),
+                "total_items": len(ratios),
+                "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
+            })
+
+    # Compare each event with the most recent earlier event for that skill
+    # that also has at least two answers. Single-answer events remain visible
+    # but cannot move the comparison baseline.
+    by_skill_course: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for event in events:
+        by_skill_course[(event["course_id"], event["skill_id"])].append(event)
+
+    for skill_events in by_skill_course.values():
+        skill_events.sort(key=lambda item: item["_sort_at"])
+        previous_comparable = None
+        for event in skill_events:
+            event["comparison"] = None
+            if event["total_items"] >= 2 and previous_comparable is not None:
+                delta = event["accuracy_percent"] - previous_comparable["accuracy_percent"]
+                if delta >= 15:
+                    direction = "Higher recorded performance"
+                elif delta <= -15:
+                    direction = "Lower recorded performance"
+                else:
+                    direction = "Similar recorded performance"
+                event["comparison"] = {
+                    "direction": direction,
+                    "change_percentage_points": delta,
+                    "previous_accuracy_percent": previous_comparable["accuracy_percent"],
+                    "previous_items": previous_comparable["total_items"],
+                    "previous_label": previous_comparable["intervention_label"],
+                    "previous_completed_at": previous_comparable["completed_at"],
+                }
+            if event["total_items"] >= 2:
+                previous_comparable = event
+
+    events.sort(key=lambda item: (item["_sort_at"], item["skill"]), reverse=True)
+    try:
+        display_limit = max(1, int(limit))
+    except (TypeError, ValueError):
+        display_limit = 12
+
+    for event in events:
+        event.pop("_sort_at", None)
+
+    return {
+        "events": events[:display_limit],
+        "skills_tracked": len({item["skill_id"] for item in events}),
+        "events_total": len(events),
+        "comparable_events": sum(bool(item.get("comparison")) for item in events),
+        "limited_sample_events": sum(item["total_items"] < 2 for item in events),
+        "evidence_note": (
+            "The timeline links explicitly mapped diagnostic tags with verified "
+            "question-level practice and Coach records. Each comparison requires "
+            "at least two answers in both events. Question sets and difficulty can "
+            "differ, so a change is descriptive and does not prove that an "
+            "intervention caused learning gain or durable mastery."
         ),
     }
 

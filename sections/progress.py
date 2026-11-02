@@ -465,6 +465,59 @@ def _render_recommendations(progress):
                 )
     st.caption(trajectory["evidence_note"])
 
+    st.markdown("#### Intervention timeline")
+    timeline = adaptive_learning.build_intervention_timeline(progress, limit=10)
+    st.caption(
+        "A per-skill history connecting diagnostic starting points with later "
+        "lesson pathways, Revision Sprints, and verified Coach practice."
+    )
+    timeline_columns = st.columns(3)
+    with timeline_columns[0]:
+        _stat_block("Skills tracked", timeline["skills_tracked"])
+    with timeline_columns[1]:
+        _stat_block("Recorded events", timeline["events_total"])
+    with timeline_columns[2]:
+        _stat_block("Comparable events", timeline["comparable_events"])
+
+    if not timeline["events"]:
+        st.info(
+            "The timeline will appear after a mapped diagnostic and verified "
+            "question-level practice have been saved."
+        )
+    else:
+        for event in timeline["events"]:
+            with st.container(border=True):
+                title = html.escape(event["skill"])
+                label = html.escape(event["intervention_label"])
+                st.markdown(f"**{title}**")
+                st.caption(
+                    f"{label} · {html.escape(event['course_title'])} · "
+                    f"{html.escape(event['lesson_title'])} · "
+                    f"{event['completed_at'][:16].replace('T', ' ')}"
+                )
+                st.metric(
+                    "Recorded performance",
+                    f"{event['accuracy_percent']}%",
+                    f"{event['correct_answers']}/{event['total_items']} answers",
+                )
+                comparison = event.get("comparison")
+                if comparison:
+                    st.write(
+                        f"{comparison['direction']}: "
+                        f"{comparison['change_percentage_points']:+d} percentage points "
+                        f"compared with {comparison['previous_label']} "
+                        f"({comparison['previous_accuracy_percent']}% across "
+                        f"{comparison['previous_items']} answers)."
+                    )
+                elif event["total_items"] < 2:
+                    st.caption(
+                        "Limited sample: at least two answers per event are "
+                        "required before comparing performance."
+                    )
+                else:
+                    st.caption("Starting comparable evidence for this skill.")
+    st.caption(timeline["evidence_note"])
+
     if not plan["actions"]:
         st.info(
             "More question-level evidence is needed before Vocogni can identify "
