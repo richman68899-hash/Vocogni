@@ -311,7 +311,7 @@ def build_intervention_timeline(
                         "intervention_label": "Diagnostic baseline",
                         "completed_at": completed.isoformat(),
                         "_sort_at": completed,
-                        "correct_answers": round(sum(ratios)),
+                        "correct_answers": sum(1 for ratio in ratios if ratio >= 0.999),
                         "total_items": len(ratios),
                         "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
                     })
@@ -340,6 +340,7 @@ def build_intervention_timeline(
                         skill_id = result.get("skill_id")
                         if (
                             result.get("verification_status") != "verified"
+                            or not isinstance(skill_id, str)
                             or skill_id not in math_taxonomy.SKILLS
                         ):
                             continue
@@ -392,6 +393,7 @@ def build_intervention_timeline(
                 completed = _parse_event_timestamp(result.get("completed_at"))
                 if (
                     result.get("verification_status") != "verified"
+                    or not isinstance(skill_id, str)
                     or skill_id not in math_taxonomy.SKILLS
                     or completed is None
                 ):
@@ -427,11 +429,11 @@ def build_intervention_timeline(
     # Compare each event with the most recent earlier event for that skill
     # that also has at least two answers. Single-answer events remain visible
     # but cannot move the comparison baseline.
-    by_skill: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_skill_course: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for event in events:
-        by_skill[event["skill_id"]].append(event)
+        by_skill_course[(event["course_id"], event["skill_id"])].append(event)
 
-    for skill_events in by_skill.values():
+    for skill_events in by_skill_course.values():
         skill_events.sort(key=lambda item: item["_sort_at"])
         previous_comparable = None
         for event in skill_events:
@@ -466,7 +468,7 @@ def build_intervention_timeline(
 
     return {
         "events": events[:display_limit],
-        "skills_tracked": len(by_skill),
+        "skills_tracked": len({item["skill_id"] for item in events}),
         "events_total": len(events),
         "comparable_events": sum(bool(item.get("comparison")) for item in events),
         "limited_sample_events": sum(item["total_items"] < 2 for item in events),
