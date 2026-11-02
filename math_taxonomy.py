@@ -122,7 +122,7 @@ SKILLS = {
             "Ignoring a constraint after calculating a ratio",
         ],
         "curriculum_alignment": "Provisional lower-secondary mapping; not an official curriculum code",
-    },,
+    },
     "math.time.clock_parts": {
         "label": "Analog clock hand roles",
         "strand": "Time and Measure",
