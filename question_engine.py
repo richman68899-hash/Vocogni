@@ -706,6 +706,49 @@ VERIFICATION_REGISTRY.update({
             "mistake_tag": "Time in a real schedule",
         },
         grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),,
+
+    "clock_entry_l2_q1": _review(
+        "math.time.minute_counting", "Counting minutes", "practice", 2,
+        {
+            "type": "mc",
+            "prompt": "The minute hand points to 9 and then two small marks beyond it. How many minutes past the hour?",
+            "options": ["47", "45", "52", "9"],
+            "answer": "47",
+            "explanation": "The 9 represents 45 minutes. Add two extra minute marks: 45 + 2 = 47.",
+            "skill_tag": "Counting individual minute ticks",
+            "mistake_tag": "Counting individual minute ticks",
+        },
+        pathway="level_2",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_entry_l3_q1": _review(
+        "math.time.reading_analog_time", "Reading complete analog times", "practice", 3,
+        {
+            "type": "mc",
+            "prompt": "The minute hand points to 9 and the short hand is between 4 and 5, close to 5. What time is shown?",
+            "options": ["4:45", "5:45", "4:09", "9:04"],
+            "answer": "4:45",
+            "explanation": "The minute hand at 9 means 45 minutes. The hour hand has passed 4 but has not reached 5: 4:45.",
+            "skill_tag": "Combining both hands",
+            "mistake_tag": "Combining both hands",
+        },
+        pathway="level_3",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_entry_project_q1": _review(
+        "math.time.elapsed_time", "Elapsed time", "application", 3,
+        {
+            "type": "mc",
+            "prompt": "A club activity starts at 11:42 and lasts 38 minutes. When does it finish?",
+            "options": ["12:20", "12:10", "11:80", "1:20"],
+            "answer": "12:20",
+            "explanation": "11:42 to 12:00 is 18 minutes. The remaining 20 minutes bring the finish time to 12:20.",
+            "skill_tag": "Elapsed time",
+            "mistake_tag": "Elapsed time",
+        },
+        pathway="project",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
     ),
 })
 
