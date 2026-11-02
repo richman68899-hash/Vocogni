@@ -95,7 +95,7 @@ class ProgressSummaryPreferenceTests(unittest.TestCase):
         )
 
         self.assertIn("steady sequence", confidence)
-        self.assertIn("consolidate", confidence)
+        self.assertIn("choose one manageable skill", confidence)
         self.assertIn("more demanding application", stretch)
         self.assertNotEqual(confidence, stretch)
 
