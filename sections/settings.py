@@ -75,7 +75,7 @@ def _apply_values(values: dict[str, Any]) -> None:
             st.session_state[widget_key] = updated[setting_key]
 
     if changed:
-        state.mark_persistent_dirty()
+        _save_settings_now()
 
 
 def _apply_preset(name: str) -> None:
@@ -107,6 +107,15 @@ def _current_widget_values(settings: dict[str, Any]) -> dict[str, Any]:
     return current
 
 
+def _save_settings_now() -> None:
+    """Flush a settings change from the widget callback, not a later app rerun."""
+    state.mark_persistent_dirty()
+    if state.flush_persistent_save():
+        # app.py consumes this after the callback-triggered rerun and shows the
+        # same success confirmation as its normal end-of-run autosave.
+        st.session_state["_settings_save_confirmation_pending"] = True
+
+
 def _persist_setting_widget(setting_key: str) -> None:
     """Persist one changed preference immediately from its widget callback."""
     widget_key = SETTING_WIDGET_KEYS[setting_key]
@@ -127,7 +136,7 @@ def _persist_setting_widget(setting_key: str) -> None:
         updated_settings = dict(settings)
         updated_settings.update(updates)
         st.session_state.settings = updated_settings
-        state.mark_persistent_dirty()
+        _save_settings_now()
 
 
 def _persist_ai_preference(preference_key: str) -> None:
@@ -155,7 +164,7 @@ def _persist_ai_preference(preference_key: str) -> None:
     updated_settings = dict(settings)
     updated_settings["ai_preferences"] = updated_preferences
     st.session_state.settings = updated_settings
-    state.mark_persistent_dirty()
+    _save_settings_now()
 
 
 def render() -> None:
