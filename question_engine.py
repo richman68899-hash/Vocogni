@@ -50,6 +50,7 @@ PILOT_LESSONS = {
     ("analog_clocks", "clock_l3"),
     ("analog_clocks", "clock_l4"),
     ("analog_clocks", "clock_l5"),
+    ("analog_clocks", "clock_l6"),
 }
 
 _REQUIRED_REVIEW_CHECKS = {
@@ -747,6 +748,87 @@ VERIFICATION_REGISTRY.update({
             "mistake_tag": "Elapsed time",
         },
         pathway="project",
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),,
+
+    "clock_l6_q1": _review(
+        "math.time.reading_analog_time", "Complete analog time reading", "reasoning", 2,
+        {
+            "type": "mc",
+            "prompt": "The minute hand points to 10 and the short hand is between 5 and 6. What time is shown?",
+            "options": ["5:50", "6:50", "5:10", "10:05"],
+            "answer": "5:50",
+            "explanation": "Number 10 on the minute dial means 50 minutes. The short hand has passed 5 but not 6: 5:50.",
+            "skill_tag": "Complete analog time reading",
+            "mistake_tag": "Complete analog time reading",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q2": _review(
+        "math.time.minute_counting", "Minute counting transfer", "reasoning", 2,
+        {
+            "type": "mc",
+            "prompt": "The minute hand points to 4 and then passes three small marks. How many minutes past the hour?",
+            "options": ["23", "20", "43", "7"],
+            "answer": "23",
+            "explanation": "Number 4 gives 20 minutes; three extra marks give 20 + 3 = 23 minutes.",
+            "skill_tag": "Minute counting transfer",
+            "mistake_tag": "Minute counting transfer",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q3": _review(
+        "math.time.hour_hand_position", "Hour-hand position transfer", "reasoning", 2,
+        {
+            "type": "mc",
+            "prompt": "At 11:45, the short hand is closest to 12. Which hour is still in progress?",
+            "options": ["11", "12", "45", "1"],
+            "answer": "11",
+            "explanation": "The short hand has passed 11 but has not reached 12. The time is still in the 11 o'clock hour.",
+            "skill_tag": "Hour-hand position transfer",
+            "mistake_tag": "Hour-hand position transfer",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q4": _review(
+        "math.time.reading_analog_time", "Past and to language transfer", "reasoning", 2,
+        {
+            "type": "mc",
+            "prompt": "What digital time means 'quarter to 7'?",
+            "options": ["6:45", "7:15", "6:15", "7:45"],
+            "answer": "6:45",
+            "explanation": "Quarter to 7 is 15 minutes before 7:00, so it is 6:45.",
+            "skill_tag": "Past and to language transfer",
+            "mistake_tag": "Past and to language transfer",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q5": _review(
+        "math.time.elapsed_time", "Elapsed time transfer", "reasoning", 2,
+        {
+            "type": "numeric",
+            "prompt": "How many minutes pass from 3:38 to 4:12?",
+            "answer": 34,
+            "tolerance": 0.01,
+            "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "3:38 to 4:00 is 22 minutes. Add 12 minutes: 22 + 12 = 34 minutes.",
+            "skill_tag": "Elapsed time transfer",
+            "mistake_tag": "Elapsed time transfer",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q6": _review(
+        "math.time.elapsed_time", "Real-schedule transfer", "application", 3,
+        {
+            "type": "mc",
+            "prompt": "A bus leaves at 07:48 and the trip lasts 1 hour 35 minutes. At what time does it arrive?",
+            "options": ["09:23", "09:13", "08:83", "10:23"],
+            "answer": "09:23",
+            "explanation": "07:48 + 1 hour = 08:48. Add 35 minutes: 08:48 to 09:00 is 12 minutes, then 23 more gives 09:23.",
+            "skill_tag": "Real-schedule transfer",
+            "mistake_tag": "Real-schedule transfer",
+        },
         grade_bands=(3, 4, 5, 6, 7, 8, 9),
     ),
 })
