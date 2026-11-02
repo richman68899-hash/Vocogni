@@ -374,7 +374,7 @@ def build_intervention_timeline(
                             "intervention_label": pathway,
                             "completed_at": completed.isoformat(),
                             "_sort_at": completed,
-                            "correct_answers": round(sum(ratios)),
+                            "correct_answers": sum(1 for ratio in ratios if ratio >= 0.999),
                             "total_items": len(ratios),
                             "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
                         })
@@ -421,7 +421,7 @@ def build_intervention_timeline(
                 "intervention_label": "Coach practice",
                 "completed_at": completed.isoformat(),
                 "_sort_at": completed,
-                "correct_answers": round(sum(ratios)),
+                "correct_answers": sum(1 for ratio in ratios if ratio >= 0.999),
                 "total_items": len(ratios),
                 "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
             })
