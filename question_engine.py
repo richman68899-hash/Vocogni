@@ -749,7 +749,7 @@ VERIFICATION_REGISTRY.update({
         },
         pathway="project",
         grade_bands=(3, 4, 5, 6, 7, 8, 9),
-    ),,
+    ),
 
     "clock_l6_q1": _review(
         "math.time.reading_analog_time", "Complete analog time reading", "reasoning", 2,
