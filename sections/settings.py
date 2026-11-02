@@ -276,44 +276,58 @@ def render() -> None:
                     "Theme",
                     SETTING_OPTIONS["appearance"],
                     horizontal=True,
-\                    key=SETTING_WIDGET_KEYS["appearance"],\n\                    on_change=_persist_setting_widget,\n\                    args=("appearance",),
+                    key=SETTING_WIDGET_KEYS["appearance"],
+                    on_change=_persist_setting_widget,
+                    args=("appearance",),
                 )
                 st.radio(
                     "Text size",
                     SETTING_OPTIONS["text_size"],
                     horizontal=True,
-\                    key=SETTING_WIDGET_KEYS["text_size"],\n\                    on_change=_persist_setting_widget,\n\                    args=("text_size",),
+                    key=SETTING_WIDGET_KEYS["text_size"],
+                    on_change=_persist_setting_widget,
+                    args=("text_size",),
                 )
 
             with style_col:
                 st.selectbox(
                     "Interface font",
                     SETTING_OPTIONS["font_family"],
-\                    key=SETTING_WIDGET_KEYS["font_family"],\n\                    on_change=_persist_setting_widget,\n\                    args=("font_family",),
+                    key=SETTING_WIDGET_KEYS["font_family"],
+                    on_change=_persist_setting_widget,
+                    args=("font_family",),
                     help="Changes the typeface throughout lessons, navigation, and settings.",
                 )
                 st.selectbox(
                     "Background tone",
                     SETTING_OPTIONS["background_tone"],
-\                    key=SETTING_WIDGET_KEYS["background_tone"],\n\                    on_change=_persist_setting_widget,\n\                    args=("background_tone",),
+                    key=SETTING_WIDGET_KEYS["background_tone"],
+                    on_change=_persist_setting_widget,
+                    args=("background_tone",),
                     help="Choose a neutral, warm paper-like, or cool blue-grey workspace.",
                 )
                 st.selectbox(
                     "Corner style",
                     SETTING_OPTIONS["corner_style"],
-\                    key=SETTING_WIDGET_KEYS["corner_style"],\n\                    on_change=_persist_setting_widget,\n\                    args=("corner_style",),
+                    key=SETTING_WIDGET_KEYS["corner_style"],
+                    on_change=_persist_setting_widget,
+                    args=("corner_style",),
                     help="Changes the shape of cards, inputs, and buttons across the app.",
                 )
 
             with accent_col:
                 st.toggle(
                     "Use a custom accent colour",
-\                    key=SETTING_WIDGET_KEYS["use_custom_accent"],\n\                    on_change=_persist_setting_widget,\n\                    args=("use_custom_accent",),
+                    key=SETTING_WIDGET_KEYS["use_custom_accent"],
+                    on_change=_persist_setting_widget,
+                    args=("use_custom_accent",),
                     help="Customize buttons, links, progress indicators, and active navigation.",
                 )
                 st.color_picker(
                     "Accent colour",
-\                    key=SETTING_WIDGET_KEYS["custom_accent_color"],\n\                    on_change=_persist_setting_widget,\n\                    args=("custom_accent_color",),
+                    key=SETTING_WIDGET_KEYS["custom_accent_color"],
+                    on_change=_persist_setting_widget,
+                    args=("custom_accent_color",),
                     disabled=not st.session_state[SETTING_WIDGET_KEYS["use_custom_accent"]],
                     help="Low-contrast colours are adjusted automatically to keep controls readable.",
                 )
@@ -360,7 +374,9 @@ def render() -> None:
                 st.radio(
                     "Feedback timing",
                     SETTING_OPTIONS["feedback_timing"],
-\                    key=SETTING_WIDGET_KEYS["feedback_timing"],\n\                    on_change=_persist_setting_widget,\n\                    args=("feedback_timing",),
+                    key=SETTING_WIDGET_KEYS["feedback_timing"],
+                    on_change=_persist_setting_widget,
+                    args=("feedback_timing",),
                     help=(
                         "Immediate gives feedback after each question. "
                         "After submission shows a combined summary at the end of the lesson."
@@ -375,7 +391,9 @@ def render() -> None:
                         "Easy": "Automatic hints",
                         "Hard": "No hints",
                     }.get(value, value),
-\                    key=SETTING_WIDGET_KEYS["difficulty"],\n\                    on_change=_persist_setting_widget,\n\                    args=("difficulty",),
+                    key=SETTING_WIDGET_KEYS["difficulty"],
+                    on_change=_persist_setting_widget,
+                    args=("difficulty",),
                     help=(
                         "On request reveals an authored hint only when you ask. "
                         "Automatic hints show authored support immediately. No hints hides it. "
@@ -396,22 +414,30 @@ def render() -> None:
                 st.caption("Control motion and optional answer sounds.")
                 st.toggle(
                     "Motion and transitions",
-\                    key=SETTING_WIDGET_KEYS["animations"],\n\                    on_change=_persist_setting_widget,\n\                    args=("animations",),
+                    key=SETTING_WIDGET_KEYS["animations"],
+                    on_change=_persist_setting_widget,
+                    args=("animations",),
                     help="Turn this off to suppress the app's transitions and smooth scrolling.",
                 )
                 st.toggle(
                     "Correct-answer sound",
-\                    key=SETTING_WIDGET_KEYS["sound"],\n\                    on_change=_persist_setting_widget,\n\                    args=("sound",),
+                    key=SETTING_WIDGET_KEYS["sound"],
+                    on_change=_persist_setting_widget,
+                    args=("sound",),
                     help="Plays a brief, warm bass-and-chime cue after a fully correct lesson answer. Off by default.",
                 )
                 st.toggle(
                     "Incorrect-answer cue",
-\                    key=SETTING_WIDGET_KEYS["wrong_answer_sound"],\n\                    on_change=_persist_setting_widget,\n\                    args=("wrong_answer_sound",),
+                    key=SETTING_WIDGET_KEYS["wrong_answer_sound"],
+                    on_change=_persist_setting_widget,
+                    args=("wrong_answer_sound",),
                     help="Plays a short descending bell cue after an incorrect lesson answer. Off by default.",
                 )
                 st.toggle(
                     "Wrong-answer shake",
-\                    key=SETTING_WIDGET_KEYS["answer_shake"],\n\                    on_change=_persist_setting_widget,\n\                    args=("answer_shake",),
+                    key=SETTING_WIDGET_KEYS["answer_shake"],
+                    on_change=_persist_setting_widget,
+                    args=("answer_shake",),
                     help="Adds a brief horizontal shake to incorrect-answer feedback. Off by default.",
                 )
                 if st.session_state[SETTING_WIDGET_KEYS["answer_shake"]]:
@@ -428,12 +454,16 @@ def render() -> None:
                 st.caption("Make lesson text easier to read without changing its content.")
                 st.toggle(
                     "Larger text",
-\                    key=SETTING_WIDGET_KEYS["larger_text"],\n\                    on_change=_persist_setting_widget,\n\                    args=("larger_text",),
+                    key=SETTING_WIDGET_KEYS["larger_text"],
+                    on_change=_persist_setting_widget,
+                    args=("larger_text",),
                     help="Raises the base text size beyond the selected text-size setting.",
                 )
                 st.toggle(
                     "High-readability spacing",
-\                    key=SETTING_WIDGET_KEYS["high_readability"],\n\                    on_change=_persist_setting_widget,\n\                    args=("high_readability",),
+                    key=SETTING_WIDGET_KEYS["high_readability"],
+                    on_change=_persist_setting_widget,
+                    args=("high_readability",),
                     help="Increases line spacing to make longer text blocks easier to track.",
                 )
                 st.caption("These options change display and motion only, not lesson content. Typography, colour, and card shape are controlled above.")
