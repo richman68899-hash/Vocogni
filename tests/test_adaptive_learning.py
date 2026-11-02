@@ -62,5 +62,92 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(plan["skills_tracked"], len(math_taxonomy.SKILLS))
 
 
+    def test_skill_trajectory_requires_six_recorded_answers(self):
+        progress = {
+            "fractions": {
+                "practice_attempts": {
+                    "fractions_l1": [{
+                        "completed_at": "2026-10-30T10:00:00+00:00",
+                        "results": [
+                            {"question_id": f"q{i}", "skill_id": "math.number.fraction_representation",
+                             "correct": i % 2 == 0, "score": int(i % 2 == 0), "max_marks": 1}
+                            for i in range(5)
+                        ],
+                    }]
+                }
+            }
+        }
+        result = adaptive_learning.build_skill_trajectories(progress)
+        item = next(row for row in result["skills"] if row["skill_id"] == "math.number.fraction_representation")
+        self.assertEqual(item["trend"], "Building evidence")
+        self.assertIsNone(item["previous_window_accuracy_percent"])
+        self.assertEqual(item["attempts"], 5)
+
+    def test_skill_trajectory_detects_improvement_from_equal_windows(self):
+        progress = {
+            "fractions": {
+                "practice_attempts": {
+                    "fractions_l1": [
+                        {
+                            "completed_at": "2026-10-30T10:00:00+00:00",
+                            "results": [
+                                {"question_id": f"old{i}", "skill_id": "math.number.fraction_representation",
+                                 "correct": False, "score": 0, "max_marks": 1}
+                                for i in range(3)
+                            ],
+                        },
+                        {
+                            "completed_at": "2026-10-31T10:00:00+00:00",
+                            "results": [
+                                {"question_id": f"new{i}", "skill_id": "math.number.fraction_representation",
+                                 "correct": True, "score": 1, "max_marks": 1}
+                                for i in range(3)
+                            ],
+                        },
+                    ]
+                }
+            }
+        }
+        result = adaptive_learning.build_skill_trajectories(progress)
+        item = next(row for row in result["skills"] if row["skill_id"] == "math.number.fraction_representation")
+        self.assertEqual(item["trend"], "Improving")
+        self.assertEqual(item["previous_window_accuracy_percent"], 0)
+        self.assertEqual(item["recent_window_accuracy_percent"], 100)
+        self.assertEqual(item["change_percentage_points"], 100)
+
+    def test_skill_trajectory_detects_regression_and_does_not_mutate_progress(self):
+        progress = {
+            "fractions": {
+                "practice_attempts": {
+                    "fractions_l1": [
+                        {
+                            "completed_at": "2026-10-30T10:00:00+00:00",
+                            "results": [
+                                {"question_id": f"old{i}", "skill_id": "math.number.fraction_representation",
+                                 "correct": True, "score": 1, "max_marks": 1}
+                                for i in range(3)
+                            ],
+                        },
+                        {
+                            "completed_at": "2026-10-31T10:00:00+00:00",
+                            "results": [
+                                {"question_id": f"new{i}", "skill_id": "math.number.fraction_representation",
+                                 "correct": False, "score": 0, "max_marks": 1}
+                                for i in range(3)
+                            ],
+                        },
+                    ]
+                }
+            }
+        }
+        before = repr(progress)
+        result = adaptive_learning.build_skill_trajectories(progress)
+        item = next(row for row in result["skills"] if row["skill_id"] == "math.number.fraction_representation")
+        self.assertEqual(item["trend"], "Needs attention")
+        self.assertEqual(item["change_percentage_points"], -100)
+        self.assertEqual(repr(progress), before)
+
+
+
 if __name__ == "__main__":
     unittest.main()

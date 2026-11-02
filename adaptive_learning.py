@@ -13,7 +13,7 @@ import data
 import math_taxonomy
 import question_engine
 
-ENGINE_VERSION = "learning-intelligence-1"
+ENGINE_VERSION = "learning-intelligence-2"
 
 
 def _number(value: Any, default: float = 0.0) -> float:
@@ -108,6 +108,94 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
         item["locations"] = sorted(item["locations"])
         item["mistake_tags"] = dict(item["mistake_tags"])
     return evidence
+
+
+def build_skill_trajectories(progress: dict[str, Any], limit: int = 5) -> dict[str, Any]:
+    """Compare two consecutive three-answer windows for each evidenced skill.
+
+    A directional trend is withheld until six recorded answers exist. The
+    comparison is a short-term practice signal, not proof of retention,
+    transfer, or mastery. Repeated answers are retained as practice evidence.
+    """
+    evidence = _collect_skill_evidence(progress)
+    rows = []
+    for skill_id, item in evidence.items():
+        ordered = [ratio for _, ratio in item["recent_ratios"]]
+        attempts = len(ordered)
+        if not attempts:
+            continue
+
+        recent_window = ordered[-3:]
+        recent_accuracy = sum(recent_window) / len(recent_window)
+        previous_accuracy = None
+        change_pp = None
+
+        if attempts >= 6:
+            previous_window = ordered[-6:-3]
+            previous_accuracy = sum(previous_window) / len(previous_window)
+            change_pp = round((recent_accuracy - previous_accuracy) * 100)
+            if change_pp >= 15:
+                trend = "Improving"
+            elif change_pp <= -15:
+                trend = "Needs attention"
+            else:
+                trend = "Steady"
+        else:
+            trend = "Building evidence"
+
+        rows.append({
+            "skill_id": skill_id,
+            "skill": item["skill"],
+            "strand": item["strand"],
+            "attempts": attempts,
+            "overall_accuracy_percent": round(item["accuracy"] * 100),
+            "previous_window_accuracy_percent": (
+                round(previous_accuracy * 100) if previous_accuracy is not None else None
+            ),
+            "recent_window_accuracy_percent": round(recent_accuracy * 100),
+            "change_percentage_points": change_pp,
+            "trend": trend,
+        })
+
+    status_order = {
+        "Needs attention": 0,
+        "Improving": 1,
+        "Steady": 2,
+        "Building evidence": 3,
+    }
+    rows.sort(key=lambda row: (
+        status_order[row["trend"]],
+        row["change_percentage_points"]
+        if row["change_percentage_points"] is not None else 0,
+        -row["attempts"],
+        row["skill"],
+    ))
+
+    trend_counts = {
+        label: sum(row["trend"] == label for row in rows)
+        for label in status_order
+    }
+    try:
+        display_limit = max(1, int(limit))
+    except (TypeError, ValueError):
+        display_limit = 5
+
+    return {
+        "engine_version": ENGINE_VERSION,
+        "skills_with_evidence": len(rows),
+        "skills_with_comparable_windows": sum(
+            row["previous_window_accuracy_percent"] is not None for row in rows
+        ),
+        "trend_counts": trend_counts,
+        "skills": rows[:display_limit],
+        "evidence_note": (
+            "A trend compares the latest three recorded answers with the three "
+            "answers immediately before them. At least six answers are required. "
+            "A 15-percentage-point change sets the Improving or Needs attention "
+            "label; smaller changes are Steady. These are short-term practice "
+            "signals, not validated measures of retention, transfer, or mastery."
+        ),
+    }
 
 
 def _lesson_for_skill(skill_id: str, evidence_item: dict[str, Any]) -> tuple[str | None, str | None]:
