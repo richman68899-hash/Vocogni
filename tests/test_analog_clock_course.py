@@ -36,7 +36,7 @@ class AnalogClockCourseTests(unittest.TestCase):
         ))
 
     def test_core_lesson_question_banks_are_verified_and_route_scoped(self):
-        for lesson in clock_course.LESSONS[:5]:
+        for lesson in clock_course.LESSONS:
             lesson_id = lesson["id"]
             assert question_engine.is_vqe_pilot_lesson("analog_clocks", lesson_id)
             records = question_engine.select_questions(
@@ -75,6 +75,10 @@ class AnalogClockCourseTests(unittest.TestCase):
         ):
             assert skill_id in math_taxonomy.SKILLS
             assert math_taxonomy.SKILLS[skill_id]["grade_bands"] == [3, 4, 5, 6, 7, 8, 9]
+
+        audit = question_engine.audit_question_bank(course_id="analog_clocks")
+        assert audit["needs_review_count"] == 0
+        assert audit["legacy_count"] == 0
 
     def test_clock_hand_geometry_and_minute_counting(self):
         assert clock_math.minute_hand_angle(25) == 150
