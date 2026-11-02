@@ -459,17 +459,41 @@ def _render_recommendations(progress):
 def _render_ai_summary(profile, progress):
     st.markdown(
         "<span class='vc-muted'>A locally generated, rule-based learning summary. "
-        "It uses your saved practice statistics and AI preferences; no LLM, external provider, "
-        "or network request is used.</span>",
+        "It follows the AI preferences saved in Settings. No LLM, external provider, "
+        "or network request is used. The summary refreshes when its learning data or preferences change.</span>",
         unsafe_allow_html=True,
     )
-    if st.button("Generate Summary", type="primary"):
-        preferences = st.session_state.get("settings", {}).get("ai_preferences", {})
+
+    settings = st.session_state.get("settings", {})
+    preferences = settings.get("ai_preferences", {}) if isinstance(settings, dict) else {}
+    if not isinstance(preferences, dict):
+        preferences = {}
+
+    current_signature = logic.progress_summary_signature(
+        profile,
+        progress,
+        preferences=preferences,
+    )
+    has_summary = bool(st.session_state.get("ai_summary_text"))
+    previous_signature = st.session_state.get("ai_summary_signature")
+    manual_refresh = st.button(
+        "Generate Summary" if not has_summary else "Refresh Summary",
+        type="primary",
+        key="generate_ai_progress_summary",
+    )
+    automatic_refresh = has_summary and previous_signature != current_signature
+
+    if manual_refresh or automatic_refresh:
         st.session_state.ai_summary_text = logic.generate_progress_summary(
-            profile, progress, preferences=preferences
+            profile,
+            progress,
+            preferences=preferences,
         )
+        st.session_state.ai_summary_signature = current_signature
+        if automatic_refresh and not manual_refresh:
+            st.caption("Summary automatically updated to match your current AI preferences and saved learning data.")
 
     summary = st.session_state.get("ai_summary_text")
     if summary:
-        # profile["name"] is free text, so escape before injecting as HTML.
+        # Summary content can include learner-entered course labels; escape before HTML rendering.
         st.markdown(f"<div class='vc-summary-box'>{html.escape(summary)}</div>", unsafe_allow_html=True)

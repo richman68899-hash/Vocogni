@@ -51,14 +51,15 @@ class LocalProgressSummaryTests(unittest.TestCase):
         self.assertIn("- Hi Learner.", summary)
 
     @patch("logic.per_course_stats", return_value=[])
-    def test_empty_state_is_local_and_discloses_language_limit(self, _stats):
+    def test_empty_state_is_local_and_uses_selected_language(self, _stats):
         summary = logic.generate_progress_summary(
             {"name": "Learner"},
             {},
             preferences={"ai_preview_response_language": "Bahasa Indonesia"},
         )
-        self.assertIn("have not attempted any practice questions yet", summary.lower())
-        self.assertIn("currently generates the local progress summary in English", summary)
+        self.assertIn("belum ada soal latihan yang tercatat", summary.lower())
+        self.assertIn("batas kemampuan lokal", summary.lower())
+        self.assertIn("dibuat secara lokal", summary.lower())
 
     def test_summary_engine_does_not_call_provider(self):
         import inspect
