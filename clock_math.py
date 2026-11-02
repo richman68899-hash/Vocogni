@@ -59,7 +59,10 @@ def spoken_time(hour: int, minute: int) -> str:
 
 
 def elapsed_minutes(start_hour: int, start_minute: int, end_hour: int, end_minute: int) -> int:
-    """Elapsed minutes between two times on a 12-hour dial (0–719 minutes)."""
-    start = ((int(start_hour) % 12) * 60) + (int(start_minute) % 60)
-    end = ((int(end_hour) % 12) * 60) + (int(end_minute) % 60)
-    return (end - start) % 720
+    """Forward elapsed minutes between two readings on a 12-hour dial."""
+    start_h = int(start_hour) % 12 or 12
+    end_h = int(end_hour) % 12 or 12
+    start = (start_h * 60) + (int(start_minute) % 60)
+    end = (end_h * 60) + (int(end_minute) % 60)
+    difference = end - start
+    return difference if difference >= 0 else difference + 720
