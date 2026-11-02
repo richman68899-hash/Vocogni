@@ -307,11 +307,12 @@ LESSONS = [
                 "16:35 + 1 hour = 17:35. Add 25 minutes to reach 18:00.",
                 "Time in a real schedule",
             ),
-            _num(
+            _mc(
                 "clock_l5_q4",
-                "A club meeting begins at 4:20 and lasts 45 minutes. At what minute of the next hour does it end? Enter the minute number only.",
-                5,
-                "4:20 + 40 minutes = 5:00; five more minutes gives 5:05. The minute number is 5.",
+                "A club meeting begins at 4:20 and lasts 45 minutes. When does it end?",
+                ["5:05", "5:00", "4:65", "5:15"],
+                "5:05",
+                "Add 40 minutes to reach 5:00, then add the remaining 5 minutes. The meeting ends at 5:05.",
                 "Time in a real schedule",
             ),
         ],
