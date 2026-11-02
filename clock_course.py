@@ -456,6 +456,45 @@ COURSE_ENTRY_DIAGNOSTIC = {
             "mistake_tag": "Elapsed time",
         },
     ],
+    "pathways": {
+        "level_2": {
+            "questions": [
+                _mc(
+                    "clock_entry_l2_q1",
+                    "The minute hand points to 9 and then two small marks beyond it. How many minutes past the hour?",
+                    ["47", "45", "52", "9"],
+                    "47",
+                    "The 9 represents 45 minutes. Add two extra minute marks: 45 + 2 = 47.",
+                    "Counting individual minute ticks",
+                )
+            ]
+        },
+        "level_3": {
+            "questions": [
+                _mc(
+                    "clock_entry_l3_q1",
+                    "The minute hand points to 9 and the short hand is between 4 and 5, close to 5. What time is shown?",
+                    ["4:45", "5:45", "4:09", "9:04"],
+                    "4:45",
+                    "The minute hand at 9 means 45 minutes. The hour hand has passed 4 but has not reached 5: 4:45.",
+                    "Combining both hands",
+                )
+            ]
+        },
+        "project": {
+            "intro": "Use the clock-reading method in a short schedule problem.",
+            "questions": [
+                _mc(
+                    "clock_entry_project_q1",
+                    "A club activity starts at 11:42 and lasts 38 minutes. When does it finish?",
+                    ["12:20", "12:10", "11:80", "1:20"],
+                    "12:20",
+                    "11:42 to 12:00 is 18 minutes. The remaining 20 minutes bring the finish time to 12:20.",
+                    "Elapsed time",
+                )
+            ]
+        },
+    },
 }
 
 LESSONS[0]["diagnostic"] = COURSE_ENTRY_DIAGNOSTIC
