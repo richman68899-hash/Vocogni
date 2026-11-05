@@ -149,15 +149,18 @@ def render():
 
 def _has_learning_activity(stats):
     """Return whether the learner has started or recorded course activity."""
-    return any(
-        int(stats.get(key, 0) or 0) > 0
-        for key in (
-            "courses_attempted",
-            "courses_completed",
-            "lessons_completed",
-            "questions_attempted",
-        )
-    )
+    for key in (
+        "courses_attempted",
+        "courses_completed",
+        "lessons_completed",
+        "questions_attempted",
+    ):
+        try:
+            if int((stats or {}).get(key, 0) or 0) > 0:
+                return True
+        except (TypeError, ValueError, OverflowError):
+            continue
+    return False
 
 
 def _stat_block(label, value):
