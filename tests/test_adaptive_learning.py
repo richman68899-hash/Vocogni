@@ -302,15 +302,21 @@ class AdaptiveLearningTests(unittest.TestCase):
             ]}},
             "practice_attempts": {"fractions_l1": [{
                 "completed_at": "2026-11-02T10:00:00+00:00",
-                "results": [{"question_id": "fractions_l1_q1",
-                    "skill_id": "math.number.fraction_representation",
-                    "correct": True, "score": 1, "max_marks": 1}],
+                "results": [
+                    {"question_id": "fractions_l1_q1",
+                     "skill_id": "math.number.fraction_representation",
+                     "correct": True, "score": 1, "max_marks": 1},
+                    {"question_id": "fractions_l1_q2",
+                     "skill_id": "math.number.fraction_representation",
+                     "correct": False, "score": 0, "max_marks": 1,
+                     "mistake_tag": "Denominator confusion"},
+                ],
             }]},
         }}
         plan = adaptive_learning.build_learning_plan(progress)
         action = next(row for row in plan["actions"] if row["skill_id"] == "math.number.fraction_representation")
         self.assertEqual(action["evidence_source"], "practice")
-        self.assertEqual(action["accuracy_percent"], 100)
+        self.assertEqual(action["accuracy_percent"], 50)
 
 if __name__ == "__main__":
     unittest.main()
