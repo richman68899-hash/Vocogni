@@ -82,8 +82,8 @@ class NavigationQolTests(unittest.TestCase):
     def test_course_page_has_quick_action_for_the_next_diagnostic_or_lesson(self):
         source = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
         self.assertIn('key=f"course_quick_continue_{course_id}"', source)
-        self.assertIn('"Start course-entry diagnostic"', source)
-        self.assertIn('f"Continue to {quick_target.get(\'title\', \'next lesson\')}"', source)
+        self.assertIn('"Take the quick starting check"', source)
+        self.assertIn('f"Continue: {quick_target.get(\'title\', \'next lesson\')}"', source)
         self.assertIn('flow["launch_mode"] = "course_diagnostic"', source)
 
     def test_progress_topic_can_open_that_course_in_learn(self):
