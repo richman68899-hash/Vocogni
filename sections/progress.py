@@ -456,8 +456,8 @@ def _render_recommendations(progress):
     st.markdown("#### Learning Intelligence")
     plan = adaptive_learning.build_learning_plan(progress, limit=3)
     st.caption(
-        "Offline recommendations based on saved question-level results, recurring "
-        "errors, and known skill prerequisites. No LLM or network request is used."
+        "Offline skill-gap recommendations use verified practice first, then mapped "
+        "baseline diagnostic evidence when practice is not yet available. No LLM or network request is used."
     )
     st.markdown("#### Skill trajectory")
     trajectory = adaptive_learning.build_skill_trajectories(progress, limit=5)
@@ -558,8 +558,8 @@ def _render_recommendations(progress):
 
     if not plan["actions"]:
         st.info(
-            "More question-level evidence is needed before Vocogni can identify "
-            "a specific skill to review. Start with a verified practice set."
+            "No mapped diagnostic or practice evidence currently identifies a specific "
+            "skill to review. Complete a course starting check or verified practice set."
         )
     else:
         for index, action in enumerate(plan["actions"], start=1):
@@ -567,14 +567,17 @@ def _render_recommendations(progress):
                 st.markdown(f"**{index}. {action['skill']}**")
                 st.caption(
                     f"{action['course_title']} · {action['lesson_title']} · "
-                    f"{action['attempts']} recorded answers"
+                    f"{action['attempts']} {action['evidence_source']} answers"
                 )
                 st.write(action["reason"])
                 st.write("**Recommended action:** " + action["action"])
                 if action["is_prerequisite_review"]:
                     st.caption("Prerequisite review: this skill supports a weaker downstream skill.")
                 if action["accuracy_percent"] is not None:
-                    st.caption(f"Recorded practice performance: {action['accuracy_percent']}%")
+                    evidence_label = "Diagnostic starting-check result" if action["evidence_source"] == "diagnostic" else "Recorded practice performance"
+                    st.caption(f"{evidence_label}: {action['accuracy_percent']}%")
+                if action.get("common_error"):
+                    st.caption(f"Most common recorded error: {action['common_error']}")
                 if st.button(
                     "Open recommended lesson",
                     key=f"learning_intelligence_open_{action['course_id']}_{action['lesson_id']}_{index}",

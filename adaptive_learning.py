@@ -48,6 +48,9 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             "ratios": [],
             "recent_ratios": [],
             "mistake_tags": defaultdict(int),
+            "diagnostic_ratios": [],
+            "diagnostic_mistake_tags": defaultdict(int),
+            "diagnostic_locations": set(),
             "locations": set(),
         }
 
@@ -96,9 +99,40 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                     if not result.get("correct") and tag:
                         item["mistake_tags"][str(tag)] += 1
 
+    # Baseline diagnostics can identify likely skill gaps before practice.
+    # Keep diagnostic and practice evidence separate; never blend denominators.
+    for course_id, course_progress in (progress or {}).items():
+        if not isinstance(course_progress, dict):
+            continue
+        diagnostics = course_progress.get("diagnostics", {})
+        if not isinstance(diagnostics, dict):
+            continue
+        for lesson_id, diagnostic in diagnostics.items():
+            if not isinstance(diagnostic, dict):
+                continue
+            review = diagnostic.get("answer_review", [])
+            if not isinstance(review, list):
+                continue
+            for result in review:
+                if not isinstance(result, dict):
+                    continue
+                tag = _normalise_label(result.get("skill_tag"))
+                skill_id = _DIAGNOSTIC_SKILL_TAG_MAP.get((str(course_id), tag))
+                if skill_id not in evidence:
+                    continue
+                item = evidence[skill_id]
+                item["diagnostic_ratios"].append(_event_ratio(result))
+                item["diagnostic_locations"].add((str(course_id), str(lesson_id)))
+                if not result.get("correct") and result.get("skill_tag"):
+                    item["diagnostic_mistake_tags"][str(result["skill_tag"])] += 1
+
     for item in evidence.values():
         item["accuracy"] = (
             sum(item["ratios"]) / len(item["ratios"]) if item["ratios"] else None
+        )
+        item["diagnostic_accuracy"] = (
+            sum(item["diagnostic_ratios"]) / len(item["diagnostic_ratios"])
+            if item["diagnostic_ratios"] else None
         )
         item["recent_ratios"].sort(key=lambda pair: pair[0])
         item["recent_accuracy"] = (
@@ -106,6 +140,9 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             len(item["recent_ratios"][-3:]) if item["recent_ratios"] else None
         )
         item["repeat_errors"] = sum(item["mistake_tags"].values())
+        item["diagnostic_repeat_errors"] = sum(item["diagnostic_mistake_tags"].values())
+        item["diagnostic_mistake_tags"] = dict(item["diagnostic_mistake_tags"])
+        item["diagnostic_locations"] = sorted(item["diagnostic_locations"])
         item["locations"] = sorted(item["locations"])
         item["mistake_tags"] = dict(item["mistake_tags"])
     return evidence
@@ -524,26 +561,50 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
     evidence = _collect_skill_evidence(progress)
     ranked = []
     for skill_id, item in evidence.items():
-        if item["accuracy"] is None:
+        source = "practice" if item["accuracy"] is not None else "diagnostic"
+        accuracy = item["accuracy"] if source == "practice" else item["diagnostic_accuracy"]
+        if accuracy is None:
             continue
-        priority = _weakness_priority(item)
-        if priority <= 0:
-            continue
-        ranked.append((priority, skill_id, item))
+        scoring = dict(item)
+        scoring["accuracy"] = accuracy
+        scoring["attempts"] = item["attempts"] if source == "practice" else len(item["diagnostic_ratios"])
+        scoring["repeat_errors"] = item["repeat_errors"] if source == "practice" else item["diagnostic_repeat_errors"]
+        scoring["mistake_tags"] = item["mistake_tags"] if source == "practice" else item["diagnostic_mistake_tags"]
+        scoring["recent_accuracy"] = item["recent_accuracy"] if source == "practice" else None
+        priority = _weakness_priority(scoring)
+        if priority > 0:
+            ranked.append((priority, skill_id, scoring, source))
 
     ranked.sort(key=lambda row: (-row[0], row[2]["accuracy"], row[2]["skill"]))
     actions = []
-    for priority, skill_id, item in ranked:
+    for priority, skill_id, item, evidence_source in ranked:
         prerequisites = [
             prerequisite for prerequisite in math_taxonomy.SKILLS[skill_id].get("prerequisites", [])
             if prerequisite in evidence and (
-                evidence[prerequisite]["accuracy"] is None
-                or evidence[prerequisite]["accuracy"] < 0.75
+                (
+                    evidence[prerequisite]["accuracy"]
+                    if evidence[prerequisite]["accuracy"] is not None
+                    else evidence[prerequisite]["diagnostic_accuracy"]
+                ) is None
+                or (
+                    evidence[prerequisite]["accuracy"]
+                    if evidence[prerequisite]["accuracy"] is not None
+                    else evidence[prerequisite]["diagnostic_accuracy"]
+                ) < 0.75
             )
         ]
         target_skill = prerequisites[0] if prerequisites else skill_id
         target = evidence[target_skill]
+        target_source = "practice" if target["accuracy"] is not None else "diagnostic"
+        target_accuracy = target["accuracy"] if target_source == "practice" else target["diagnostic_accuracy"]
+        target_attempts = target["attempts"] if target_source == "practice" else len(target["diagnostic_ratios"])
+        target_repeat_errors = target["repeat_errors"] if target_source == "practice" else target["diagnostic_repeat_errors"]
+        target_mistake_tags = target["mistake_tags"] if target_source == "practice" else target["diagnostic_mistake_tags"]
         course_id, lesson_id = _lesson_for_skill(target_skill, target)
+        if not course_id or not lesson_id:
+            locations = target.get("diagnostic_locations", [])
+            if locations:
+                course_id, lesson_id = locations[0]
         if not course_id or not lesson_id:
             continue
         course = data.get_course(course_id)
@@ -552,11 +613,14 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             continue
 
         is_prerequisite = target_skill != skill_id
-        target_accuracy = target.get("accuracy")
         if is_prerequisite:
+            threshold_source = (
+                "practice evidence" if target_source == "practice"
+                else "baseline diagnostic evidence"
+            )
             reason = (
                 f"{item['skill']} depends on {target['skill']}, which has "
-                "not yet reached the 75% practice-evidence threshold."
+                f"not yet reached the 75% threshold based on {threshold_source}."
             )
             action = f"Review {target['skill']} before returning to {item['skill']}."
         elif item["repeat_errors"]:
@@ -573,6 +637,7 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             )
             action = f"Review {target['skill']}, then complete a fresh practice set."
         actions.append({
+            "evidence_source": target_source,
             "skill_id": target_skill,
             "skill": target["skill"],
             "source_skill_id": skill_id,
@@ -582,8 +647,9 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             "lesson_title": lesson["title"],
             "priority": priority,
             "accuracy_percent": round(target_accuracy * 100) if target_accuracy is not None else None,
-            "attempts": target["attempts"],
-            "repeat_errors": target["repeat_errors"],
+            "attempts": target_attempts,
+            "repeat_errors": target_repeat_errors,
+            "common_error": max(target_mistake_tags, key=target_mistake_tags.get) if target_mistake_tags else None,
             "reason": reason,
             "action": action,
             "is_prerequisite_review": is_prerequisite,
@@ -594,14 +660,18 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
     # Include transparent status counts so the UI can explain when evidence is
     # too sparse to make a confident personalised recommendation.
     tested = sum(item["accuracy"] is not None for item in evidence.values())
+    diagnostically_tested = sum(item["diagnostic_accuracy"] is not None for item in evidence.values())
     return {
         "engine_version": ENGINE_VERSION,
         "actions": actions,
         "skills_tracked": len(evidence),
         "skills_with_practice_evidence": tested,
+        "skills_with_diagnostic_evidence": diagnostically_tested,
         "evidence_note": (
-            "Recommendations use saved question-level practice results and the "
-            "published skill prerequisites. They are transparent prototype "
-            "heuristics, not a validated diagnosis or proof of mastery."
+            "Practice recommendations use saved question-level results. When "
+            "practice is absent, mapped baseline diagnostic answers can suggest "
+            "a provisional review target. Diagnostic and practice scores stay "
+            "separate. These heuristics are not a validated diagnosis or proof "
+            "of mastery."
         ),
     }

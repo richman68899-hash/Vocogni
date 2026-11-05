@@ -263,5 +263,54 @@ class AdaptiveLearningTests(unittest.TestCase):
 
 
 
+
+    def test_diagnostic_identifies_specific_skill_before_practice_exists(self):
+        progress = {"fractions": {"diagnostics": {"fractions_l1": {
+            "answer_review": [
+                {"skill_tag": "Meaning of the denominator", "correct": False, "score": 0, "max_marks": 1},
+                {"skill_tag": "Representing fractions", "correct": False, "score": 0, "max_marks": 1},
+                {"skill_tag": "Equivalent fractions", "correct": True, "score": 1, "max_marks": 1},
+            ],
+        }}, "practice_attempts": {}}}
+        plan = adaptive_learning.build_learning_plan(progress)
+        action = next(row for row in plan["actions"] if row["skill_id"] == "math.number.fraction_representation")
+        self.assertEqual(action["evidence_source"], "diagnostic")
+        self.assertEqual(action["accuracy_percent"], 33)
+        self.assertEqual(plan["skills_with_diagnostic_evidence"], 1)
+        self.assertEqual(plan["skills_with_practice_evidence"], 0)
+
+    def test_prerequisite_reason_names_diagnostic_evidence_source(self):
+        progress = {"fractions": {"diagnostics": {"fractions_l1": {
+            "answer_review": [
+                {"skill_tag": "Meaning of the denominator", "correct": False, "score": 0, "max_marks": 1},
+                {"skill_tag": "Applying fractions in context", "correct": False, "score": 0, "max_marks": 1},
+            ],
+        }}, "practice_attempts": {}}}
+        plan = adaptive_learning.build_learning_plan(progress)
+        prerequisite_actions = [
+            row for row in plan["actions"]
+            if row["is_prerequisite_review"] and row["evidence_source"] == "diagnostic"
+        ]
+        self.assertTrue(prerequisite_actions)
+        self.assertIn("baseline diagnostic evidence", prerequisite_actions[0]["reason"])
+        self.assertNotIn("practice-evidence threshold", prerequisite_actions[0]["reason"])
+
+    def test_practice_evidence_takes_precedence_over_diagnostic(self):
+        progress = {"fractions": {
+            "diagnostics": {"fractions_l1": {"answer_review": [
+                {"skill_tag": "Meaning of the denominator", "correct": False, "score": 0, "max_marks": 1},
+            ]}},
+            "practice_attempts": {"fractions_l1": [{
+                "completed_at": "2026-11-02T10:00:00+00:00",
+                "results": [{"question_id": "fractions_l1_q1",
+                    "skill_id": "math.number.fraction_representation",
+                    "correct": True, "score": 1, "max_marks": 1}],
+            }]},
+        }}
+        plan = adaptive_learning.build_learning_plan(progress)
+        action = next(row for row in plan["actions"] if row["skill_id"] == "math.number.fraction_representation")
+        self.assertEqual(action["evidence_source"], "practice")
+        self.assertEqual(action["accuracy_percent"], 100)
+
 if __name__ == "__main__":
     unittest.main()
