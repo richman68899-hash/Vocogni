@@ -1710,9 +1710,15 @@ def _render_question(
             "explanation": question["explanation"],
         }
         if not is_correct:
-            guidance = feedback_guidance.build_feedback_guidance(question)
-            if guidance:
-                result_record["feedback_guidance"] = guidance
+            distractor_feedback = feedback_guidance.build_distractor_feedback(
+                question, user_answer
+            )
+            if distractor_feedback:
+                result_record["distractor_feedback"] = distractor_feedback
+            else:
+                guidance = feedback_guidance.build_feedback_guidance(question)
+                if guidance:
+                    result_record["feedback_guidance"] = guidance
         # Store the exact reviewed question provenance alongside each new
         # practice result. Older result records remain valid without these keys.
         result_record.update(question_engine.attempt_metadata(
@@ -1955,17 +1961,24 @@ def _render_feedback(
             unsafe_allow_html=True,
         )
         if not is_correct:
-            guidance = feedback_guidance.build_feedback_guidance(question)
-            if guidance:
-                st.markdown("**What to check**")
-                st.write(guidance["likely_issue"])
-                st.markdown("**Your next step**")
-                st.write(guidance["next_step"])
+            distractor_feedback = feedback_guidance.build_distractor_feedback(
+                question, flow.get("last_user_answer")
+            )
+            if distractor_feedback:
+                st.markdown("**Why this option is incorrect**")
+                st.write(distractor_feedback["explanation"])
             else:
-                st.caption(
-                    "Compare the worked explanation with your attempt. "
-                    "No specific error type is assigned because this question has no reviewed guidance tag."
-                )
+                guidance = feedback_guidance.build_feedback_guidance(question)
+                if guidance:
+                    st.markdown("**What to check**")
+                    st.write(guidance["likely_issue"])
+                    st.markdown("**Your next step**")
+                    st.write(guidance["next_step"])
+                else:
+                    st.caption(
+                        "Compare the worked explanation with your attempt. "
+                        "No specific error type is assigned because this question has no reviewed guidance tag."
+                    )
 
     if marking and not defer_standard_feedback:
         st.markdown(f"**Marking summary:** {marking.get('feedback', '')}")
@@ -2159,12 +2172,17 @@ def _render_complete(
                 unsafe_allow_html=True,
             )
             if not result.get("correct"):
-                guidance = result.get("feedback_guidance")
-                if isinstance(guidance, dict):
-                    st.markdown("**What to check**")
-                    st.write(guidance.get("likely_issue", ""))
-                    st.markdown("**Your next step**")
-                    st.write(guidance.get("next_step", ""))
+                distractor_feedback = result.get("distractor_feedback")
+                if isinstance(distractor_feedback, dict):
+                    st.markdown("**Why this option is incorrect**")
+                    st.write(distractor_feedback.get("explanation", ""))
+                else:
+                    guidance = result.get("feedback_guidance")
+                    if isinstance(guidance, dict):
+                        st.markdown("**What to check**")
+                        st.write(guidance.get("likely_issue", ""))
+                        st.markdown("**Your next step**")
+                        st.write(guidance.get("next_step", ""))
 
 
     # -----------------------------------------------------------------------
