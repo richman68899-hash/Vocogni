@@ -73,6 +73,32 @@ def _rerun_after_persistence() -> None:
         st.rerun()
 
 
+def _next_learning_lesson(progress, course_id):
+    """Return the next lesson, skipping a completed course-entry diagnostic."""
+    course = data.get_course(course_id)
+    if course is None:
+        return None
+
+    next_lesson = logic.next_incomplete_lesson(progress, course_id)
+    diagnostic_id = logic.course_diagnostic_lesson_id(course_id)
+    if (
+        diagnostic_id
+        and logic.course_diagnostic_completed(progress, course_id)
+        and next_lesson
+        and next_lesson.get("id") == diagnostic_id
+    ):
+        completed = set(progress.get(course_id, {}).get("completed_lessons", []))
+        return next(
+            (
+                lesson for lesson in course["lessons"]
+                if lesson.get("id") != diagnostic_id
+                and lesson.get("id") not in completed
+            ),
+            None,
+        )
+    return next_lesson
+
+
 # ===========================================================================
 # COURSE DETAIL
 # ===========================================================================
@@ -160,28 +186,9 @@ def render_course_detail() -> None:
         )
     )
 
-    next_lesson = logic.next_incomplete_lesson(progress, course_id)
+    next_lesson = _next_learning_lesson(progress, course_id)
     diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
     diagnostic_done = logic.course_diagnostic_completed(progress, course_id)
-
-    # The course-entry diagnostic is reported separately from completed
-    # learning lessons. Once its result is saved, don't keep pointing the
-    # "next lesson" indicator back at that diagnostic item.
-    if (
-        diagnostic_done
-        and diagnostic_lesson_id
-        and next_lesson
-        and next_lesson.get("id") == diagnostic_lesson_id
-    ):
-        next_lesson = next(
-            (
-                lesson for lesson in course["lessons"]
-                if lesson.get("id") != diagnostic_lesson_id
-                and lesson.get("id") not in completed
-            ),
-            None,
-        )
-
     next_lesson_id = next_lesson["id"] if next_lesson else None
 
     quick_target = None
@@ -1143,7 +1150,7 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             unsafe_allow_html=True,
         )
         course_id = flow.get("course_id")
-        next_lesson = logic.next_incomplete_lesson(
+        next_lesson = _next_learning_lesson(
             st.session_state.progress, course_id
         )
         review_col, next_col, back_col = st.columns(3)
