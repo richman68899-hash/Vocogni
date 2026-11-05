@@ -90,6 +90,156 @@ _GUIDANCE = {
         "List the known quantities with units, identify the unknown, and map each one "
         "to the relevant mathematical operation.",
     ),
+    "adding fractions": (
+        "Check whether the denominators represent equal-sized parts before adding.",
+        "If denominators match, add the numerators and keep the denominator. If they do "
+        "not match, make equivalent fractions first.",
+    ),
+    "subtracting unlike fractions": (
+        "Fractions with different denominators describe different-sized parts, so they "
+        "cannot be subtracted directly.",
+        "Find a common denominator, rewrite both fractions as equivalent fractions, "
+        "then subtract the numerators.",
+    ),
+    "scaling a recipe": (
+        "Scaling changes every ingredient by the same factor; adding the same amount "
+        "to each ingredient does not scale a recipe.",
+        "Multiply each original ingredient amount by the number of batches and keep "
+        "the units with the result.",
+    ),
+    "two-step equations": (
+        "Undo the operations in reverse order while keeping both sides of the equation balanced.",
+        "Undo addition or subtraction first, then undo multiplication or division; "
+        "substitute the result to check.",
+    ),
+    "equations with brackets": (
+        "The bracketed expression is treated as one quantity, and the outside operation "
+        "must be undone consistently.",
+        "First undo the factor outside the brackets, then solve the remaining equation "
+        "and check by substitution.",
+    ),
+    "budget and break-even reasoning": (
+        "Break-even occurs when total revenue equals total cost; fixed and per-item "
+        "amounts play different roles.",
+        "Write separate expressions for revenue and cost, set them equal, and solve "
+        "for the quantity.",
+    ),
+    "misidentifying the operation": (
+        "The operation must represent the relationship between the quantities, not a "
+        "keyword in isolation.",
+        "Describe what happens to the quantities in a sentence, then choose the operation "
+        "that models that relationship.",
+    ),
+    "forming an equation": (
+        "An equation needs two expressions that represent the same quantity or value.",
+        "Define the unknown, translate each side of the relationship separately, then "
+        "join them with an equals sign.",
+    ),
+    "sharing a multi-step cost": (
+        "A shared total may contain both a fixed amount and a variable amount; combine "
+        "them before dividing among people.",
+        "Calculate the full cost first, then divide by the number of people and check "
+        "that the result is a per-person amount.",
+    ),
+    "budget-constrained planning": (
+        "A plan must satisfy the budget as well as the other conditions in the problem.",
+        "Calculate the cost of each option, compare the total with the budget, and "
+        "check every stated constraint.",
+    ),
+    "angles on a straight line": (
+        "Angles on a straight line add to 180 degrees.",
+        "Add the known angles, subtract their total from 180 degrees, and check that "
+        "the result completes the straight line.",
+    ),
+    "angles around a point": (
+        "Angles around a point make one full turn, which is 360 degrees.",
+        "Add the known angles and subtract their total from 360 degrees.",
+    ),
+    "vertically opposite angles": (
+        "Vertically opposite angles are equal when two straight lines cross.",
+        "Identify the opposite angle pair before using equality; adjacent angles are "
+        "not the vertically opposite pair.",
+    ),
+    "angles in a triangle": (
+        "The interior angles of a triangle add to 180 degrees.",
+        "Add the known interior angles and subtract from 180 degrees to find the missing angle.",
+    ),
+    "forming angle equations": (
+        "An angle equation must reflect the geometric relationship, such as a straight "
+        "line total or equal vertically opposite angles.",
+        "Label the relevant angles first, write the relationship in an equation, and "
+        "then solve for the unknown.",
+    ),
+    "clock hand roles": (
+        "The long hand shows minutes and the short hand shows hours.",
+        "Read the minute hand first, then use the hour hand to identify the current hour.",
+    ),
+    "counting minute groups of five": (
+        "Each number reached by the minute hand represents five-minute groups.",
+        "Count by fives from 12 to the minute hand, then add any individual minute marks.",
+    ),
+    "counting individual minute ticks": (
+        "Each small mark between the numbered positions represents one minute.",
+        "Count the five-minute groups first, then count the extra individual marks.",
+    ),
+    "hour hand position": (
+        "The hour hand moves gradually; it does not jump to the next number at the half-hour.",
+        "Use the number the hour hand has already passed, not the number it is approaching.",
+    ),
+    "combining hour and minute hands": (
+        "The time depends on both hands: one identifies the hour and the other the minutes.",
+        "Read the hour the short hand has passed, then read the minute hand in five-minute "
+        "groups and individual ticks.",
+    ),
+    "reading past and to language": (
+        "'Past' counts forward from the hour, while 'to' counts the minutes remaining "
+        "until the next hour.",
+        "For 'past', state the current hour and minutes after it. For 'to', subtract "
+        "the stated minutes from the next hour.",
+    ),
+    "elapsed time across an hour": (
+        "Elapsed time across an hour is easier to calculate in two intervals.",
+        "Count from the start time to the next exact hour, then add the remaining minutes.",
+    ),
+    "time in a real schedule": (
+        "A schedule question asks for a clock time, so elapsed minutes must be carried "
+        "across hour boundaries.",
+        "Add the duration in manageable intervals and check whether the result crosses "
+        "an hour or day boundary.",
+    ),
+    "combining both hands": (
+        "The hour and minute hands provide different parts of the time and must be read together.",
+        "Read the hour already passed, then calculate minutes from the minute hand.",
+    ),
+    "elapsed time": (
+        "Elapsed time is the duration between two clock times, not simply the difference "
+        "between the minute numbers.",
+        "Count to the next hour first, then add the remaining interval.",
+    ),
+    "complete analog time reading": (
+        "A complete clock reading combines the hour already passed with the minute value.",
+        "Read the short hand's current hour, then the long hand's minutes, and combine them.",
+    ),
+    "minute counting transfer": (
+        "A minute-hand position can include both five-minute groups and extra single minutes.",
+        "Count the numbered groups by fives, then add the small tick marks.",
+    ),
+    "hour-hand position transfer": (
+        "The hour hand moves continuously between hour numbers.",
+        "Use the hour number it has passed, then verify the minute-hand reading.",
+    ),
+    "past and to language transfer": (
+        "The phrase 'to' refers to minutes before the next hour, not minutes after the current hour.",
+        "Subtract the stated minutes from the next hour to convert the phrase into digital time.",
+    ),
+    "elapsed time transfer": (
+        "A duration that crosses an hour boundary must include both parts of the interval.",
+        "Split the interval at the next exact hour, then add the remaining minutes.",
+    ),
+    "real-schedule transfer": (
+        "A real schedule combines a start time and duration; keep the clock format consistent.",
+        "Add the duration in hour-and-minute steps and check the final clock time.",
+    ),
 }
 
 
