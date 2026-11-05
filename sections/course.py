@@ -73,6 +73,32 @@ def _rerun_after_persistence() -> None:
         st.rerun()
 
 
+def _next_learning_lesson(progress, course_id):
+    """Return the next lesson, skipping a completed course-entry diagnostic."""
+    course = data.get_course(course_id)
+    if course is None:
+        return None
+
+    next_lesson = logic.next_incomplete_lesson(progress, course_id)
+    diagnostic_id = logic.course_diagnostic_lesson_id(course_id)
+    if (
+        diagnostic_id
+        and logic.course_diagnostic_completed(progress, course_id)
+        and next_lesson
+        and next_lesson.get("id") == diagnostic_id
+    ):
+        completed = set(progress.get(course_id, {}).get("completed_lessons", []))
+        return next(
+            (
+                lesson for lesson in course["lessons"]
+                if lesson.get("id") != diagnostic_id
+                and lesson.get("id") not in completed
+            ),
+            None,
+        )
+    return next_lesson
+
+
 # ===========================================================================
 # COURSE DETAIL
 # ===========================================================================
@@ -160,28 +186,9 @@ def render_course_detail() -> None:
         )
     )
 
-    next_lesson = logic.next_incomplete_lesson(progress, course_id)
+    next_lesson = _next_learning_lesson(progress, course_id)
     diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
     diagnostic_done = logic.course_diagnostic_completed(progress, course_id)
-
-    # The course-entry diagnostic is reported separately from completed
-    # learning lessons. Once its result is saved, don't keep pointing the
-    # "next lesson" indicator back at that diagnostic item.
-    if (
-        diagnostic_done
-        and diagnostic_lesson_id
-        and next_lesson
-        and next_lesson.get("id") == diagnostic_lesson_id
-    ):
-        next_lesson = next(
-            (
-                lesson for lesson in course["lessons"]
-                if lesson.get("id") != diagnostic_lesson_id
-                and lesson.get("id") not in completed
-            ),
-            None,
-        )
-
     next_lesson_id = next_lesson["id"] if next_lesson else None
 
     quick_target = None
@@ -193,10 +200,17 @@ def render_course_detail() -> None:
 
     if quick_target:
         quick_label = (
-            "Start course-entry diagnostic"
+            "Take the quick starting check"
             if quick_is_diagnostic
-            else f"Continue to {quick_target.get('title', 'next lesson')}"
+            else f"Continue: {quick_target.get('title', 'next lesson')}"
         )
+        if quick_is_diagnostic:
+            st.info(
+                "Start with a short check of what you already know. "
+                "It helps choose a suitable starting point; it is not a graded school test."
+            )
+        else:
+            st.caption("Your next unfinished lesson is ready. You can also choose any unlocked lesson below.")
         if st.button(
             quick_label,
             key=f"course_quick_continue_{course_id}",
@@ -269,9 +283,9 @@ def _render_course_diagnostic_row(course_id, progress) -> None:
     row_class = "vc-lesson-row" if done else "vc-lesson-row vc-lesson-row--current"
     status_icon = "✓" if done else ""
     status_text = (
-        "Completed — baseline result saved"
+        "Completed — starting point saved"
         if done
-        else "Up next — complete this before starting new lessons"
+        else "First step — helps choose where to begin"
     )
     status_class = "vc-status--complete" if done else ""
     icon_markup = (
@@ -290,7 +304,7 @@ def _render_course_diagnostic_row(course_id, progress) -> None:
         )
 
     with col_action:
-        label = "View result" if done else "Start diagnostic"
+        label = "View check" if done else "Start quick check"
         if st.button(label, key=f"course_diagnostic_{course_id}", use_container_width=True):
             st.session_state.current_lesson = diagnostic_lesson_id
             flow = state.new_lesson_flow(course_id, diagnostic_lesson_id)
@@ -852,8 +866,17 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.write(item.get("explanation", ""))
 
     st.caption(
-        "This initial check records a starting point. It is separate from the course's lessons and cannot be retaken."
+        "This quick starting check records a baseline to help guide your learning path. "
+        "It is separate from lesson practice and cannot be retaken."
     )
+    if st.button(
+        "Continue to your learning path",
+        type="primary",
+        key=f"diagnostic_result_continue_{lesson.get('id', 'course')}",
+    ):
+        st.session_state.current_lesson = None
+        st.session_state.lesson_flow = None
+        st.rerun()
 
 
 def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> None:
@@ -1126,9 +1149,13 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             f"<div class='vc-card'>{completion_message}</div>",
             unsafe_allow_html=True,
         )
-        review_col, back_col = st.columns(2)
+        course_id = flow.get("course_id")
+        next_lesson = _next_learning_lesson(
+            st.session_state.progress, course_id
+        )
+        review_col, next_col, back_col = st.columns(3)
         with review_col:
-            if st.button("Review this lesson", type="primary", use_container_width=True,
+            if st.button("Review lesson", use_container_width=True,
                          key=f"structured_review_{lesson['id']}"):
                 flow.update({
                     "view": "structured_lesson", "stage": "concept",
@@ -1136,8 +1163,24 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
                     "last_correct": None, "last_user_answer": None,
                 })
                 st.rerun()
+        with next_col:
+            if next_lesson:
+                if st.button(
+                    "Next lesson",
+                    type="primary",
+                    use_container_width=True,
+                    key=f"structured_next_{lesson['id']}",
+                ):
+                    next_id = next_lesson["id"]
+                    st.session_state.current_lesson = next_id
+                    st.session_state.lesson_flow = state.new_lesson_flow(
+                        course_id, next_id
+                    )
+                    st.rerun()
+            else:
+                st.caption("Course complete")
         with back_col:
-            if st.button("Back to lessons", use_container_width=True,
+            if st.button("Course overview", use_container_width=True,
                          key=f"structured_back_{lesson['id']}"):
                 state.flush_persistent_save()
                 st.session_state.current_lesson = None
