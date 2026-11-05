@@ -128,6 +128,48 @@ class RevisionSprintTests(unittest.TestCase):
         self.assertEqual(selected[0]["question_id"], "q1")
         self.assertEqual(len({item["question_id"] for item in selected}), 3)
 
+    def test_unresolved_mistake_queue_uses_latest_answer_per_question(self):
+        course = _course("revision_unresolved_test", [{
+            "id": "lesson_1",
+            "title": "Core skills",
+            "questions": [
+                _mc("q1", "Alpha"),
+                _mc("q2", "Beta"),
+                _mc("q3", "Gamma"),
+            ],
+        }])
+        progress = {
+            course["id"]: {
+                "practice_attempts": {
+                    "lesson_1": [
+                        {
+                            "attempt_number": 1,
+                            "completed_at": "2026-10-22T12:00:00+00:00",
+                            "results": [
+                                {"question_id": "q1", "correct": False},
+                                {"question_id": "q2", "correct": False},
+                            ],
+                        },
+                        {
+                            "attempt_number": 2,
+                            "completed_at": "2026-10-23T12:00:00+00:00",
+                            "results": [
+                                {"question_id": "q1", "correct": True},
+                            ],
+                        },
+                    ]
+                }
+            }
+        }
+        contexts = self._registered_course(course)
+        with contexts[0], contexts[1]:
+            unresolved = revision_sprint.unresolved_mistakes_for_course(
+                progress, course["id"]
+            )
+
+        self.assertEqual([item["question_id"] for item in unresolved], ["q2"])
+        self.assertEqual(unresolved[0]["skill"], "Beta")
+
     def test_whole_course_mix_rotates_across_lessons(self):
         course = _course("revision_mix_test", [
             {
