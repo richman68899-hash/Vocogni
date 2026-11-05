@@ -279,6 +279,22 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(plan["skills_with_diagnostic_evidence"], 1)
         self.assertEqual(plan["skills_with_practice_evidence"], 0)
 
+    def test_prerequisite_reason_names_diagnostic_evidence_source(self):
+        progress = {"fractions": {"diagnostics": {"fractions_l1": {
+            "answer_review": [
+                {"skill_tag": "Meaning of the denominator", "correct": False, "score": 0, "max_marks": 1},
+                {"skill_tag": "Adding fractions", "correct": False, "score": 0, "max_marks": 1},
+            ],
+        }}, "practice_attempts": {}}}
+        plan = adaptive_learning.build_learning_plan(progress)
+        prerequisite_actions = [
+            row for row in plan["actions"]
+            if row["is_prerequisite_review"] and row["evidence_source"] == "diagnostic"
+        ]
+        self.assertTrue(prerequisite_actions)
+        self.assertIn("baseline diagnostic evidence", prerequisite_actions[0]["reason"])
+        self.assertNotIn("practice-evidence threshold", prerequisite_actions[0]["reason"])
+
     def test_practice_evidence_takes_precedence_over_diagnostic(self):
         progress = {"fractions": {
             "diagnostics": {"fractions_l1": {"answer_review": [
