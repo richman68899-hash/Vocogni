@@ -581,8 +581,16 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
         prerequisites = [
             prerequisite for prerequisite in math_taxonomy.SKILLS[skill_id].get("prerequisites", [])
             if prerequisite in evidence and (
-                evidence[prerequisite]["accuracy"] is None
-                or evidence[prerequisite]["accuracy"] < 0.75
+                (
+                    evidence[prerequisite]["accuracy"]
+                    if evidence[prerequisite]["accuracy"] is not None
+                    else evidence[prerequisite]["diagnostic_accuracy"]
+                ) is None
+                or (
+                    evidence[prerequisite]["accuracy"]
+                    if evidence[prerequisite]["accuracy"] is not None
+                    else evidence[prerequisite]["diagnostic_accuracy"]
+                ) < 0.75
             )
         ]
         target_skill = prerequisites[0] if prerequisites else skill_id
