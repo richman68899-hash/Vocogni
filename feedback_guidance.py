@@ -255,3 +255,79 @@ def build_feedback_guidance(question: dict[str, Any]) -> dict[str, str] | None:
     if guidance is None:
         return None
     return {"likely_issue": guidance[0], "next_step": guidance[1], "source_tag": raw_tag}
+
+
+# P02: question- and distractor-specific explanations. These entries are
+# authored against the exact reviewed question wording and option text.
+# Coverage is intentionally explicit; unknown options use the existing safe
+# general guidance rather than an inferred explanation.
+_DISTRACTOR_FEEDBACK = {
+    "fractions_l1_q1": {
+        "4/3": "This reverses the roles of the numerator and denominator. The numerator counts the selected parts (3); the denominator counts all equal parts (4).",
+        "1/3": "This uses 1 as the number of selected parts, but the question states that 3 parts are selected. Keep 3 on top and 4 as the total number of equal parts.",
+        "3/3": "This says all 3 of 3 parts are selected. The whole is divided into 4 equal parts, so the denominator must be 4.",
+    },
+    "fractions_l1_q2": {
+        "5": "5 is the numerator, the top number. The denominator is the bottom number in the fraction.",
+        "3": "3 is the difference between 8 and 5, not a part of the written fraction. In 5/8, the bottom number is 8.",
+        "13": "13 is the sum of 5 and 8. The denominator is not found by combining the two numbers; it is the bottom number, 8.",
+    },
+    "fractions_l1_screen3": {
+        "8/5": "This reverses the count: 8 is the total number of slices, while 5 is the number eaten. The fraction is selected parts over total equal parts.",
+        "3/8": "3/8 represents the slices left over (8 total minus 5 eaten), not the slices eaten.",
+        "5/5": "This treats the 5 eaten slices as the entire whole. The pizza has 8 equal slices, so the denominator is 8.",
+    },
+    "algebra_l1_q1": {
+        "A fixed constant": "A constant has a fixed value. In this equation, x is the unknown number whose value must make x + 5 = 12 true.",
+        "The answer 5": "5 is the number being added to x; it is already known. The question asks for the unknown represented by x.",
+        "The answer 12": "12 is the stated total on the right side of the equation. x is the unknown value that combines with 5 to make 12.",
+    },
+    "algebra_l1_q2": {
+        "7": "7 is a fixed number, not a symbol that can represent different values. A variable is represented by a letter such as x.",
+        "+": "The plus sign is an operation symbol. It tells you to add; it does not stand for a number.",
+        "=": "The equals sign states that two expressions have the same value. It is a relation symbol, not a variable.",
+    },
+    "algebra_l1_screen3": {
+        "3n": "3n means three times the starting amount n. The phrase '3 more' means add 3, giving n + 3.",
+        "n - 3": "n - 3 means three fewer than the starting amount. The question says the amount increases by 3.",
+        "3 - n": "3 - n subtracts the starting amount from 3. The new amount is the starting amount n plus 3.",
+    },
+    "wp_l1_q1": {
+        "Subtraction": "Subtraction finds a difference or removes an amount. A total combines amounts, so addition is the matching operation here.",
+        "Multiplication": "Multiplication can represent equal groups or scaling. The word 'total' here asks for a combined amount.",
+        "Division": "Division shares or groups a quantity. A total is found by combining the amounts with addition.",
+    },
+    "wp_l1_q2": {
+        "x/3": "x/3 means one-third of Tom's amount. The sentence says Sarah has three times Tom's amount, so multiply x by 3.",
+        "x + 3": "x + 3 adds three apples, rather than making the amount three times as large.",
+        "x - 3": "x - 3 makes Sarah's amount three fewer than Tom's. 'Three times as many' requires multiplication.",
+    },
+}
+
+
+def build_distractor_feedback(question: dict[str, Any], user_answer: Any) -> dict[str, str] | None:
+    """Return an authored explanation for this exact verified MC distractor."""
+    if not isinstance(question, dict):
+        return None
+    if question.get("verification_status") != "verified" or question.get("type") != "mc":
+        return None
+    question_id = question.get("id")
+    if not isinstance(question_id, str) or not question_id:
+        return None
+    if not isinstance(user_answer, str) or not user_answer.strip():
+        return None
+    options = question.get("options")
+    if not isinstance(options, list) or user_answer not in options:
+        return None
+    answer = question.get("answer")
+    if user_answer == answer:
+        return None
+    explanation = _DISTRACTOR_FEEDBACK.get(question_id, {}).get(user_answer)
+    if not isinstance(explanation, str) or not explanation.strip():
+        return None
+    return {
+        "selected_option": user_answer,
+        "explanation": explanation,
+        "question_id": question_id,
+        "source": "authored_distractor",
+    }
