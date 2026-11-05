@@ -193,10 +193,17 @@ def render_course_detail() -> None:
 
     if quick_target:
         quick_label = (
-            "Start course-entry diagnostic"
+            "Take the quick starting check"
             if quick_is_diagnostic
-            else f"Continue to {quick_target.get('title', 'next lesson')}"
+            else f"Continue: {quick_target.get('title', 'next lesson')}"
         )
+        if quick_is_diagnostic:
+            st.info(
+                "Start with a short check of what you already know. "
+                "It helps choose a suitable starting point; it is not a graded school test."
+            )
+        else:
+            st.caption("Your next unfinished lesson is ready. You can also choose any unlocked lesson below.")
         if st.button(
             quick_label,
             key=f"course_quick_continue_{course_id}",
@@ -269,9 +276,9 @@ def _render_course_diagnostic_row(course_id, progress) -> None:
     row_class = "vc-lesson-row" if done else "vc-lesson-row vc-lesson-row--current"
     status_icon = "✓" if done else ""
     status_text = (
-        "Completed — baseline result saved"
+        "Completed — starting point saved"
         if done
-        else "Up next — complete this before starting new lessons"
+        else "First step — helps choose where to begin"
     )
     status_class = "vc-status--complete" if done else ""
     icon_markup = (
@@ -290,7 +297,7 @@ def _render_course_diagnostic_row(course_id, progress) -> None:
         )
 
     with col_action:
-        label = "View result" if done else "Start diagnostic"
+        label = "View check" if done else "Start quick check"
         if st.button(label, key=f"course_diagnostic_{course_id}", use_container_width=True):
             st.session_state.current_lesson = diagnostic_lesson_id
             flow = state.new_lesson_flow(course_id, diagnostic_lesson_id)
@@ -852,8 +859,17 @@ def _render_course_diagnostic_result(lesson, result) -> None:
             st.write(item.get("explanation", ""))
 
     st.caption(
-        "This initial check records a starting point. It is separate from the course's lessons and cannot be retaken."
+        "This quick starting check records a baseline to help guide your learning path. "
+        "It is separate from lesson practice and cannot be retaken."
     )
+    if st.button(
+        "Continue to your learning path",
+        type="primary",
+        key=f"diagnostic_result_continue_{lesson.get('id', 'course')}",
+    ):
+        st.session_state.current_lesson = None
+        st.session_state.lesson_flow = None
+        st.rerun()
 
 
 def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> None:
