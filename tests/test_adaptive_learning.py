@@ -283,7 +283,7 @@ class AdaptiveLearningTests(unittest.TestCase):
         progress = {"fractions": {"diagnostics": {"fractions_l1": {
             "answer_review": [
                 {"skill_tag": "Meaning of the denominator", "correct": False, "score": 0, "max_marks": 1},
-                {"skill_tag": "Adding fractions", "correct": False, "score": 0, "max_marks": 1},
+                {"skill_tag": "Applying fractions in context", "correct": False, "score": 0, "max_marks": 1},
             ],
         }}, "practice_attempts": {}}}
         plan = adaptive_learning.build_learning_plan(progress)
