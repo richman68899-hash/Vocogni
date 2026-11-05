@@ -51,6 +51,7 @@ import logic
 import question_engine
 import state
 import mistake_reflections
+import feedback_guidance
 from . import revision_sprint as revision_sprint_section
 
 
@@ -1708,6 +1709,10 @@ def _render_question(
             "correct": is_correct,
             "explanation": question["explanation"],
         }
+        if not is_correct:
+            guidance = feedback_guidance.build_feedback_guidance(question)
+            if guidance:
+                result_record["feedback_guidance"] = guidance
         # Store the exact reviewed question provenance alongside each new
         # practice result. Older result records remain valid without these keys.
         result_record.update(question_engine.attempt_metadata(
@@ -1949,6 +1954,18 @@ def _render_feedback(
             f"</div>",
             unsafe_allow_html=True,
         )
+        if not is_correct:
+            guidance = feedback_guidance.build_feedback_guidance(question)
+            if guidance:
+                st.markdown("**What to check**")
+                st.write(guidance["likely_issue"])
+                st.markdown("**Your next step**")
+                st.write(guidance["next_step"])
+            else:
+                st.caption(
+                    "Compare the worked explanation with your attempt. "
+                    "No specific error type is assigned because this question has no reviewed guidance tag."
+                )
 
     if marking and not defer_standard_feedback:
         st.markdown(f"**Marking summary:** {marking.get('feedback', '')}")
@@ -2141,6 +2158,13 @@ def _render_complete(
                 f"</div>",
                 unsafe_allow_html=True,
             )
+            if not result.get("correct"):
+                guidance = result.get("feedback_guidance")
+                if isinstance(guidance, dict):
+                    st.markdown("**What to check**")
+                    st.write(guidance.get("likely_issue", ""))
+                    st.markdown("**Your next step**")
+                    st.write(guidance.get("next_step", ""))
 
 
     # -----------------------------------------------------------------------
