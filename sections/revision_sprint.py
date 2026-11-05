@@ -71,6 +71,12 @@ def _render_setup(course, progress, bank):
         key=f"revision_sprint_mode_{course_id}",
     )
 
+    unresolved = sprint_logic.unresolved_mistakes_for_course(progress, course_id)
+    if unresolved:
+        st.info(
+            f"{len(unresolved)} previously missed question(s) are queued first. "
+            "A later correct response removes that question from the review queue."
+        )
     weak_skills = sprint_logic.weak_skills_for_course(progress, course_id, limit=3)
     if weak_skills:
         st.caption("Current priority skills: " + " · ".join(weak_skills))
@@ -200,6 +206,12 @@ def render_browse_entry(progress):
             horizontal=True,
             key=f"revision_sprint_browse_mode_{course_id}",
         )
+        unresolved = sprint_logic.unresolved_mistakes_for_course(progress, course_id)
+        if unresolved:
+            st.info(
+                f"{len(unresolved)} previously missed question(s) are queued first. "
+                "A later correct response removes that question from the review queue."
+            )
         weak_skills = sprint_logic.weak_skills_for_course(progress, course_id, limit=3)
         if weak_skills:
             st.caption("Priority skills: " + " · ".join(weak_skills))

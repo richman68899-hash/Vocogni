@@ -163,6 +163,31 @@ def _question_history(progress, course_id):
     return history
 
 
+def unresolved_mistakes_for_course(progress, course_id):
+    """Return bank questions whose latest recorded answer was incorrect.
+
+    A question leaves this queue after a later full-credit/correct response.
+    This is a practice follow-up queue, not a claim that the learner has
+    mastered the underlying skill.
+    """
+    bank = question_bank_for_course(course_id)
+    history = _question_history(progress, course_id)
+    unresolved = []
+    for item in bank:
+        past = history.get((item["lesson_id"], item["question_id"]), [])
+        if past and past[-1].get("correct") is False:
+            unresolved.append({
+                "lesson_id": item["lesson_id"],
+                "lesson_title": item["lesson_title"],
+                "question_id": item["question_id"],
+                "skill": item["skill"],
+            })
+    unresolved.sort(key=lambda item: (
+        item["lesson_id"], item["skill"].casefold(), item["question_id"]
+    ))
+    return unresolved
+
+
 def select_questions(progress, course_id, count=5, mode="personalized"):
     """Select a bounded sprint and rotate across weak skills or lessons."""
     bank = question_bank_for_course(course_id)
