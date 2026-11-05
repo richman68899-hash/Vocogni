@@ -1961,6 +1961,9 @@ def _render_feedback(
                 st.write(guidance["likely_issue"])
                 st.markdown("**Your next step**")
                 st.write(guidance["next_step"])
+                if guidance.get("worked_example"):
+                    st.markdown("**A worked example**")
+                    st.write(guidance["worked_example"])
             else:
                 st.caption(
                     "Compare the worked explanation with your attempt. "
@@ -2165,6 +2168,9 @@ def _render_complete(
                     st.write(guidance.get("likely_issue", ""))
                     st.markdown("**Your next step**")
                     st.write(guidance.get("next_step", ""))
+                    if guidance.get("worked_example"):
+                        st.markdown("**A worked example**")
+                        st.write(guidance["worked_example"])
 
 
     # -----------------------------------------------------------------------
