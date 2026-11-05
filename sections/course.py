@@ -1142,9 +1142,13 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
             f"<div class='vc-card'>{completion_message}</div>",
             unsafe_allow_html=True,
         )
-        review_col, back_col = st.columns(2)
+        course_id = flow.get("course_id")
+        next_lesson = logic.next_incomplete_lesson(
+            st.session_state.progress, course_id
+        )
+        review_col, next_col, back_col = st.columns(3)
         with review_col:
-            if st.button("Review this lesson", type="primary", use_container_width=True,
+            if st.button("Review lesson", use_container_width=True,
                          key=f"structured_review_{lesson['id']}"):
                 flow.update({
                     "view": "structured_lesson", "stage": "concept",
@@ -1152,8 +1156,24 @@ def _render_attempt_complete(course, lesson, flow, diagnostic_result, attempts) 
                     "last_correct": None, "last_user_answer": None,
                 })
                 st.rerun()
+        with next_col:
+            if next_lesson:
+                if st.button(
+                    "Next lesson",
+                    type="primary",
+                    use_container_width=True,
+                    key=f"structured_next_{lesson['id']}",
+                ):
+                    next_id = next_lesson["id"]
+                    st.session_state.current_lesson = next_id
+                    st.session_state.lesson_flow = state.new_lesson_flow(
+                        course_id, next_id
+                    )
+                    st.rerun()
+            else:
+                st.caption("Course complete")
         with back_col:
-            if st.button("Back to lessons", use_container_width=True,
+            if st.button("Course overview", use_container_width=True,
                          key=f"structured_back_{lesson['id']}"):
                 state.flush_persistent_save()
                 st.session_state.current_lesson = None
