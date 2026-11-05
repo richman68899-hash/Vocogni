@@ -102,6 +102,28 @@ def render():
 
     progress = st.session_state.progress
     profile = st.session_state.profile
+    stats = logic.overall_stats(progress)
+
+    if not _has_learning_activity(stats):
+        with st.container(border=True):
+            st.subheader("Your learning progress will appear here")
+            st.write(
+                "You haven't recorded any course activity yet. Start a mathematics "
+                "course to build your first progress record. Your dashboard will update "
+                "as you complete lessons and answer practice questions."
+            )
+            if st.button(
+                "Explore courses",
+                key="progress_empty_state_explore",
+                type="primary",
+                use_container_width=True,
+            ):
+                st.session_state.current_course = None
+                st.session_state.current_lesson = None
+                st.session_state.lesson_flow = None
+                st.session_state.nav = "Browse"
+                st.rerun()
+        return
 
     with _progress_section("overview", "Overview"):
         _render_overview(progress)
@@ -123,6 +145,22 @@ def render():
 
     with _progress_section("ai_summary", "AI progress summary"):
         _render_ai_summary(profile, progress)
+
+
+def _has_learning_activity(stats):
+    """Return whether the learner has started or recorded course activity."""
+    for key in (
+        "courses_attempted",
+        "courses_completed",
+        "lessons_completed",
+        "questions_attempted",
+    ):
+        try:
+            if int((stats or {}).get(key, 0) or 0) > 0:
+                return True
+        except (TypeError, ValueError, OverflowError):
+            continue
+    return False
 
 
 def _stat_block(label, value):

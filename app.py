@@ -26,10 +26,11 @@ from sections import settings as settings_section
 
 
 NAV_ITEMS = [
-    ("Profile", "Profile"),
-    ("Progress", "Progress"),
+    # Put the primary learner action first; supporting areas follow the learning loop.
     ("Learn", "Browse"),
+    ("Progress", "Progress"),
     ("Notes", "Notes"),
+    ("Profile", "Profile"),
     ("Settings", "Settings"),
 ]
 

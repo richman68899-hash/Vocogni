@@ -185,47 +185,50 @@ def _render_grid():
         st.session_state.browse_category_filter != "All",
         st.session_state.browse_subject_filter != "All",
     ])
-    reset_col, search_col = st.columns([1, 5], vertical_alignment="bottom")
-    with reset_col:
-        if st.button(
-            "Clear filters",
-            key="browse_clear_filters",
-            disabled=not filters_active,
-            help="Reset search, status, difficulty, category, and subject.",
-            use_container_width=True,
-        ):
-            for key, default in defaults.items():
-                st.session_state[key] = default if key == "browse_search_input" else "All"
-            st.session_state.browse_search = ""
-            st.rerun()
-    with search_col:
-        search = st.text_input(
-            "Search courses",
-            placeholder="Search by course, subject, or topic",
-            key="browse_search_input",
-        )
+    search = st.text_input(
+        "Search courses",
+        placeholder="Search by course, subject, or topic",
+        key="browse_search_input",
+    )
 
-    status_col, diff_col, category_col, subject_col = st.columns(4, gap="medium")
-    with status_col:
-        status_filter = st.selectbox(
-            "Status", STATUS_OPTIONS, key="browse_status_filter"
-        )
-    with diff_col:
-        diff_filter = st.selectbox(
-            "Difficulty", ["All"] + difficulties, key="browse_difficulty_filter"
-        )
-    with category_col:
-        category_filter = st.selectbox(
-            "Category", ["All"] + list(category_labels),
-            format_func=lambda key: "All" if key == "All" else category_labels.get(key, key),
-            key="browse_category_filter",
-        )
-    with subject_col:
-        subject_filter = st.selectbox(
-            "Subject", ["All"] + list(subject_labels),
-            format_func=lambda key: "All" if key == "All" else subject_labels.get(key, key),
-            key="browse_subject_filter",
-        )
+    # Keep the first-use decision simple: course cards and search stay visible,
+    # while secondary filtering controls are available on demand.
+    with st.expander("Filters", expanded=False):
+        reset_col, _spacer_col = st.columns([1, 5], vertical_alignment="bottom")
+        with reset_col:
+            if st.button(
+                "Clear filters",
+                key="browse_clear_filters",
+                disabled=not filters_active,
+                help="Reset search, status, difficulty, category, and subject.",
+                use_container_width=True,
+            ):
+                for key, default in defaults.items():
+                    st.session_state[key] = default if key == "browse_search_input" else "All"
+                st.session_state.browse_search = ""
+                st.rerun()
+
+        status_col, diff_col, category_col, subject_col = st.columns(4, gap="medium")
+        with status_col:
+            status_filter = st.selectbox(
+                "Status", STATUS_OPTIONS, key="browse_status_filter"
+            )
+        with diff_col:
+            diff_filter = st.selectbox(
+                "Difficulty", ["All"] + difficulties, key="browse_difficulty_filter"
+            )
+        with category_col:
+            category_filter = st.selectbox(
+                "Category", ["All"] + list(category_labels),
+                format_func=lambda key: "All" if key == "All" else category_labels.get(key, key),
+                key="browse_category_filter",
+            )
+        with subject_col:
+            subject_filter = st.selectbox(
+                "Subject", ["All"] + list(subject_labels),
+                format_func=lambda key: "All" if key == "All" else subject_labels.get(key, key),
+                key="browse_subject_filter",
+            )
 
     st.session_state.browse_search = search
 
