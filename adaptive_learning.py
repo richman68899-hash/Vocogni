@@ -614,9 +614,13 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
 
         is_prerequisite = target_skill != skill_id
         if is_prerequisite:
+            threshold_source = (
+                "practice evidence" if target_source == "practice"
+                else "baseline diagnostic evidence"
+            )
             reason = (
                 f"{item['skill']} depends on {target['skill']}, which has "
-                "not yet reached the 75% practice-evidence threshold."
+                f"not yet reached the 75% threshold based on {threshold_source}."
             )
             action = f"Review {target['skill']} before returning to {item['skill']}."
         elif item["repeat_errors"]:
