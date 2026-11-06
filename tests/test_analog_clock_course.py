@@ -80,6 +80,23 @@ class AnalogClockCourseTests(unittest.TestCase):
         assert audit["needs_review_count"] == 0
         assert audit["legacy_count"] == 0
 
+    def test_transfer_item_checks_digital_to_analog_representation(self):
+        lesson = next(item for item in clock_course.LESSONS if item["id"] == "clock_l6")
+        question = next(
+            item for item in lesson["practice_questions"]
+            if item["id"] == "clock_l6_transfer_q2"
+        )
+        assert question["type"] == "mc"
+        assert question["answer"] == "Between 8 and 9, two small marks after 8"
+        assert "digital display" in question["prompt"]
+        record = question_engine.get_question_record(
+            "clock_l6_transfer_q2",
+            course_id="analog_clocks",
+            lesson_id="clock_l6",
+        )
+        assert record is not None
+        assert record["verification_status"] == "verified"
+
     def test_clock_hand_geometry_and_minute_counting(self):
         assert clock_math.minute_hand_angle(25) == 150
         assert clock_math.hour_hand_angle(3, 0) == 90
