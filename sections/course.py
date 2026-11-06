@@ -1969,7 +1969,7 @@ def _render_feedback(
         else (
             f"Partial credit — {marking.get('score', 0)}/{marking.get('max_marks', 0)} marks."
             if marking and marking.get("score", 0) > 0
-            else ("Correct." if is_correct else "Not quite.")
+            else ("That's correct." if is_correct else "Not quite. Let's check the reasoning.")
         )
     )
 
