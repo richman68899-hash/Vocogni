@@ -52,6 +52,7 @@ import question_engine
 import state
 import mistake_reflections
 import feedback_guidance
+import transfer_check
 from . import revision_sprint as revision_sprint_section
 
 
@@ -1026,6 +1027,11 @@ def _start_practice_attempt(lesson, flow, diagnostic_result, pathway) -> None:
     """Initialize a clean practice attempt without touching the diagnostic."""
     previous = int(flow.get("attempt_number", 0))
     questions = diagnostics.get_pathway_questions(lesson, pathway)
+    transfer_question = transfer_check.select_transfer_question(
+        questions, course_id=flow.get("course_id"), lesson_id=lesson["id"]
+    )
+    if transfer_question is not None:
+        questions = list(questions) + [transfer_question]
     flow.update({
         "view": "practice", "stage": "intro", "q_index": 0, "results": [],
         "active_questions": questions, "selected_pathway": pathway,
@@ -1045,9 +1051,18 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     history = prog.setdefault("practice_attempts", {}).setdefault(lesson["id"], [])
     attempt_number = int(flow.get("attempt_number", len(history) + 1))
     existing = next((x for x in history if x.get("attempt_number") == attempt_number), None)
-    results = flow.get("results", [])
+    all_results = flow.get("results", [])
+    transfer_results = [x for x in all_results if x.get("evidence_type") == "independent_transfer"]
+    results = [x for x in all_results if x.get("evidence_type") != "independent_transfer"]
+    if transfer_results:
+        prog.setdefault("transfer_checks", []).extend({
+            **item,
+            "attempt_number": attempt_number,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        } for item in transfer_results)
+        state.mark_persistent_dirty()
     correct = sum(bool(x.get("correct")) for x in results)
-    awarded_marks = sum(int(x.get("score", int(bool(x.get("correct"))))) for x in results)
+    awarded_marks = sum(int(x.get("score", int(bool(x.get("correct))))) for x in results)
     maximum_marks = sum(int(x.get("max_marks", 1)) for x in results)
     mark_percent = round(awarded_marks / maximum_marks * 100) if maximum_marks else 0
     accuracy_percent = round(correct / len(results) * 100) if results else 0
@@ -1527,6 +1542,9 @@ def _render_question(
         practice_heading = "Post-test questions" if lesson.get("kind") == "assessment" else "Practice set"
         st.markdown(f"### Screen 3 of 3 — {practice_heading}")
 
+    if question.get("_is_transfer_check"):
+        st.info("Independent transfer check — a new application of a skill from this lesson. Work without hints or worked examples.")
+
     st.markdown(
         f"<span class='vc-muted'>"
         f"Question {idx + 1} of {total}"
@@ -1655,12 +1673,14 @@ def _render_question(
         # Update durable learner progress
         # ---------------------------------------------------------------
 
-        logic.record_answer(
-            st.session_state.progress,
-            course_id,
-            question,
-            is_correct,
-        )
+        is_transfer_check = bool(question.get("_is_transfer_check"))
+        if not is_transfer_check:
+            logic.record_answer(
+                st.session_state.progress,
+                course_id,
+                question,
+                is_correct,
+            )
 
         # ---------------------------------------------------------------
         # IMPORTANT V1.2 AUTOSAVE HOOK
@@ -1724,8 +1744,13 @@ def _render_question(
         result_record.update(question_engine.attempt_metadata(
             question.get("id"),
             course_id=course_id,
-            lesson_id=lesson["id"],
+            lesson_id=question.get("source_lesson_id") or lesson["id"],
         ))
+        if is_transfer_check:
+            result_record["evidence_type"] = "independent_transfer"
+            result_record["independent"] = True
+            result_record["source_skill_id"] = question.get("skill_id")
+            result_record["source_lesson_id"] = question.get("source_lesson_id")
         if marking_result is not None:
             result_record.update({
                 "score": marking_result["score"],
@@ -1914,6 +1939,8 @@ def _render_feedback(
         st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
     is_correct = flow["last_correct"]
+    if question.get("_is_transfer_check"):
+        st.caption("Transfer check: this result is recorded separately from ordinary practice and does not change the skill's practice accuracy.")
     marking = flow.get("last_marking") if question.get("type") == "open_ended" else None
 
     feedback_class = (
@@ -2189,16 +2216,10 @@ def _render_complete(
     # Summary
     # -----------------------------------------------------------------------
 
-    correct_count = sum(
-        1
-        for result in flow["results"]
-        if result["correct"]
-    )
-
-    total_count = (
-        len(flow["results"])
-        or 1
-    )
+    ordinary_results = [x for x in flow["results"] if x.get("evidence_type") != "independent_transfer"]
+    transfer_results = [x for x in flow["results"] if x.get("evidence_type") == "independent_transfer"]
+    correct_count = sum(1 for result in ordinary_results if result["correct"])
+    total_count = len(ordinary_results) or 1
 
     # Store a single descriptive post-lesson checkpoint for comparison with
     # the one-time baseline. This is not claimed to be a validated learning-gain
@@ -2230,10 +2251,13 @@ def _render_complete(
         f"<div class='vc-card'>"
         f"<strong>Lesson complete.</strong> "
         f"You answered {correct_count} of "
-        f"{total_count} {question_word} correctly."
+        f"{total_count} practice {question_word} correctly."
         f"</div>",
         unsafe_allow_html=True,
     )
+    for transfer_result in transfer_results:
+        status = "correct" if transfer_result.get("correct") else "not yet correct"
+        st.info(f"Independent transfer check: {status}. This is one application sample, not proof of mastery.")
 
     assessment = prog.get("lesson_assessments", {}).get(lesson["id"])
     if assessment:
