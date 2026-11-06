@@ -21,6 +21,20 @@ class FeedbackGuidanceTests(unittest.TestCase):
         self.assertIsNotNone(guidance)
         self.assertIn("negative sign", guidance["likely_issue"].lower())
 
+    def test_known_tag_includes_a_tag_specific_worked_example(self):
+        guidance = feedback_guidance.build_feedback_guidance({
+            "mistake_tag": "Denominator confusion",
+        })
+        self.assertIn("3 of 5", guidance["worked_example"])
+        self.assertIn("denominator", guidance["worked_example"].lower())
+
+    def test_tag_without_authored_example_returns_empty_example(self):
+        guidance = feedback_guidance.build_feedback_guidance({
+            "mistake_tag": "selecting relevant information",
+        })
+        self.assertIsNotNone(guidance)
+        self.assertEqual(guidance["worked_example"], "")
+
     def test_unknown_tag_is_not_mislabelled(self):
         self.assertIsNone(feedback_guidance.build_feedback_guidance({
             "mistake_tag": "Unreviewed misconception",

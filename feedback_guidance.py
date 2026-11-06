@@ -243,6 +243,33 @@ _GUIDANCE = {
 }
 
 
+# Short worked examples provide a second representation, not another diagnosis.
+# These are deliberately authored and limited to tags reviewed for this prototype.
+_WORKED_EXAMPLES = {
+    "denominator confusion": "Example: 3 of 5 equal slices is 3/5. The 5 counts every equal slice; the 3 counts the selected slices.",
+    "meaning of the denominator": "Example: In 2/7, the whole is divided into 7 equal parts. The 2 tells how many of those parts are selected.",
+    "representing fractions": "Example: If 4 of 6 equal boxes are shaded, write 4/6: shaded boxes on top, all equal boxes on the bottom.",
+    "addition error": "Example: 1/5 + 2/5 = 3/5. Each part is the same size, so combine the counts (1 + 2) and keep the denominator 5.",
+    "adding fractions": "Example: 1/4 + 2/4 = 3/4. If the denominators match, add only the numerators.",
+    "subtracting unlike fractions": "Example: 1/2 - 1/4 = 2/4 - 1/4 = 1/4. First rewrite both fractions with the same denominator.",
+    "incorrect simplification": "Example: 6/8 = 3/4 because both 6 and 8 are divided by 2. Dividing only one number would change the value.",
+    "incorrect inverse operation": "Example: x + 4 = 9. Subtract 4 from both sides: x = 5. Both sides must stay balanced.",
+    "inverse operations": "Example: 3x = 12. Divide both sides by 3, so x = 4. Check: 3 × 4 = 12.",
+    "sign errors": "Example: 5 - 8 = -3, not 3. Moving 3 units below zero gives a negative result.",
+    "meaning of a variable": "Example: If x is the number of notebooks, then 3x means three times that number, not x + 3.",
+    "variable misunderstanding": "Example: If x = 4, then 2x = 2 × 4 = 8. The letter represents a number.",
+    "angles on a straight line": "Example: If one angle is 65°, the adjacent angle on the same straight line is 180° - 65° = 115°.",
+    "angles around a point": "Example: If three angles around a point are 90°, 120°, and 80°, the fourth is 360° - 290° = 70°.",
+    "angles in a triangle": "Example: A triangle with angles 50° and 60° has a third angle of 180° - 110° = 70°.",
+    "clock hand roles": "Example: At 3:00, the short hour hand points to 3 and the long minute hand points to 12.",
+    "counting minute groups of five": "Example: When the minute hand points to 4, count four groups of five: 5, 10, 15, 20 minutes.",
+    "counting individual minute ticks": "Example: If the minute hand is one small tick after the 2, read 11 minutes (10 + 1), not 10.",
+    "hour hand position": "Example: At 4:45, the hour hand has passed 4 and is moving toward 5. The current hour is still 4.",
+    "reading past and to language": "Example: 20 minutes to 6 means 6:00 - 20 minutes = 5:40.",
+    "elapsed time across an hour": "Example: From 2:50 to 3:20 is 10 minutes to 3:00, then 20 more minutes: 30 minutes total.",
+}
+
+
 def build_feedback_guidance(question: dict[str, Any]) -> dict[str, str] | None:
     """Return carefully scoped guidance for a recognised authored mistake tag."""
     if not isinstance(question, dict):
@@ -254,7 +281,12 @@ def build_feedback_guidance(question: dict[str, Any]) -> dict[str, str] | None:
     guidance = _GUIDANCE.get(key)
     if guidance is None:
         return None
-    return {"likely_issue": guidance[0], "next_step": guidance[1], "source_tag": raw_tag}
+    return {
+        "likely_issue": guidance[0],
+        "next_step": guidance[1],
+        "worked_example": _WORKED_EXAMPLES.get(key, ""),
+        "source_tag": raw_tag,
+    }
 
 
 # P02: question- and distractor-specific explanations. These entries are
