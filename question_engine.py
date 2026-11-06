@@ -831,6 +831,58 @@ VERIFICATION_REGISTRY.update({
         },
         grade_bands=(3, 4, 5, 6, 7, 8, 9),
     ),
+    "clock_l6_q7": _review(
+        "math.time.clock_parts", "Clock hands working together", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "A museum guide explains that the minute hand has completed one full turn while the hour hand moves from 2 toward 3. Which statement best explains the relationship?",
+            "options": ["The hands move together; one full minute-hand turn represents one hour", "The hour hand moves one number every five minutes", "The minute hand measures hours and the short hand measures minutes", "The hour hand stays fixed until the minute hand reaches 12"],
+            "answer": "The hands move together; one full minute-hand turn represents one hour",
+            "explanation": "The minute hand completes 60 minutes in one turn. During that same hour, the hour hand advances from 2 to 3.",
+            "skill_tag": "Clock hand roles",
+            "mistake_tag": "Clock hand roles",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q8": _review(
+        "math.time.minute_counting", "Minute groups and individual ticks", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "A timetable shows a train departure at 14:37. On a teaching clock, the minute hand points to 7 and is two small marks beyond it. What minute value should the learner record?",
+            "options": ["37 minutes", "7 minutes", "35 minutes", "42 minutes"],
+            "answer": "37 minutes",
+            "explanation": "The 7 represents 7 groups of 5 minutes: 35. Add two individual minute marks: 35 + 2 = 37.",
+            "skill_tag": "Counting minute groups and individual ticks",
+            "mistake_tag": "Counting minute groups and individual ticks",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q9": _review(
+        "math.time.hour_hand_position", "Hour in progress", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "A school bell rings at 10:50. The short hand is close to 11. Which hour is still in progress when the bell rings?",
+            "options": ["10", "11", "50", "12"],
+            "answer": "10",
+            "explanation": "The hour hand has passed 10 but has not reached 11. The time is still in the 10 o'clock hour.",
+            "skill_tag": "Hour hand position",
+            "mistake_tag": "Hour hand position",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_q10": _review(
+        "math.time.reading_analog_time", "Combining clock readings", "application", 3,
+        {
+            "type": "mc",
+            "prompt": "A technician describes a clock: the long hand points to 8 and is three small marks beyond it; the short hand is between 2 and 3. What time should be written on the inspection record?",
+            "options": ["2:43", "3:43", "2:40", "8:03"],
+            "answer": "2:43",
+            "explanation": "The long hand at 8 means 40 minutes; three extra marks make 43. The short hand has passed 2 but not 3, so the time is 2:43.",
+            "skill_tag": "Combining hour and minute hands",
+            "mistake_tag": "Combining hour and minute hands",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
 })
 
 
