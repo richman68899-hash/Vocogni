@@ -29,9 +29,11 @@ class BasicGeometryCourseTests(unittest.TestCase):
                 "Final Check — Post-test",
             ],
         )
-        for lesson in lessons[:4]:
+        for lesson in lessons[:3]:
             with self.subTest(lesson=lesson["title"]):
                 self.assertEqual(len(lesson["practice_questions"]), 5)
+        # Mixed Application includes one additional cross-lesson transfer item.
+        self.assertEqual(len(lessons[3]["practice_questions"]), 6)
         self.assertEqual(len(lessons[4]["practice_questions"]), 8)
         self.assertEqual(lessons[3]["kind"], "application")
         self.assertEqual(lessons[4]["kind"], "assessment")
