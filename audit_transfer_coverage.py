@@ -39,7 +39,7 @@ def build_report(*, course_id: str | None = None) -> dict:
 def render_report(report: dict, *, uncovered_only: bool = False) -> str:
     """Render a concise human-readable report."""
     lines = [
-        "VOCogni — INDEPENDENT TRANSFER COVERAGE",
+        "Vocogni — INDEPENDENT TRANSFER COVERAGE",
         (
             f"Coverage: {report['covered_pairs']}/{report['practice_course_skill_pairs']} "
             f"course-skill pairs ({report['coverage_percent']}%)"
