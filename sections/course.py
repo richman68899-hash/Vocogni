@@ -762,6 +762,9 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
             })
         else:
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
+            questions = transfer_check.append_transfer_question(
+                questions, course_id=course_id, lesson_id=lesson["id"]
+            )
             question_id = checkpoint.get("question_id")
             question_index = next(
                 (i for i, item in enumerate(questions) if item.get("id") == question_id),
@@ -970,6 +973,9 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
         next_practice_label = "Begin post-test" if lesson.get("kind") == "assessment" else "Next: Practice questions"
         if st.button(next_practice_label, type="primary", key=f"screen2_next_{lesson['id']}"):
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
+            questions = transfer_check.append_transfer_question(
+                questions, course_id=course_id, lesson_id=lesson["id"]
+            )
             if not questions:
                 if question_engine.is_vqe_pilot_lesson(course_id, lesson["id"]):
                     st.error(
@@ -1026,12 +1032,11 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
 def _start_practice_attempt(lesson, flow, diagnostic_result, pathway) -> None:
     """Initialize a clean practice attempt without touching the diagnostic."""
     previous = int(flow.get("attempt_number", 0))
-    questions = diagnostics.get_pathway_questions(lesson, pathway)
-    transfer_question = transfer_check.select_transfer_question(
-        questions, course_id=flow.get("course_id"), lesson_id=lesson["id"]
+    questions = transfer_check.append_transfer_question(
+        diagnostics.get_pathway_questions(lesson, pathway),
+        course_id=flow.get("course_id"),
+        lesson_id=lesson["id"],
     )
-    if transfer_question is not None:
-        questions = list(questions) + [transfer_question]
     flow.update({
         "view": "practice", "stage": "intro", "q_index": 0, "results": [],
         "active_questions": questions, "selected_pathway": pathway,
