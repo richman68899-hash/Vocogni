@@ -295,6 +295,13 @@ LESSONS = [
                 "Outer rectangle: 14 × 8 = 112 m². Removed section: 4 × 3 = 12 m². Remaining area: 112 − 12 = 100 m².",
                 "Area of a compound shape",
             ),
+            _numeric_question(
+                "geometry_l4_transfer_q1",
+                "A wheelchair ramp meets a flat platform. The angle on one side of the straight platform edge is 137°. What is the adjacent angle on the other side (°)?",
+                43,
+                "The two adjacent angles form a straight line, so they total 180°. The missing angle is 180° − 137° = 43°.",
+                "Angles on a straight line",
+            ),
             _open_question(
                 "geometry_l4_q5",
                 "CHALLENGE — A 12 m by 8 m rectangular courtyard has a 4 m by 3 m rectangle removed from one corner, making an L-shape. Find (a) the remaining area in m² and (b) the outside perimeter in m. Show working.",
