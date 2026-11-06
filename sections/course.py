@@ -1062,7 +1062,7 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
         } for item in transfer_results)
         state.mark_persistent_dirty()
     correct = sum(bool(x.get("correct")) for x in results)
-    awarded_marks = sum(int(x.get("score", int(bool(x.get("correct))))) for x in results)
+    awarded_marks = sum(int(x.get("score", int(bool(x.get("correct"))))) for x in results)
     maximum_marks = sum(int(x.get("max_marks", 1)) for x in results)
     mark_percent = round(awarded_marks / maximum_marks * 100) if maximum_marks else 0
     accuracy_percent = round(correct / len(results) * 100) if results else 0
