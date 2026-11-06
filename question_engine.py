@@ -461,6 +461,20 @@ VERIFICATION_REGISTRY = {
             "mistake_tag": "Forming angle equations",
         },
     ),
+    "geometry_l4_transfer_q1": _review(
+        "math.geometry.angle_facts", "Angles in a real setting", "application", 2,
+        {
+            "type": "numeric",
+            "prompt": "A wheelchair ramp meets a flat platform. The angle on one side of the straight platform edge is 137°. What is the adjacent angle on the other side (°)?",
+            "answer": 43,
+            "tolerance": 0.01,
+            "whole_number": True,
+            "input_hint": "Enter the number only; the question gives the units.",
+            "explanation": "The two adjacent angles form a straight line, so they total 180°. The missing angle is 180° − 137° = 43°.",
+            "skill_tag": "Angles on a straight line",
+            "mistake_tag": "Angles on a straight line",
+        },
+    ),
 }
 
 
