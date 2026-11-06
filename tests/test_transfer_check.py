@@ -73,5 +73,14 @@ class IndependentTransferTests(unittest.TestCase):
         ))
 
 
+    def test_transfer_selector_excludes_question_already_in_practice_set(self):
+        practice = [{"id": "fractions_l1_project_q1"}]
+        selected = transfer_check.select_transfer_question(
+            practice, course_id="fractions", lesson_id="fractions_l2"
+        )
+        self.assertIsNotNone(selected)
+        self.assertNotEqual(selected["id"], "fractions_l1_project_q1")
+
+
 if __name__ == "__main__":
     unittest.main()
