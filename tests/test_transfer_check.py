@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import transfer_check
+import audit_transfer_coverage
 
 
 class IndependentTransferTests(unittest.TestCase):
@@ -74,6 +75,44 @@ class IndependentTransferTests(unittest.TestCase):
         self.assertTrue(all(isinstance(r["application_question_ids"], list) for r in report["rows"]))
         self.assertTrue(all("practice_lesson_ids" in r for r in report["rows"]))
         self.assertTrue(all("has_cross_lesson_application_item" in r for r in report["rows"]))
+
+
+    def test_cli_report_recalculates_totals_for_course_filter(self):
+        with patch("audit_transfer_coverage.transfer_check.audit_transfer_coverage", return_value={
+            "rows": [
+                {"course_id": "fractions", "skill_id": "skill.a",
+                 "practice_lesson_ids": ["lesson_1"],
+                 "has_cross_lesson_application_item": True,
+                 "application_question_ids": ["q_app"]},
+                {"course_id": "algebra", "skill_id": "skill.b",
+                 "practice_lesson_ids": ["lesson_2"],
+                 "has_cross_lesson_application_item": False,
+                 "application_question_ids": []},
+            ]
+        }):
+            report = audit_transfer_coverage.build_report(course_id="fractions")
+        self.assertEqual(report["practice_course_skill_pairs"], 1)
+        self.assertEqual(report["covered_pairs"], 1)
+        self.assertEqual(report["uncovered_pairs"], 0)
+        self.assertEqual(report["coverage_percent"], 100)
+
+    def test_cli_report_discloses_catalogue_only_limitation(self):
+        report = {
+            "practice_course_skill_pairs": 1,
+            "covered_pairs": 0,
+            "uncovered_pairs": 1,
+            "coverage_percent": 0,
+            "rows": [{
+                "course_id": "fractions",
+                "skill_id": "math.number.fraction_operations",
+                "practice_lesson_ids": ["fractions_l2"],
+                "has_cross_lesson_application_item": False,
+                "application_question_ids": [],
+            }],
+        }
+        rendered = audit_transfer_coverage.render_report(report, uncovered_only=True)
+        self.assertIn("[UNCOVERED] fractions / math.number.fraction_operations", rendered)
+        self.assertIn("does not prove novelty", rendered)
 
 
 if __name__ == "__main__":
