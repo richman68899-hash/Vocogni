@@ -35,6 +35,14 @@ def select_transfer_question(
             practiced_skills.append(skill_id)
 
     for skill_id in practiced_skills:
+        # The verified catalogue includes pathway and application items whose
+        # source lesson may differ from the currently selected lesson. Query
+        # the course-wide catalogue, then require a genuinely different source
+        # lesson and a different item ID from the practice set.
+        practiced_ids = {
+            str(item.get("id")) for item in practice_questions
+            if isinstance(item, dict) and item.get("id")
+        }
         candidates = question_engine.select_questions(
             course_id=course_id,
             skill_id=skill_id,
@@ -43,6 +51,8 @@ def select_transfer_question(
         )
         for record in candidates:
             if record.get("lesson_id") == lesson_id:
+                continue
+            if str(record.get("question_id")) in practiced_ids:
                 continue
             question = dict(record["question"])
             question["_is_transfer_check"] = True
