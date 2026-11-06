@@ -17,6 +17,18 @@ class IndependentTransferTests(unittest.TestCase):
         self.assertEqual(selected["purpose"], "application")
         self.assertNotEqual(selected["source_lesson_id"], "fractions_l2")
 
+    def test_selects_geometry_application_item_from_different_lesson(self):
+        selected = transfer_check.select_transfer_question(
+            [{"id": "geometry_l1_q1"}],
+            course_id="basic_geometry",
+            lesson_id="geometry_l1",
+        )
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["id"], "geometry_l4_transfer_q1")
+        self.assertEqual(selected["purpose"], "application")
+        self.assertEqual(selected["skill_id"], "math.geometry.angle_facts")
+        self.assertEqual(selected["source_lesson_id"], "geometry_l4")
+
     def test_no_different_lesson_item_means_no_transfer(self):
         selected = transfer_check.select_transfer_question(
             [{"id": "fractions_l1_q1"}], course_id="fractions", lesson_id="fractions_l1"
