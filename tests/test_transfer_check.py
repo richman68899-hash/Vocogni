@@ -33,6 +33,18 @@ class IndependentTransferTests(unittest.TestCase):
             [{"id": "fractions_l2_q1"}], course_id=None, lesson_id="fractions_l2"
         ))
 
+    def test_append_adds_at_most_one_transfer_item_and_is_idempotent(self):
+        practice = [{"id": "fractions_l2_q1"}]
+        once = transfer_check.append_transfer_question(
+            practice, course_id="fractions", lesson_id="fractions_l2"
+        )
+        twice = transfer_check.append_transfer_question(
+            once, course_id="fractions", lesson_id="fractions_l2"
+        )
+        self.assertEqual(len([q for q in once if q.get("_is_transfer_check")]), 1)
+        self.assertEqual(len([q for q in twice if q.get("_is_transfer_check")]), 1)
+        self.assertEqual([q["id"] for q in once], [q["id"] for q in twice])
+
     def test_only_verified_application_candidates_are_considered(self):
         practice = [{"id": "fractions_l2_q1"}]
         with patch("transfer_check.question_engine.select_questions", return_value=[]) as select:
