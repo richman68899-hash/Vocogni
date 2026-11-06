@@ -243,6 +243,33 @@ _GUIDANCE = {
 }
 
 
+# Short worked examples provide a second representation, not another diagnosis.
+# These are deliberately authored and limited to tags reviewed for this prototype.
+_WORKED_EXAMPLES = {
+    "denominator confusion": "Example: 3 of 5 equal slices is 3/5. The 5 counts every equal slice; the 3 counts the selected slices.",
+    "meaning of the denominator": "Example: In 2/7, the whole is divided into 7 equal parts. The 2 tells how many of those parts are selected.",
+    "representing fractions": "Example: If 4 of 6 equal boxes are shaded, write 4/6: shaded boxes on top, all equal boxes on the bottom.",
+    "addition error": "Example: 1/5 + 2/5 = 3/5. Each part is the same size, so combine the counts (1 + 2) and keep the denominator 5.",
+    "adding fractions": "Example: 1/4 + 2/4 = 3/4. If the denominators match, add only the numerators.",
+    "subtracting unlike fractions": "Example: 1/2 - 1/4 = 2/4 - 1/4 = 1/4. First rewrite both fractions with the same denominator.",
+    "incorrect simplification": "Example: 6/8 = 3/4 because both 6 and 8 are divided by 2. Dividing only one number would change the value.",
+    "incorrect inverse operation": "Example: x + 4 = 9. Subtract 4 from both sides: x = 5. Both sides must stay balanced.",
+    "inverse operations": "Example: 3x = 12. Divide both sides by 3, so x = 4. Check: 3 × 4 = 12.",
+    "sign errors": "Example: 5 - 8 = -3, not 3. Moving 3 units below zero gives a negative result.",
+    "meaning of a variable": "Example: If x is the number of notebooks, then 3x means three times that number, not x + 3.",
+    "variable misunderstanding": "Example: If x = 4, then 2x = 2 × 4 = 8. The letter represents a number.",
+    "angles on a straight line": "Example: If one angle is 65°, the adjacent angle on the same straight line is 180° - 65° = 115°.",
+    "angles around a point": "Example: If three angles around a point are 90°, 120°, and 80°, the fourth is 360° - 290° = 70°.",
+    "angles in a triangle": "Example: A triangle with angles 50° and 60° has a third angle of 180° - 110° = 70°.",
+    "clock hand roles": "Example: At 3:00, the short hour hand points to 3 and the long minute hand points to 12.",
+    "counting minute groups of five": "Example: When the minute hand points to 4, count four groups of five: 5, 10, 15, 20 minutes.",
+    "counting individual minute ticks": "Example: If the minute hand is one small tick after the 2, read 11 minutes (10 + 1), not 10.",
+    "hour hand position": "Example: At 4:45, the hour hand has passed 4 and is moving toward 5. The current hour is still 4.",
+    "reading past and to language": "Example: 20 minutes to 6 means 6:00 - 20 minutes = 5:40.",
+    "elapsed time across an hour": "Example: From 2:50 to 3:20 is 10 minutes to 3:00, then 20 more minutes: 30 minutes total.",
+}
+
+
 def build_feedback_guidance(question: dict[str, Any]) -> dict[str, str] | None:
     """Return carefully scoped guidance for a recognised authored mistake tag."""
     if not isinstance(question, dict):
@@ -254,4 +281,85 @@ def build_feedback_guidance(question: dict[str, Any]) -> dict[str, str] | None:
     guidance = _GUIDANCE.get(key)
     if guidance is None:
         return None
-    return {"likely_issue": guidance[0], "next_step": guidance[1], "source_tag": raw_tag}
+    return {
+        "likely_issue": guidance[0],
+        "next_step": guidance[1],
+        "worked_example": _WORKED_EXAMPLES.get(key, ""),
+        "source_tag": raw_tag,
+    }
+
+
+# P02: question- and distractor-specific explanations. These entries are
+# authored against the exact reviewed question wording and option text.
+# Coverage is intentionally explicit; unknown options use the existing safe
+# general guidance rather than an inferred explanation.
+_DISTRACTOR_FEEDBACK = {
+    "fractions_l1_q1": {
+        "4/3": "This reverses the roles of the numerator and denominator. The numerator counts the selected parts (3); the denominator counts all equal parts (4).",
+        "1/3": "This uses 1 as the number of selected parts, but the question states that 3 parts are selected. Keep 3 on top and 4 as the total number of equal parts.",
+        "3/3": "This says all 3 of 3 parts are selected. The whole is divided into 4 equal parts, so the denominator must be 4.",
+    },
+    "fractions_l1_q2": {
+        "5": "5 is the numerator, the top number. The denominator is the bottom number in the fraction.",
+        "3": "3 is the difference between 8 and 5, not a part of the written fraction. In 5/8, the bottom number is 8.",
+        "13": "13 is the sum of 5 and 8. The denominator is not found by combining the two numbers; it is the bottom number, 8.",
+    },
+    "fractions_l1_screen3": {
+        "8/5": "This reverses the count: 8 is the total number of slices, while 5 is the number eaten. The fraction is selected parts over total equal parts.",
+        "3/8": "3/8 represents the slices left over (8 total minus 5 eaten), not the slices eaten.",
+        "5/5": "This treats the 5 eaten slices as the entire whole. The pizza has 8 equal slices, so the denominator is 8.",
+    },
+    "algebra_l1_q1": {
+        "A fixed constant": "A constant has a fixed value. In this equation, x is the unknown number whose value must make x + 5 = 12 true.",
+        "The answer 5": "5 is the number being added to x; it is already known. The question asks for the unknown represented by x.",
+        "The answer 12": "12 is the stated total on the right side of the equation. x is the unknown value that combines with 5 to make 12.",
+    },
+    "algebra_l1_q2": {
+        "7": "7 is a fixed number, not a symbol that can represent different values. A variable is represented by a letter such as x.",
+        "+": "The plus sign is an operation symbol. It tells you to add; it does not stand for a number.",
+        "=": "The equals sign states that two expressions have the same value. It is a relation symbol, not a variable.",
+    },
+    "algebra_l1_screen3": {
+        "3n": "3n means three times the starting amount n. The phrase '3 more' means add 3, giving n + 3.",
+        "n - 3": "n - 3 means three fewer than the starting amount. The question says the amount increases by 3.",
+        "3 - n": "3 - n subtracts the starting amount from 3. The new amount is the starting amount n plus 3.",
+    },
+    "wp_l1_q1": {
+        "Subtraction": "Subtraction finds a difference or removes an amount. A total combines amounts, so addition is the matching operation here.",
+        "Multiplication": "Multiplication can represent equal groups or scaling. The word 'total' here asks for a combined amount.",
+        "Division": "Division shares or groups a quantity. A total is found by combining the amounts with addition.",
+    },
+    "wp_l1_q2": {
+        "x/3": "x/3 means one-third of Tom's amount. The sentence says Sarah has three times Tom's amount, so multiply x by 3.",
+        "x + 3": "x + 3 adds three apples, rather than making the amount three times as large.",
+        "x - 3": "x - 3 makes Sarah's amount three fewer than Tom's. 'Three times as many' requires multiplication.",
+    },
+}
+
+
+def build_distractor_feedback(question: dict[str, Any], user_answer: Any) -> dict[str, str] | None:
+    """Return an authored explanation for this exact verified MC distractor."""
+    if not isinstance(question, dict):
+        return None
+    if question.get("verification_status") != "verified" or question.get("type") != "mc":
+        return None
+    question_id = question.get("id")
+    if not isinstance(question_id, str) or not question_id:
+        return None
+    if not isinstance(user_answer, str) or not user_answer.strip():
+        return None
+    options = question.get("options")
+    if not isinstance(options, list) or user_answer not in options:
+        return None
+    answer = question.get("answer")
+    if user_answer == answer:
+        return None
+    explanation = _DISTRACTOR_FEEDBACK.get(question_id, {}).get(user_answer)
+    if not isinstance(explanation, str) or not explanation.strip():
+        return None
+    return {
+        "selected_option": user_answer,
+        "explanation": explanation,
+        "question_id": question_id,
+        "source": "authored_distractor",
+    }

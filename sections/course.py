@@ -52,6 +52,7 @@ import question_engine
 import state
 import mistake_reflections
 import feedback_guidance
+import transfer_check
 from . import revision_sprint as revision_sprint_section
 
 
@@ -761,6 +762,9 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
             })
         else:
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
+            questions = transfer_check.append_transfer_question(
+                questions, course_id=course_id, lesson_id=lesson["id"]
+            )
             question_id = checkpoint.get("question_id")
             question_index = next(
                 (i for i, item in enumerate(questions) if item.get("id") == question_id),
@@ -969,6 +973,9 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
         next_practice_label = "Begin post-test" if lesson.get("kind") == "assessment" else "Next: Practice questions"
         if st.button(next_practice_label, type="primary", key=f"screen2_next_{lesson['id']}"):
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
+            questions = transfer_check.append_transfer_question(
+                questions, course_id=course_id, lesson_id=lesson["id"]
+            )
             if not questions:
                 if question_engine.is_vqe_pilot_lesson(course_id, lesson["id"]):
                     st.error(
@@ -1025,7 +1032,11 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
 def _start_practice_attempt(lesson, flow, diagnostic_result, pathway) -> None:
     """Initialize a clean practice attempt without touching the diagnostic."""
     previous = int(flow.get("attempt_number", 0))
-    questions = diagnostics.get_pathway_questions(lesson, pathway)
+    questions = transfer_check.append_transfer_question(
+        diagnostics.get_pathway_questions(lesson, pathway),
+        course_id=flow.get("course_id"),
+        lesson_id=lesson["id"],
+    )
     flow.update({
         "view": "practice", "stage": "intro", "q_index": 0, "results": [],
         "active_questions": questions, "selected_pathway": pathway,
@@ -1045,7 +1056,16 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     history = prog.setdefault("practice_attempts", {}).setdefault(lesson["id"], [])
     attempt_number = int(flow.get("attempt_number", len(history) + 1))
     existing = next((x for x in history if x.get("attempt_number") == attempt_number), None)
-    results = flow.get("results", [])
+    all_results = flow.get("results", [])
+    transfer_results = [x for x in all_results if x.get("evidence_type") == "independent_transfer"]
+    results = [x for x in all_results if x.get("evidence_type") != "independent_transfer"]
+    if transfer_results:
+        prog.setdefault("transfer_checks", []).extend({
+            **item,
+            "attempt_number": attempt_number,
+            "recorded_at": datetime.now(timezone.utc).isoformat(),
+        } for item in transfer_results)
+        state.mark_persistent_dirty()
     correct = sum(bool(x.get("correct")) for x in results)
     awarded_marks = sum(int(x.get("score", int(bool(x.get("correct"))))) for x in results)
     maximum_marks = sum(int(x.get("max_marks", 1)) for x in results)
@@ -1527,6 +1547,9 @@ def _render_question(
         practice_heading = "Post-test questions" if lesson.get("kind") == "assessment" else "Practice set"
         st.markdown(f"### Screen 3 of 3 — {practice_heading}")
 
+    if question.get("_is_transfer_check"):
+        st.info("Independent transfer check — a new application of a skill from this lesson. Work without hints or worked examples.")
+
     st.markdown(
         f"<span class='vc-muted'>"
         f"Question {idx + 1} of {total}"
@@ -1655,12 +1678,14 @@ def _render_question(
         # Update durable learner progress
         # ---------------------------------------------------------------
 
-        logic.record_answer(
-            st.session_state.progress,
-            course_id,
-            question,
-            is_correct,
-        )
+        is_transfer_check = bool(question.get("_is_transfer_check"))
+        if not is_transfer_check:
+            logic.record_answer(
+                st.session_state.progress,
+                course_id,
+                question,
+                is_correct,
+            )
 
         # ---------------------------------------------------------------
         # IMPORTANT V1.2 AUTOSAVE HOOK
@@ -1710,16 +1735,27 @@ def _render_question(
             "explanation": question["explanation"],
         }
         if not is_correct:
-            guidance = feedback_guidance.build_feedback_guidance(question)
-            if guidance:
-                result_record["feedback_guidance"] = guidance
+            distractor_feedback = feedback_guidance.build_distractor_feedback(
+                question, user_answer
+            )
+            if distractor_feedback:
+                result_record["distractor_feedback"] = distractor_feedback
+            else:
+                guidance = feedback_guidance.build_feedback_guidance(question)
+                if guidance:
+                    result_record["feedback_guidance"] = guidance
         # Store the exact reviewed question provenance alongside each new
         # practice result. Older result records remain valid without these keys.
         result_record.update(question_engine.attempt_metadata(
             question.get("id"),
             course_id=course_id,
-            lesson_id=lesson["id"],
+            lesson_id=question.get("source_lesson_id") or lesson["id"],
         ))
+        if is_transfer_check:
+            result_record["evidence_type"] = "independent_transfer"
+            result_record["independent"] = True
+            result_record["source_skill_id"] = question.get("skill_id")
+            result_record["source_lesson_id"] = question.get("source_lesson_id")
         if marking_result is not None:
             result_record.update({
                 "score": marking_result["score"],
@@ -1908,6 +1944,8 @@ def _render_feedback(
         st.caption(f"Your answer: {flow.get('last_user_answer')}")
 
     is_correct = flow["last_correct"]
+    if question.get("_is_transfer_check"):
+        st.caption("Transfer check: this result is recorded separately from ordinary practice and does not change the skill's practice accuracy.")
     marking = flow.get("last_marking") if question.get("type") == "open_ended" else None
 
     feedback_class = (
@@ -1955,17 +1993,27 @@ def _render_feedback(
             unsafe_allow_html=True,
         )
         if not is_correct:
-            guidance = feedback_guidance.build_feedback_guidance(question)
-            if guidance:
-                st.markdown("**What to check**")
-                st.write(guidance["likely_issue"])
-                st.markdown("**Your next step**")
-                st.write(guidance["next_step"])
+            distractor_feedback = feedback_guidance.build_distractor_feedback(
+                question, flow.get("last_user_answer")
+            )
+            if distractor_feedback:
+                st.markdown("**Why this option is incorrect**")
+                st.write(distractor_feedback["explanation"])
             else:
-                st.caption(
-                    "Compare the worked explanation with your attempt. "
-                    "No specific error type is assigned because this question has no reviewed guidance tag."
-                )
+                guidance = feedback_guidance.build_feedback_guidance(question)
+                if guidance:
+                    st.markdown("**What to check**")
+                    st.write(guidance["likely_issue"])
+                    st.markdown("**Your next step**")
+                    st.write(guidance["next_step"])
+                    if guidance.get("worked_example"):
+                        st.markdown("**A worked example**")
+                        st.write(guidance["worked_example"])
+                else:
+                    st.caption(
+                        "Compare the worked explanation with your attempt. "
+                        "No specific error type is assigned because this question has no reviewed guidance tag."
+                    )
 
     if marking and not defer_standard_feedback:
         st.markdown(f"**Marking summary:** {marking.get('feedback', '')}")
@@ -2159,28 +2207,30 @@ def _render_complete(
                 unsafe_allow_html=True,
             )
             if not result.get("correct"):
-                guidance = result.get("feedback_guidance")
-                if isinstance(guidance, dict):
-                    st.markdown("**What to check**")
-                    st.write(guidance.get("likely_issue", ""))
-                    st.markdown("**Your next step**")
-                    st.write(guidance.get("next_step", ""))
+                distractor_feedback = result.get("distractor_feedback")
+                if isinstance(distractor_feedback, dict):
+                    st.markdown("**Why this option is incorrect**")
+                    st.write(distractor_feedback.get("explanation", ""))
+                else:
+                    guidance = result.get("feedback_guidance")
+                    if isinstance(guidance, dict):
+                        st.markdown("**What to check**")
+                        st.write(guidance.get("likely_issue", ""))
+                        st.markdown("**Your next step**")
+                        st.write(guidance.get("next_step", ""))
+                        if guidance.get("worked_example"):
+                            st.markdown("**A worked example**")
+                            st.write(guidance["worked_example"])
 
 
     # -----------------------------------------------------------------------
     # Summary
     # -----------------------------------------------------------------------
 
-    correct_count = sum(
-        1
-        for result in flow["results"]
-        if result["correct"]
-    )
-
-    total_count = (
-        len(flow["results"])
-        or 1
-    )
+    ordinary_results = [x for x in flow["results"] if x.get("evidence_type") != "independent_transfer"]
+    transfer_results = [x for x in flow["results"] if x.get("evidence_type") == "independent_transfer"]
+    correct_count = sum(1 for result in ordinary_results if result["correct"])
+    total_count = len(ordinary_results) or 1
 
     # Store a single descriptive post-lesson checkpoint for comparison with
     # the one-time baseline. This is not claimed to be a validated learning-gain
@@ -2212,10 +2262,13 @@ def _render_complete(
         f"<div class='vc-card'>"
         f"<strong>Lesson complete.</strong> "
         f"You answered {correct_count} of "
-        f"{total_count} {question_word} correctly."
+        f"{total_count} practice {question_word} correctly."
         f"</div>",
         unsafe_allow_html=True,
     )
+    for transfer_result in transfer_results:
+        status = "correct" if transfer_result.get("correct") else "not yet correct"
+        st.info(f"Independent transfer check: {status}. This is one application sample, not proof of mastery.")
 
     assessment = prog.get("lesson_assessments", {}).get(lesson["id"])
     if assessment:
