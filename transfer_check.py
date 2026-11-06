@@ -77,9 +77,14 @@ def append_transfer_question(
 
 
 def audit_transfer_coverage() -> dict[str, Any]:
-    """Count verified course/skill pairs with at least one reviewed application item."""
-    practice_pairs: set[tuple[str, str]] = set()
-    application_ids: dict[tuple[str, str], list[str]] = {}
+    """Count verified course/skill pairs with cross-lesson application items.
+
+    This is catalogue coverage only; it does not validate novelty or learning
+    transfer. An application item in the same lesson does not count as coverage.
+    """
+    practice_lessons: dict[tuple[str, str], set[str]] = {}
+    application_records: dict[tuple[str, str], list[dict[str, str]]] = {}
+
     for record in question_engine.iter_question_records():
         if record.get("verification_status") != "verified":
             continue
@@ -88,29 +93,42 @@ def audit_transfer_coverage() -> dict[str, Any]:
             course_id=record.get("course_id"),
             lesson_id=record.get("lesson_id"),
         )
-        course, skill, purpose = (
-            record.get("course_id"), metadata.get("skill_id"),
-            metadata.get("question_purpose"),
-        )
-        if not course or not skill:
+        course = record.get("course_id")
+        skill = metadata.get("skill_id")
+        purpose = metadata.get("question_purpose")
+        lesson = record.get("lesson_id")
+        question_id = str(record.get("question_id") or "")
+        if not course or not skill or not lesson or not question_id:
             continue
         key = (str(course), str(skill))
         if purpose in ("practice", "conceptual", "reasoning"):
-            practice_pairs.add(key)
+            practice_lessons.setdefault(key, set()).add(str(lesson))
         elif purpose == "application":
-            application_ids.setdefault(key, []).append(str(record.get("question_id")))
+            application_records.setdefault(key, []).append({
+                "question_id": question_id,
+                "lesson_id": str(lesson),
+            })
 
-    rows = [{
-        "course_id": course,
-        "skill_id": skill,
-        "has_verified_application_item": bool(application_ids.get((course, skill))),
-        "application_question_ids": sorted(application_ids.get((course, skill), [])),
-    } for course, skill in sorted(practice_pairs)]
-    covered = sum(row["has_verified_application_item"] for row in rows)
+    rows = []
+    for (course, skill), lessons in sorted(practice_lessons.items()):
+        candidates = [
+            item for item in application_records.get((course, skill), [])
+            if any(item["lesson_id"] != practice_lesson for practice_lesson in lessons)
+        ]
+        rows.append({
+            "course_id": course,
+            "skill_id": skill,
+            "practice_lesson_ids": sorted(lessons),
+            "has_cross_lesson_application_item": bool(candidates),
+            "application_question_ids": sorted({item["question_id"] for item in candidates}),
+        })
+
+    covered = sum(row["has_cross_lesson_application_item"] for row in rows)
+    total = len(rows)
     return {
-        "practice_course_skill_pairs": len(rows),
+        "practice_course_skill_pairs": total,
         "covered_pairs": covered,
-        "uncovered_pairs": len(rows) - covered,
-        "coverage_percent": round(covered / len(rows) * 100) if rows else 0,
+        "uncovered_pairs": total - covered,
+        "coverage_percent": round(covered / total * 100) if total else 0,
         "rows": rows,
     }
