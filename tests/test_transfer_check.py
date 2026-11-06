@@ -72,6 +72,8 @@ class IndependentTransferTests(unittest.TestCase):
             report["covered_pairs"] + report["uncovered_pairs"],
         )
         self.assertTrue(all(isinstance(r["application_question_ids"], list) for r in report["rows"]))
+        self.assertTrue(all("practice_lesson_ids" in r for r in report["rows"]))
+        self.assertTrue(all("has_cross_lesson_application_item" in r for r in report["rows"]))
 
 
 if __name__ == "__main__":
