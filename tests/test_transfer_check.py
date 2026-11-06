@@ -29,6 +29,26 @@ class IndependentTransferTests(unittest.TestCase):
         self.assertEqual(selected["skill_id"], "math.geometry.angle_facts")
         self.assertEqual(selected["source_lesson_id"], "geometry_l4")
 
+    def test_analog_clock_core_skills_have_cross_lesson_application_items(self):
+        cases = [
+            ("clock_l1_q1", "math.time.clock_parts", "clock_l6_transfer_q1"),
+            ("clock_l2_q1", "math.time.minute_counting", "clock_l6_transfer_q2"),
+            ("clock_l3_q1", "math.time.hour_hand_position", "clock_l6_transfer_q3"),
+            ("clock_l4_q1", "math.time.reading_analog_time", "clock_l6_transfer_q4"),
+        ]
+        for practice_id, skill_id, expected_id in cases:
+            with self.subTest(skill_id=skill_id):
+                selected = transfer_check.select_transfer_question(
+                    [{"id": practice_id}],
+                    course_id="analog_clocks",
+                    lesson_id=practice_id.rsplit("_q", 1)[0],
+                )
+                self.assertIsNotNone(selected)
+                self.assertEqual(selected["id"], expected_id)
+                self.assertEqual(selected["skill_id"], skill_id)
+                self.assertEqual(selected["purpose"], "application")
+                self.assertEqual(selected["source_lesson_id"], "clock_l6")
+
     def test_no_different_lesson_item_means_no_transfer(self):
         selected = transfer_check.select_transfer_question(
             [{"id": "fractions_l1_q1"}], course_id="fractions", lesson_id="fractions_l1"
