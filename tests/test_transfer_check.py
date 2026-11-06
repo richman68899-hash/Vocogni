@@ -52,12 +52,17 @@ class IndependentTransferTests(unittest.TestCase):
         self.assertEqual([q["id"] for q in once], [q["id"] for q in twice])
 
     def test_selector_excludes_repeated_question_id(self):
-        selected = transfer_check.select_transfer_question(
-            [{"id": "fractions_l1_project_q1"}],
-            course_id="fractions", lesson_id="fractions_l2",
-        )
-        self.assertIsNotNone(selected)
-        self.assertNotEqual(selected["id"], "fractions_l1_project_q1")
+        practice = [{"id": "fractions_l2_q1"}]
+        repeated_candidate = {
+            "question_id": "fractions_l2_q1",
+            "lesson_id": "fractions_l1",
+            "question": {"type": "numeric", "prompt": "Repeated item"},
+        }
+        with patch("transfer_check.question_engine.select_questions", return_value=[repeated_candidate]):
+            selected = transfer_check.select_transfer_question(
+                practice, course_id="fractions", lesson_id="fractions_l2"
+            )
+        self.assertIsNone(selected)
 
     def test_coverage_audit_balances_covered_and_uncovered_pairs(self):
         report = transfer_check.audit_transfer_coverage()
