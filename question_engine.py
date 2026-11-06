@@ -845,6 +845,65 @@ VERIFICATION_REGISTRY.update({
         },
         grade_bands=(3, 4, 5, 6, 7, 8, 9),
     ),
+    "clock_l6_transfer_q1": _review(
+        "math.time.clock_parts", "Clock hand roles in context", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "During a science demonstration, a learner needs to track how many minutes have passed on an analog wall clock. Which hand should they watch, and why?",
+            "options": [
+                "The longer hand, because it completes one turn in 60 minutes",
+                "The shorter hand, because it completes one turn in 60 minutes",
+                "The longer hand, because it moves once per hour number",
+                "Either hand, because both measure minutes in the same way",
+            ],
+            "answer": "The longer hand, because it completes one turn in 60 minutes",
+            "explanation": "The longer hand is the minute hand. It completes one full rotation in 60 minutes, so it is the hand to track when measuring minutes.",
+            "skill_tag": "Clock hand roles in context",
+            "mistake_tag": "Clock hand roles in context",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_transfer_q2": _review(
+        "math.time.minute_counting", "Counting minute groups and individual ticks", "application", 2,
+        {
+            "type": "numeric",
+            "prompt": "A kitchen wall clock's minute hand points to 8 and is two small minute marks beyond it. How many minutes past the hour is it?",
+            "answer": 42,
+            "tolerance": 0.01,
+            "whole_number": True,
+            "input_hint": "Enter the number only.",
+            "explanation": "The 8 represents 8 × 5 = 40 minutes. Add two individual minute marks: 40 + 2 = 42 minutes.",
+            "skill_tag": "Counting minute groups and individual ticks",
+            "mistake_tag": "Counting minute groups and individual ticks",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_transfer_q3": _review(
+        "math.time.hour_hand_position", "Hour hand position in context", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "A school announcement is made when the clock shows 6:55. The short hand is close to 7. Which hour should be recorded as still in progress?",
+            "options": ["6", "7", "55", "The nearest hour, 7"],
+            "answer": "6",
+            "explanation": "The hour hand has passed 6 but has not reached 7. The 6 o'clock hour is still in progress.",
+            "skill_tag": "Hour hand position in context",
+            "mistake_tag": "Hour hand position in context",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
+    "clock_l6_transfer_q4": _review(
+        "math.time.reading_analog_time", "Reading a complete clock in context", "application", 2,
+        {
+            "type": "mc",
+            "prompt": "At a station, the long hand points to 9 and the short hand is between 4 and 5, close to 5. Which time should be written on the departure board?",
+            "options": ["4:45", "5:45", "4:09", "9:04"],
+            "answer": "4:45",
+            "explanation": "The long hand at 9 means 45 minutes. The short hand has passed 4 but not reached 5, so the time is 4:45.",
+            "skill_tag": "Reading a complete clock in context",
+            "mistake_tag": "Reading a complete clock in context",
+        },
+        grade_bands=(3, 4, 5, 6, 7, 8, 9),
+    ),
 })
 
 
