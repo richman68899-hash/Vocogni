@@ -398,12 +398,18 @@ LESSONS = [
                 "The longer hand is the minute hand. It completes one full rotation in 60 minutes, so it is the hand to track when measuring minutes.",
                 "Clock hand roles in context",
             ),
-            _num(
+            _mc(
                 "clock_l6_transfer_q2",
-                "A kitchen wall clock's minute hand points to 8 and is two small minute marks beyond it. How many minutes past the hour is it?",
-                42,
-                "The 8 represents 8 × 5 = 40 minutes. Add two individual minute marks: 40 + 2 = 42 minutes.",
-                "Counting minute groups and individual ticks",
+                "A digital display reads 4:42. Where should the minute hand point on an analog clock?",
+                [
+                    "Between 8 and 9, two small marks after 8",
+                    "Exactly on 8",
+                    "Between 9 and 10, two small marks after 9",
+                    "Between 7 and 8, two small marks after 7",
+                ],
+                "Between 8 and 9, two small marks after 8",
+                "The minute hand shows 42 minutes. The 8 marks 40 minutes, so 42 is two small minute marks beyond 8.",
+                "Translate digital minutes to an analog dial",
             ),
             _mc(
                 "clock_l6_transfer_q3",
