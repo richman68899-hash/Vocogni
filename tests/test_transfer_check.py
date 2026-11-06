@@ -59,5 +59,19 @@ class IndependentTransferTests(unittest.TestCase):
             )
 
 
+    def test_audit_transfer_coverage_reports_known_verified_pairs(self):
+        report = transfer_check.audit_transfer_coverage()
+        self.assertGreater(report["practice_course_skill_pairs"], 0)
+        self.assertGreaterEqual(report["covered_pairs"], 1)
+        self.assertEqual(
+            report["practice_course_skill_pairs"],
+            report["covered_pairs"] + report["uncovered_pairs"],
+        )
+        self.assertTrue(all(
+            isinstance(row["application_question_ids"], list)
+            for row in report["rows"]
+        ))
+
+
 if __name__ == "__main__":
     unittest.main()
