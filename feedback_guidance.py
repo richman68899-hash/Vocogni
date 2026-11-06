@@ -246,7 +246,7 @@ _GUIDANCE = {
 # Short worked examples provide a second representation, not another diagnosis.
 # These are deliberately authored and limited to tags reviewed for this prototype.
 _WORKED_EXAMPLES = {
-    "denominator confusion": "Example: 3 of 5 equal slices is 3/5. The 5 counts every equal slice; the 3 counts the selected slices.",
+    "denominator confusion": "Example: 3 of 5 equal slices is 3/5. The denominator, 5, counts every equal slice; the numerator, 3, counts the selected slices.",
     "meaning of the denominator": "Example: In 2/7, the whole is divided into 7 equal parts. The 2 tells how many of those parts are selected.",
     "representing fractions": "Example: If 4 of 6 equal boxes are shaded, write 4/6: shaded boxes on top, all equal boxes on the bottom.",
     "addition error": "Example: 1/5 + 2/5 = 3/5. Each part is the same size, so combine the counts (1 + 2) and keep the denominator 5.",
