@@ -50,3 +50,21 @@ def select_transfer_question(
             question["id"] = record.get("question_id")
             return question
     return None
+
+
+def append_transfer_question(
+    practice_questions: list[dict[str, Any]],
+    *,
+    course_id: str | None,
+    lesson_id: str,
+) -> list[dict[str, Any]]:
+    """Copy a practice set and append one eligible transfer item at most once."""
+    questions = list(practice_questions or [])
+    if any(isinstance(item, dict) and item.get("_is_transfer_check") for item in questions):
+        return questions
+    transfer = select_transfer_question(
+        questions, course_id=course_id, lesson_id=lesson_id
+    )
+    if transfer is not None:
+        questions.append(transfer)
+    return questions
