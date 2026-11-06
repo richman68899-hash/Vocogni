@@ -96,6 +96,37 @@ class IndependentTransferTests(unittest.TestCase):
         self.assertEqual(report["uncovered_pairs"], 0)
         self.assertEqual(report["coverage_percent"], 100)
 
+    def test_clock_course_has_cross_lesson_application_for_core_reading_skills(self):
+        report = transfer_check.audit_transfer_coverage()
+        rows = {
+            row["skill_id"]: row
+            for row in report["rows"]
+            if row["course_id"] == "analog_clocks"
+        }
+        expected = {
+            "math.time.clock_parts": "clock_l6_q7",
+            "math.time.minute_counting": "clock_l6_q8",
+            "math.time.hour_hand_position": "clock_l6_q9",
+            "math.time.reading_analog_time": "clock_l6_q10",
+        }
+        for skill_id, question_id in expected.items():
+            with self.subTest(skill_id=skill_id):
+                self.assertIn(skill_id, rows)
+                self.assertTrue(rows[skill_id]["has_cross_lesson_application_item"])
+                self.assertIn(question_id, rows[skill_id]["application_question_ids"])
+
+    def test_clock_transfer_selector_uses_new_cross_lesson_application_item(self):
+        selected = transfer_check.select_transfer_question(
+            [{"id": "clock_l1_q1"}],
+            course_id="analog_clocks",
+            lesson_id="clock_l1",
+        )
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["id"], "clock_l6_q7")
+        self.assertEqual(selected["purpose"], "application")
+        self.assertEqual(selected["skill_id"], "math.time.clock_parts")
+        self.assertNotEqual(selected["source_lesson_id"], "clock_l1")
+
     def test_cli_report_discloses_catalogue_only_limitation(self):
         report = {
             "practice_course_skill_pairs": 1,
