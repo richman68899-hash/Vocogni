@@ -81,6 +81,16 @@ class IndependentTransferTests(unittest.TestCase):
         self.assertIsNotNone(selected)
         self.assertNotEqual(selected["id"], "fractions_l1_project_q1")
 
+    def test_transfer_selector_does_not_reuse_same_skill_item_from_same_lesson(self):
+        # This skill has no separately authored, verified application item in a
+        # different lesson; the selector must return no result, not the source.
+        selected = transfer_check.select_transfer_question(
+            [{"id": "fractions_l1_q1"}],
+            course_id="fractions",
+            lesson_id="fractions_l1",
+        )
+        self.assertIsNone(selected)
+
 
 if __name__ == "__main__":
     unittest.main()
