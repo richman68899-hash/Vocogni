@@ -210,6 +210,7 @@ class MasteryReceiptTests(unittest.TestCase):
                             "attempt_number": 1,
                             "results": [{
                                 "question_id": "open-q",
+                                "verification_status": "verified",
                                 "correct": False,
                                 "score": 1,
                                 "max_marks": 3,
