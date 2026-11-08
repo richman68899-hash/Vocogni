@@ -1,8 +1,46 @@
 """Tests for the offline, explainable learning-intelligence engine."""
 import unittest
+from copy import deepcopy
+from unittest.mock import patch
 
 import adaptive_learning
 import math_taxonomy
+import question_engine
+
+
+def _build_with_verified_fixtures(builder, progress):
+    """Give synthetic test questions explicit verified registry provenance."""
+    fixture_progress = deepcopy(progress)
+    records = []
+    for course_id, course_progress in fixture_progress.items():
+        if not isinstance(course_progress, dict):
+            continue
+        attempts_by_lesson = course_progress.get("practice_attempts", {})
+        if not isinstance(attempts_by_lesson, dict):
+            continue
+        for lesson_id, attempts in attempts_by_lesson.items():
+            if not isinstance(attempts, list):
+                continue
+            for attempt in attempts:
+                if not isinstance(attempt, dict):
+                    continue
+                for result in attempt.get("results", []):
+                    if not isinstance(result, dict):
+                        continue
+                    question_id = str(result.get("question_id") or "")
+                    skill_id = result.get("skill_id")
+                    if not question_id or not skill_id:
+                        continue
+                    result["verification_status"] = "verified"
+                    records.append({
+                        "course_id": course_id,
+                        "lesson_id": lesson_id,
+                        "question_id": question_id,
+                        "verification_status": "verified",
+                        "question": {"skill_id": skill_id},
+                    })
+    with patch.object(question_engine, "iter_question_records", return_value=records):
+        return builder(fixture_progress)
 
 
 class AdaptiveLearningTests(unittest.TestCase):
@@ -26,7 +64,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 }
             }
         }
-        plan = adaptive_learning.build_learning_plan(progress)
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
         self.assertTrue(plan["actions"])
         action = plan["actions"][0]
         self.assertEqual(action["skill_id"], "math.number.fraction_representation")
@@ -49,7 +87,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 }
             }
         }
-        plan = adaptive_learning.build_learning_plan(progress)
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
         self.assertTrue(plan["actions"])
         self.assertEqual(plan["actions"][0]["skill_id"], prerequisite)
         self.assertTrue(plan["actions"][0]["is_prerequisite_review"])
@@ -57,7 +95,7 @@ class AdaptiveLearningTests(unittest.TestCase):
     def test_plan_uses_existing_skill_taxonomy_and_does_not_mutate_progress(self):
         progress = {"fractions": {"practice_attempts": {}}}
         before = repr(progress)
-        plan = adaptive_learning.build_learning_plan(progress)
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
         self.assertEqual(repr(progress), before)
         self.assertEqual(plan["skills_tracked"], len(math_taxonomy.SKILLS))
 
@@ -77,7 +115,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 }
             }
         }
-        result = adaptive_learning.build_skill_trajectories(progress)
+        result = _build_with_verified_fixtures(adaptive_learning.build_skill_trajectories, progress)
         item = next(row for row in result["skills"] if row["skill_id"] == "math.number.fraction_representation")
         self.assertEqual(item["trend"], "Building evidence")
         self.assertIsNone(item["previous_window_accuracy_percent"])
@@ -108,7 +146,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 }
             }
         }
-        result = adaptive_learning.build_skill_trajectories(progress)
+        result = _build_with_verified_fixtures(adaptive_learning.build_skill_trajectories, progress)
         item = next(row for row in result["skills"] if row["skill_id"] == "math.number.fraction_representation")
         self.assertEqual(item["trend"], "Improving")
         self.assertEqual(item["previous_window_accuracy_percent"], 0)
@@ -141,7 +179,7 @@ class AdaptiveLearningTests(unittest.TestCase):
             }
         }
         before = repr(progress)
-        result = adaptive_learning.build_skill_trajectories(progress)
+        result = _build_with_verified_fixtures(adaptive_learning.build_skill_trajectories, progress)
         item = next(row for row in result["skills"] if row["skill_id"] == "math.number.fraction_representation")
         self.assertEqual(item["trend"], "Needs attention")
         self.assertEqual(item["change_percentage_points"], -100)
@@ -272,7 +310,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 {"skill_tag": "Equivalent fractions", "correct": True, "score": 1, "max_marks": 1},
             ],
         }}, "practice_attempts": {}}}
-        plan = adaptive_learning.build_learning_plan(progress)
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
         action = next(row for row in plan["actions"] if row["skill_id"] == "math.number.fraction_representation")
         self.assertEqual(action["evidence_source"], "diagnostic")
         self.assertEqual(action["accuracy_percent"], 33)
@@ -286,7 +324,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 {"skill_tag": "Applying fractions in context", "correct": False, "score": 0, "max_marks": 1},
             ],
         }}, "practice_attempts": {}}}
-        plan = adaptive_learning.build_learning_plan(progress)
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
         prerequisite_actions = [
             row for row in plan["actions"]
             if row["is_prerequisite_review"] and row["evidence_source"] == "diagnostic"
@@ -313,7 +351,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                 ],
             }]},
         }}
-        plan = adaptive_learning.build_learning_plan(progress)
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
         action = next(row for row in plan["actions"] if row["skill_id"] == "math.number.fraction_representation")
         self.assertEqual(action["evidence_source"], "practice")
         self.assertEqual(action["accuracy_percent"], 50)
