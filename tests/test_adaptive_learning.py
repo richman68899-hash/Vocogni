@@ -82,6 +82,7 @@ class AdaptiveLearningTests(unittest.TestCase):
                         "results": [
                             {"question_id": "algebra_l2_q1", "skill_id": skill_id, "correct": False, "score": 0, "max_marks": 1},
                             {"question_id": "algebra_l2_q2", "skill_id": skill_id, "correct": False, "score": 0, "max_marks": 1},
+                            {"question_id": "algebra_l2_prerequisite_q1", "skill_id": prerequisite, "correct": False, "score": 0, "max_marks": 1},
                         ],
                     }]
                 }
