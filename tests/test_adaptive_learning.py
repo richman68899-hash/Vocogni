@@ -363,8 +363,8 @@ class AdaptiveLearningTests(unittest.TestCase):
         progress = {"algebra": {"practice_attempts": {"algebra_l2": [{
             "completed_at": "2026-11-08T10:00:00+00:00",
             "results": [
-                {"question_id": "linear_q1", "skill_id": skill_id, "correct": False, "score": 0, "max_marks": 1},
-                {"question_id": "linear_q2", "skill_id": skill_id, "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "linear_q1", "skill_id": skill_id, "verification_status": "verified", "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "linear_q2", "skill_id": skill_id, "verification_status": "verified", "correct": False, "score": 0, "max_marks": 1},
             ],
         }]}}}
         records = [
