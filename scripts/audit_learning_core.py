@@ -124,6 +124,11 @@ def build_report() -> dict[str, Any]:
         })
 
     registry_errors = question_engine.validate_registry()
+    global_question_audit = question_engine.audit_question_bank()
+    global_duplicate_errors = [
+        issue for issue in global_question_audit.get("issues", [])
+        if issue.get("code") in ("duplicate_global_id", "conflicting_duplicate")
+    ]
     transfer = transfer_check.audit_transfer_coverage()
 
     question_bank_errors = sum(
@@ -143,6 +148,7 @@ def build_report() -> dict[str, Any]:
         + len(diagnostic_issues)
         + len(lesson_identity_issues)
         + question_bank_errors
+        + len(global_duplicate_errors)
     )
     warning_count = int(question_totals.get("legacy", 0))
 
@@ -161,6 +167,7 @@ def build_report() -> dict[str, Any]:
             "diagnostic_error_count": len(diagnostic_issues),
             "lesson_identity_error_count": len(lesson_identity_issues),
             "question_needs_review_count": question_bank_errors,
+            "global_duplicate_question_error_count": len(global_duplicate_errors),
             "legacy_question_warning_count": warning_count,
             "transfer_coverage": {
                 key: value
@@ -171,6 +178,7 @@ def build_report() -> dict[str, Any]:
             "warning_count": warning_count,
         },
         "registry_errors": registry_errors,
+        "global_question_bank_issues": global_question_audit.get("issues", []),
         "diagnostic_issues": diagnostic_issues,
         "lesson_identity_issues": lesson_identity_issues,
         "transfer_coverage": transfer,
