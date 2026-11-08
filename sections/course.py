@@ -1062,6 +1062,7 @@ def _finish_practice_attempt(course, lesson, flow, course_id, diagnostic_result)
     if transfer_results:
         prog.setdefault("transfer_checks", []).extend({
             **item,
+            "practice_lesson_id": lesson["id"],
             "attempt_number": attempt_number,
             "recorded_at": datetime.now(timezone.utc).isoformat(),
         } for item in transfer_results)
