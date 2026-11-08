@@ -78,10 +78,10 @@ class MasteryReceiptTests(unittest.TestCase):
                             "attempt_number": 1,
                             "completed_at": "2026-10-20T10:00:00+00:00",
                             "results": [
-                                {"question_id": "q1", "correct": True},
-                                {"question_id": "q2", "correct": True},
-                                {"question_id": "q3", "correct": True},
-                                {"question_id": "q4", "correct": False},
+                                {"question_id": "q1", "verification_status": "verified", "correct": True},
+                                {"question_id": "q2", "verification_status": "verified", "correct": True},
+                                {"question_id": "q3", "verification_status": "verified", "correct": True},
+                                {"question_id": "q4", "verification_status": "verified", "correct": False},
                             ],
                         }]
                     }
@@ -111,7 +111,7 @@ class MasteryReceiptTests(unittest.TestCase):
                             {
                                 "attempt_number": index,
                                 "completed_at": f"2026-10-2{index}T10:00:00+00:00",
-                                "results": [{"question_id": "same-q", "correct": True}],
+                                "results": [{"question_id": "same-q", "verification_status": "verified", "correct": True}],
                             }
                             for index in (1, 2, 3)
                         ]
