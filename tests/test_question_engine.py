@@ -43,6 +43,31 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
         self.assertEqual(status, "needs_review")
         self.assertTrue(any("reviewed snapshot" in issue for issue in issues))
 
+    def test_reviewed_classification_metadata_change_invalidates_question(self):
+        original = question_engine.get_review_record("fractions_l1_q1")
+        self.assertIsNotNone(original)
+        mutated = copy.deepcopy(original)
+        mutated["purpose"] = "application"
+
+        with patch.dict(question_engine.VERIFICATION_REGISTRY, {"fractions_l1_q1": mutated}):
+            record = question_engine.get_question_record(
+                "fractions_l1_q1", course_id="fractions", lesson_id="fractions_l1"
+            )
+            status, issues = question_engine._verification_status(record)
+
+        self.assertEqual(status, "needs_review")
+        self.assertTrue(any("classification metadata" in issue for issue in issues))
+
+    def test_registry_validation_rejects_stale_classification_snapshot(self):
+        original = question_engine.get_review_record("fractions_l1_q1")
+        mutated = copy.deepcopy(original)
+        mutated["grade_bands"] = [9]
+
+        with patch.dict(question_engine.VERIFICATION_REGISTRY, {"fractions_l1_q1": mutated}):
+            errors = question_engine.validate_registry()
+
+        self.assertTrue(any("reviewed classification metadata snapshot" in error for error in errors))
+
     def test_shared_validator_rejects_ambiguous_or_malformed_questions(self):
         invalid_mc = {
             "id": "invalid_mc",
