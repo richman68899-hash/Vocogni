@@ -236,6 +236,38 @@ class MasteryReceiptTests(unittest.TestCase):
                     all(item["status"] == "Not tested" for item in receipt["skills"])
                 )
 
+    def test_unverified_or_unregistered_practice_does_not_enter_receipt(self):
+        course_id = "unverified_practice_course"
+        course = _course(course_id, [_question("verified-q", "Fraction meaning")])
+        contexts = self._registered_course(course)
+        with contexts[0], contexts[1], contexts[2]:
+            progress = {
+                course_id: {
+                    "practice_attempts": {
+                        f"{course_id}_lesson": [{
+                            "results": [
+                                {
+                                    "question_id": "verified-q",
+                                    "verification_status": "legacy",
+                                    "correct": True,
+                                },
+                                {
+                                    "question_id": "not-in-registry",
+                                    "verification_status": "verified",
+                                    "correct": True,
+                                },
+                            ]
+                        }]
+                    }
+                }
+            }
+            receipt = logic.mastery_receipt_for_course(progress, course_id)
+
+        skill = receipt["skills"][0]
+        self.assertEqual(skill["practice_answers"], 0)
+        self.assertIsNone(skill["practice_performance_percent"])
+        self.assertEqual(skill["status"], "Not tested")
+
     def test_unknown_course_returns_none_instead_of_crashing(self):
         self.assertIsNone(logic.mastery_receipt_for_course({}, "not-a-real-course"))
 
