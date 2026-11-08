@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import data
 import logic
+import question_engine
 
 
 def _question(question_id, skill, *, mistake_tag=None, question_type="mc"):
@@ -43,9 +44,20 @@ def _course(course_id, questions, *, diagnostic_questions=None):
 class MasteryReceiptTests(unittest.TestCase):
     def _registered_course(self, course):
         course_id = course["id"]
+        records = []
+        for lesson in course.get("lessons", []):
+            for question in lesson.get("practice_questions", []):
+                records.append({
+                    "course_id": course_id,
+                    "lesson_id": lesson["id"],
+                    "question_id": question["id"],
+                    "verification_status": "verified",
+                    "question": question,
+                })
         return (
             patch.dict(data.COURSES, {course_id: course}),
             patch.object(data, "COURSE_ORDER", list(data.COURSE_ORDER) + [course_id]),
+            patch.object(question_engine, "iter_question_records", return_value=records),
         )
 
     def test_receipt_adapts_to_a_new_course_without_course_specific_rules(self):
@@ -58,7 +70,7 @@ class MasteryReceiptTests(unittest.TestCase):
         ]
         course = _course(course_id, questions)
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "practice_attempts": {
@@ -91,7 +103,7 @@ class MasteryReceiptTests(unittest.TestCase):
         course_id = "repeat_question_course"
         course = _course(course_id, [_question("same-q", "Rearranging equations")])
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "practice_attempts": {
@@ -127,7 +139,7 @@ class MasteryReceiptTests(unittest.TestCase):
             diagnostic_questions=diagnostic_questions,
         )
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "diagnostics": {
@@ -163,7 +175,7 @@ class MasteryReceiptTests(unittest.TestCase):
             diagnostic_questions=diagnostic_questions,
         )
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "diagnostics": {
@@ -190,7 +202,7 @@ class MasteryReceiptTests(unittest.TestCase):
         )
         course = _course(course_id, [question])
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "practice_attempts": {
