@@ -377,8 +377,10 @@ class AdaptiveLearningTests(unittest.TestCase):
             "question_id": "variables_check_q1", "verification_status": "verified",
             "question": {"skill_id": prerequisite},
         })
-        with patch.object(question_engine, "iter_question_records", return_value=records), \\
-             patch.object(adaptive_learning, "_lesson_for_skill", return_value=("algebra", "algebra_l2")):
+        with (
+            patch.object(question_engine, "iter_question_records", return_value=records),
+            patch.object(adaptive_learning, "_lesson_for_skill", return_value=("algebra", "algebra_l2")),
+        ):
             plan = adaptive_learning.build_learning_plan(progress)
         action = next(row for row in plan["actions"] if row["skill_id"] == prerequisite)
         self.assertEqual(action["evidence_source"], "none")
