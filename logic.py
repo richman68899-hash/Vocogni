@@ -271,7 +271,7 @@ def mastery_receipt_for_course(progress, course_id):
     # Resolve current, verified VQE metadata once. Legacy and stale items
     # keep their tag-based mapping; approved items group evidence by stable ID.
     verified_vqe_by_id = {
-        record["question_id"]: record["question"]
+        (str(record.get("lesson_id") or ""), str(record.get("question_id") or "")): record["question"]
         for record in question_engine.iter_question_records(course_id=course_id)
         if record.get("verification_status") == "verified"
     }
@@ -297,7 +297,7 @@ def mastery_receipt_for_course(progress, course_id):
         for question in questions:
             question_id = question.get("id")
             normalized_qid = str(question_id).strip() if question_id is not None else ""
-            vqe_question = verified_vqe_by_id.get(normalized_qid)
+            vqe_question = verified_vqe_by_id.get((lesson_id, normalized_qid))
             if vqe_question and vqe_question.get("skill_id") in math_taxonomy.SKILLS:
                 skill_id = vqe_question["skill_id"]
                 skill_label = vqe_question.get("skill_label") or _mastery_question_skill(question, lesson)
@@ -384,9 +384,16 @@ def mastery_receipt_for_course(progress, course_id):
                 for result in results:
                     if not isinstance(result, dict):
                         continue
-                    evidence_order += 1
                     question_id = result.get("question_id")
                     normalized_qid = str(question_id).strip() if question_id is not None else ""
+                    # Practice contributes to the receipt only when the saved
+                    # result and the current reviewed registry both confirm it.
+                    if (
+                        result.get("verification_status") != "verified"
+                        or (str(lesson_id), normalized_qid) not in verified_vqe_by_id
+                    ):
+                        continue
+                    evidence_order += 1
                     mapped_key = question_map.get(normalized_qid)
                     recorded_skill_id = result.get("skill_id")
                     if isinstance(recorded_skill_id, str) and recorded_skill_id in math_taxonomy.SKILLS:

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import data
 import logic
+import question_engine
 
 
 def _question(question_id, skill, *, mistake_tag=None, question_type="mc"):
@@ -43,9 +44,20 @@ def _course(course_id, questions, *, diagnostic_questions=None):
 class MasteryReceiptTests(unittest.TestCase):
     def _registered_course(self, course):
         course_id = course["id"]
+        records = []
+        for lesson in course.get("lessons", []):
+            for question in lesson.get("practice_questions", []):
+                records.append({
+                    "course_id": course_id,
+                    "lesson_id": lesson["id"],
+                    "question_id": question["id"],
+                    "verification_status": "verified",
+                    "question": question,
+                })
         return (
             patch.dict(data.COURSES, {course_id: course}),
             patch.object(data, "COURSE_ORDER", list(data.COURSE_ORDER) + [course_id]),
+            patch.object(question_engine, "iter_question_records", return_value=records),
         )
 
     def test_receipt_adapts_to_a_new_course_without_course_specific_rules(self):
@@ -58,7 +70,7 @@ class MasteryReceiptTests(unittest.TestCase):
         ]
         course = _course(course_id, questions)
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "practice_attempts": {
@@ -66,10 +78,10 @@ class MasteryReceiptTests(unittest.TestCase):
                             "attempt_number": 1,
                             "completed_at": "2026-10-20T10:00:00+00:00",
                             "results": [
-                                {"question_id": "q1", "correct": True},
-                                {"question_id": "q2", "correct": True},
-                                {"question_id": "q3", "correct": True},
-                                {"question_id": "q4", "correct": False},
+                                {"question_id": "q1", "verification_status": "verified", "correct": True},
+                                {"question_id": "q2", "verification_status": "verified", "correct": True},
+                                {"question_id": "q3", "verification_status": "verified", "correct": True},
+                                {"question_id": "q4", "verification_status": "verified", "correct": False},
                             ],
                         }]
                     }
@@ -91,7 +103,7 @@ class MasteryReceiptTests(unittest.TestCase):
         course_id = "repeat_question_course"
         course = _course(course_id, [_question("same-q", "Rearranging equations")])
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "practice_attempts": {
@@ -99,7 +111,7 @@ class MasteryReceiptTests(unittest.TestCase):
                             {
                                 "attempt_number": index,
                                 "completed_at": f"2026-10-2{index}T10:00:00+00:00",
-                                "results": [{"question_id": "same-q", "correct": True}],
+                                "results": [{"question_id": "same-q", "verification_status": "verified", "correct": True}],
                             }
                             for index in (1, 2, 3)
                         ]
@@ -127,7 +139,7 @@ class MasteryReceiptTests(unittest.TestCase):
             diagnostic_questions=diagnostic_questions,
         )
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "diagnostics": {
@@ -163,7 +175,7 @@ class MasteryReceiptTests(unittest.TestCase):
             diagnostic_questions=diagnostic_questions,
         )
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "diagnostics": {
@@ -190,7 +202,7 @@ class MasteryReceiptTests(unittest.TestCase):
         )
         course = _course(course_id, [question])
         contexts = self._registered_course(course)
-        with contexts[0], contexts[1]:
+        with contexts[0], contexts[1], contexts[2]:
             progress = {
                 course_id: {
                     "practice_attempts": {
@@ -223,6 +235,38 @@ class MasteryReceiptTests(unittest.TestCase):
                 self.assertTrue(
                     all(item["status"] == "Not tested" for item in receipt["skills"])
                 )
+
+    def test_unverified_or_unregistered_practice_does_not_enter_receipt(self):
+        course_id = "unverified_practice_course"
+        course = _course(course_id, [_question("verified-q", "Fraction meaning")])
+        contexts = self._registered_course(course)
+        with contexts[0], contexts[1], contexts[2]:
+            progress = {
+                course_id: {
+                    "practice_attempts": {
+                        f"{course_id}_lesson": [{
+                            "results": [
+                                {
+                                    "question_id": "verified-q",
+                                    "verification_status": "legacy",
+                                    "correct": True,
+                                },
+                                {
+                                    "question_id": "not-in-registry",
+                                    "verification_status": "verified",
+                                    "correct": True,
+                                },
+                            ]
+                        }]
+                    }
+                }
+            }
+            receipt = logic.mastery_receipt_for_course(progress, course_id)
+
+        skill = receipt["skills"][0]
+        self.assertEqual(skill["practice_answers"], 0)
+        self.assertIsNone(skill["practice_performance_percent"])
+        self.assertEqual(skill["status"], "Not tested")
 
     def test_unknown_course_returns_none_instead_of_crashing(self):
         self.assertIsNone(logic.mastery_receipt_for_course({}, "not-a-real-course"))

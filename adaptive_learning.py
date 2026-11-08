@@ -58,6 +58,11 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
     # mapping. Unverified/legacy questions are not assigned invented skill IDs.
     question_map = {}
     for record in question_engine.iter_question_records():
+        # Only the reviewed registry is authoritative for practice evidence.
+        # Legacy, generated, and needs-review questions must not create skill
+        # accuracy or trajectory signals.
+        if record.get("verification_status") != "verified":
+            continue
         question = record.get("question", {})
         skill_id = question.get("skill_id")
         if skill_id in evidence:
@@ -85,9 +90,19 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 for result in results:
                     if not isinstance(result, dict):
                         continue
+                    # Fail closed: a saved result is evidence only when
+                    # both the attempt and the current registry identify it as
+                    # verified. A client-supplied skill_id alone is not proof.
+                    if result.get("verification_status") != "verified":
+                        continue
                     qid = str(result.get("question_id") or "")
-                    metadata = question_map.get((course_id, lesson_id, qid), {})
-                    skill_id = result.get("skill_id") or metadata.get("skill_id")
+                    metadata = question_map.get((course_id, lesson_id, qid))
+                    if not metadata:
+                        continue
+                    skill_id = metadata.get("skill_id")
+                    recorded_skill_id = result.get("skill_id")
+                    if recorded_skill_id and recorded_skill_id != skill_id:
+                        continue
                     if skill_id not in evidence:
                         continue
                     item = evidence[skill_id]
