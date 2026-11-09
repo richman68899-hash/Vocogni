@@ -55,30 +55,36 @@ def _create_form() -> None:
 
 
 def _render_board_actions(board: dict[str, Any]) -> None:
+    """Keep secondary whiteboard actions in a compact, predictable overflow menu."""
     board_id = board["id"]
-    left, middle, right = st.columns([1, 1, 2])
-    with left:
-        if st.button("Rename", key=f"rename_whiteboard_{board_id}"):
-            st.session_state[f"renaming_whiteboard_{board_id}"] = True
-    with middle:
-        if st.button("Delete", key=f"delete_whiteboard_{board_id}"):
-            st.session_state[f"confirm_delete_whiteboard_{board_id}"] = True
-    folders = st.session_state.note_folders
-    ids = [None] + [f.get("id") for f in folders]
-    labels = ["Unfiled"] + [str(f.get("name", "Folder")) for f in folders]
-    current_folder = board.get("folder_id")
-    idx = ids.index(current_folder) if current_folder in ids else 0
-    with right:
-        chosen_folder = st.selectbox(
-            "Folder", ids, index=idx,
-            format_func=lambda value: labels[ids.index(value)] if value in ids else "Unfiled",
-            key=f"whiteboard_folder_{board_id}",
-        )
-        if st.button("Move to folder", key=f"move_whiteboard_{board_id}"):
-            board["folder_id"] = chosen_folder
-            board["updated_at"] = _now()
-            _mark_changed()
-            st.rerun()
+    _, menu_col = st.columns([6, 0.65], vertical_alignment="center")
+    with menu_col:
+        with st.popover("⋮", help="Whiteboard actions", use_container_width=True):
+            if st.button("Rename whiteboard", key=f"rename_whiteboard_{board_id}", use_container_width=True):
+                st.session_state[f"renaming_whiteboard_{board_id}"] = True
+                st.rerun()
+
+            if st.button("Delete whiteboard", key=f"delete_whiteboard_{board_id}", use_container_width=True):
+                st.session_state[f"confirm_delete_whiteboard_{board_id}"] = True
+                st.rerun()
+
+            folders = st.session_state.note_folders
+            ids = [None] + [f.get("id") for f in folders]
+            labels = ["Unfiled"] + [str(f.get("name", "Folder")) for f in folders]
+            current_folder = board.get("folder_id")
+            idx = ids.index(current_folder) if current_folder in ids else 0
+            chosen_folder = st.selectbox(
+                "Folder",
+                ids,
+                index=idx,
+                format_func=lambda value: labels[ids.index(value)] if value in ids else "Unfiled",
+                key=f"whiteboard_folder_{board_id}",
+            )
+            if st.button("Move to folder", key=f"move_whiteboard_{board_id}", use_container_width=True):
+                board["folder_id"] = chosen_folder
+                board["updated_at"] = _now()
+                _mark_changed()
+                st.rerun()
 
     if st.session_state.get(f"renaming_whiteboard_{board_id}", False):
         with st.form(f"rename_whiteboard_form_{board_id}"):
@@ -107,7 +113,6 @@ def _render_board_actions(board: dict[str, Any]) -> None:
             if st.button("Cancel", key=f"cancel_delete_{board_id}"):
                 st.session_state[f"confirm_delete_whiteboard_{board_id}"] = False
                 st.rerun()
-
 
 def _render_exports(board: dict[str, Any]) -> None:
     col_json, col_svg = st.columns(2)
