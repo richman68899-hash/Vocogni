@@ -191,7 +191,11 @@ def main() -> None:
 
     # Apply the learner's saved theme before rendering any authenticated UI.
     # This avoids a late style injection after the page content has appeared.
-    st.markdown(styles.build_css(st.session_state.settings), unsafe_allow_html=True)
+    accessibility_overrides = "<style>\n/* Keep inactive sidebar navigation readable in every theme. */\nsection[data-testid=\"stSidebar\"] .stButton > button[kind=\"secondary\"],\nsection[data-testid=\"stSidebar\"] button[data-testid=\"stBaseButton-secondary\"] {\n    color: var(--vc-text) !important;\n    opacity: 1 !important;\n}\nsection[data-testid=\"stSidebar\"] .stButton > button[kind=\"secondary\"] *,\nsection[data-testid=\"stSidebar\"] button[data-testid=\"stBaseButton-secondary\"] * {\n    color: inherit !important;\n    opacity: 1 !important;\n}\n.vc-account-status {\n    display: block;\n    color: var(--vc-text) !important;\n    font-size: 0.88rem !important;\n    font-weight: 550;\n    line-height: 1.5;\n    overflow-wrap: anywhere;\n}\n/* The guided-tour Back button can be disabled on its first step. */\n.st-key-tutorial_back button[data-testid=\"stBaseButton-secondary\"]:disabled {\n    color: var(--vc-subtext) !important;\n    opacity: 1 !important;\n    border-color: var(--vc-border) !important;\n}\n</style>"
+    st.markdown(
+        styles.build_css(st.session_state.settings) + accessibility_overrides,
+        unsafe_allow_html=True,
+    )
     onboarding.render_tutorial(st)
 
     _render_logo()
