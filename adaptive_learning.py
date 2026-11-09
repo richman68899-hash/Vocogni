@@ -314,9 +314,11 @@ def build_intervention_timeline(
     """Build a chronological, per-skill record of diagnostics and interventions.
 
     Includes explicitly mapped diagnostic skill tags, verified question-level
-    practice attempts, and verified Coach answers. Unverified/generated items
-    are excluded. Comparisons are shown only when both events contain at least
-    two answers; they remain descriptive because the question sets may differ.
+    practice attempts, verified independent transfer checks, and verified Coach
+    answers. Transfer checks are kept as a distinct event type and never blended
+    into ordinary practice accuracy. Unverified/generated items are excluded.
+    Comparisons are shown only when both events contain at least two answers;
+    they remain descriptive because the question sets may differ.
     """
     if not isinstance(progress, dict):
         progress = {}
@@ -436,7 +438,71 @@ def build_intervention_timeline(
                             "accuracy_percent": round(sum(ratios) / len(ratios) * 100),
                         })
 
-        # 3) Coach answers are stored individually. Group verified Coach
+        # 3) Independent transfer checks are stored outside practice_attempts.
+        # Re-resolve each item against the current VQE registry so stale, legacy,
+        # or reclassified records cannot become transfer evidence.
+        transfer_records = course_progress.get("transfer_checks", [])
+        if isinstance(transfer_records, list):
+            for transfer_index, result in enumerate(transfer_records):
+                if not isinstance(result, dict):
+                    continue
+                if (
+                    result.get("evidence_type") != "independent_transfer"
+                    or result.get("independent") is not True
+                ):
+                    continue
+                question_id = str(result.get("question_id") or "")
+                source_lesson_id = str(result.get("lesson_id") or result.get("source_lesson_id") or "")
+                practice_lesson_id = str(result.get("practice_lesson_id") or "")
+                completed = _parse_event_timestamp(
+                    result.get("recorded_at") or result.get("completed_at")
+                )
+                if not question_id or not source_lesson_id or not practice_lesson_id or completed is None:
+                    continue
+                metadata = question_engine.attempt_metadata(
+                    question_id,
+                    course_id=course_id,
+                    lesson_id=source_lesson_id,
+                )
+                skill_id = metadata.get("skill_id")
+                if (
+                    metadata.get("verification_status") != "verified"
+                    or metadata.get("question_purpose") != "application"
+                    or not isinstance(skill_id, str)
+                    or skill_id not in math_taxonomy.SKILLS
+                    or result.get("verification_status") != "verified"
+                    or result.get("source_skill_id") != skill_id
+                    or (result.get("skill_id") and result.get("skill_id") != skill_id)
+                ):
+                    continue
+                practice_title = _course_lesson_labels(course_id, practice_lesson_id)[1]
+                source_title = _course_lesson_labels(course_id, source_lesson_id)[1]
+                ratio = _event_ratio(result)
+                events.append({
+                    "event_id": (
+                        f"transfer:{course_id}:{practice_lesson_id}:"
+                        f"{result.get('attempt_number', transfer_index + 1)}:"
+                        f"{question_id}:{completed.isoformat()}"
+                    ),
+                    "course_id": course_id,
+                    "course_title": course_title,
+                    "lesson_id": practice_lesson_id,
+                    "lesson_title": practice_title,
+                    "source_lesson_id": source_lesson_id,
+                    "source_lesson_title": source_title,
+                    "skill_id": skill_id,
+                    "skill": math_taxonomy.SKILLS[skill_id]["label"],
+                    "event_type": "transfer",
+                    "intervention_label": "Independent transfer check",
+                    "completed_at": completed.isoformat(),
+                    "_sort_at": completed,
+                    "correct_answers": 1 if ratio >= 0.999 else 0,
+                    "total_items": 1,
+                    "accuracy_percent": round(ratio * 100),
+                })
+
+        # 4) Coach answers are stored individually. Group verified Coach
+
         # attempts by skill and UTC calendar day to avoid treating each answer
         # as a separate intervention event.
         coach_data = course_progress.get("coach", {})
@@ -531,7 +597,8 @@ def build_intervention_timeline(
         "limited_sample_events": sum(item["total_items"] < 2 for item in events),
         "evidence_note": (
             "The timeline links explicitly mapped diagnostic tags with verified "
-            "question-level practice and Coach records. Each comparison requires "
+            "practice, independent transfer, and Coach records. Transfer checks "
+            "remain separate from practice accuracy. Each comparison requires "
             "at least two answers in both events. Question sets and difficulty can "
             "differ, so a change is descriptive and does not prove that an "
             "intervention caused learning gain or durable mastery."

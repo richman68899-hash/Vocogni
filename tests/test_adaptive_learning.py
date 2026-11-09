@@ -357,5 +357,83 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(action["evidence_source"], "practice")
         self.assertEqual(action["accuracy_percent"], 50)
 
+    def test_intervention_timeline_includes_verified_transfer_separately(self):
+        progress = {
+            "fractions": {
+                "transfer_checks": [{
+                    "question_id": "fractions_l1_project_q1",
+                    "lesson_id": "fractions_l1",
+                    "practice_lesson_id": "fractions_l2",
+                    "skill_id": "math.number.fraction_operations",
+                    "source_skill_id": "math.number.fraction_operations",
+                    "verification_status": "verified",
+                    "question_purpose": "application",
+                    "evidence_type": "independent_transfer",
+                    "independent": True,
+                    "correct": True,
+                    "recorded_at": "2026-11-08T10:00:00+00:00",
+                    "attempt_number": 1,
+                }]
+            }
+        }
+        registry_record = {
+            "course_id": "fractions",
+            "lesson_id": "fractions_l1",
+            "question_id": "fractions_l1_project_q1",
+            "verification_status": "verified",
+            "question": {
+                "skill_id": "math.number.fraction_operations",
+                "purpose": "application",
+            },
+        }
+        with patch.object(question_engine, "iter_question_records", return_value=[registry_record]):
+            result = adaptive_learning.build_intervention_timeline(progress)
+        transfer = next(item for item in result["events"] if item["event_type"] == "transfer")
+        self.assertEqual(transfer["lesson_id"], "fractions_l2")
+        self.assertEqual(transfer["source_lesson_id"], "fractions_l1")
+        self.assertEqual(transfer["intervention_label"], "Independent transfer check")
+        self.assertEqual(transfer["accuracy_percent"], 100)
+        self.assertEqual(transfer["total_items"], 1)
+        self.assertIsNone(transfer["comparison"])
+
+    def test_intervention_timeline_rejects_unverified_or_mismatched_transfer(self):
+        progress = {"fractions": {"transfer_checks": [
+            {
+                "question_id": "fractions_l1_project_q1",
+                "lesson_id": "fractions_l1",
+                "practice_lesson_id": "fractions_l2",
+                "source_skill_id": "math.number.fraction_operations",
+                "verification_status": "needs_review",
+                "evidence_type": "independent_transfer",
+                "independent": True,
+                "correct": True,
+                "recorded_at": "2026-11-08T10:00:00+00:00",
+            },
+            {
+                "question_id": "fractions_l1_project_q1",
+                "lesson_id": "fractions_l1",
+                "practice_lesson_id": "fractions_l2",
+                "source_skill_id": "math.algebra.linear_equations",
+                "verification_status": "verified",
+                "evidence_type": "independent_transfer",
+                "independent": True,
+                "correct": True,
+                "recorded_at": "2026-11-08T10:01:00+00:00",
+            },
+        ]}}
+        registry_record = {
+            "course_id": "fractions",
+            "lesson_id": "fractions_l1",
+            "question_id": "fractions_l1_project_q1",
+            "verification_status": "verified",
+            "question": {
+                "skill_id": "math.number.fraction_operations",
+                "purpose": "application",
+            },
+        }
+        with patch.object(question_engine, "iter_question_records", return_value=[registry_record]):
+            result = adaptive_learning.build_intervention_timeline(progress)
+        self.assertFalse(any(item["event_type"] == "transfer" for item in result["events"]))
+
 if __name__ == "__main__":
     unittest.main()
