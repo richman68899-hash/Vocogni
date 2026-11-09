@@ -217,7 +217,10 @@ class SessionIdentityBoundaryTests(unittest.TestCase):
         load_progress.assert_called_once()
         self.assertEqual(session["_persistent_user_id"], "auth0|learner-b")
         self.assertEqual(session["profile"]["name"], "Learner B")
-        self.assertEqual(session["notes"], [{"id": 2, "title": "B-only note"}])
+        self.assertEqual(
+            session["notes"],
+            [{"id": 2, "title": "B-only note", "folder_id": None}],
+        )
         self.assertEqual(session["settings"]["appearance"], "Dark")
         self.assertNotIn("assistant_history", session)
         self.assertNotIn("A-only", repr(session))
