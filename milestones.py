@@ -8,15 +8,15 @@ from typing import Any
 
 
 PALETTE = {
-    "Red": "#B85B56",
-    "Orange": "#B97745",
-    "Yellow": "#A98938",
-    "Green": "#458566",
-    "Cyan": "#4F9295",
-    "Blue": "#587DA2",
-    "Pink": "#B56F8B",
-    "Purple": "#8A79AC",
-    "Grey": "#7C8983",
+    "Red": "#B6534D",
+    "Orange": "#B8793E",
+    "Yellow": "#9A7A25",
+    "Green": "#4D8069",
+    "Cyan": "#397E87",
+    "Blue": "#52769E",
+    "Pink": "#A96782",
+    "Purple": "#7B699D",
+    "Grey": "#727F83",
     "System": None,
 }
 
