@@ -103,13 +103,22 @@ See:
 - `docs/features/ai-learning-core-prototype.md`
 - `docs/features/ai-learning-core-integration.md`
 
-## Tests
+## Tests and beta verification
 
-Run the offline tests:
+Install the project requirements, then run the **full** automated suite from the repository root:
+
+```bash
+python -m pip install -r requirements.txt
+python -m unittest discover -s tests -v
+python -m compileall -q -x '(^|[\\/])(\\.git|\\.venv|venv)([\\/]|$)' .
+```
+
+The AI prototype tests can also be run separately while working on that feature:
 
 ```bash
 python -m unittest discover -s tests -p 'test_ai_prototype.py' -v
-python -m py_compile app.py vocogni_ai.py vocogni_assistant.py ai_prototype/llm.py ai_prototype/engine.py
 ```
 
-These tests do not validate a live provider, deployed Auth0/Supabase integration, UI behavior, educational effectiveness, or legal compliance.
+GitHub Actions runs the full test suite and a Python compilation check. Passing automated checks does **not** validate live Auth0 login/session behavior, Supabase account isolation, deployed persistence recovery, actual-device usability, question correctness, educational effectiveness, or legal compliance.
+
+Before a learner pilot, complete the evidence-based [Stage 1 beta acceptance checklist](docs/testing/stage1-beta-acceptance.md), the [lesson diagnostics acceptance tests](docs/testing/lesson-diagnostics-acceptance.md), and the [legal and safety launch-readiness checklist](docs/legal/launch-readiness.md). Use synthetic accounts and data until the applicable privacy, consent, and learner-safeguarding gates are complete.
