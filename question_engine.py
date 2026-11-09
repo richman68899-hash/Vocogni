@@ -61,6 +61,15 @@ _REQUIRED_REVIEW_CHECKS = {
 }
 
 
+def _reviewed_metadata_payload(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Return classification fields that must remain tied to review evidence."""
+    keys = (
+        "skill_id", "grade_bands", "strand", "topic", "purpose",
+        "difficulty", "pathway",
+    )
+    return {key: deepcopy(metadata.get(key)) for key in keys}
+
+
 def _review(
     skill_id: str,
     topic: str,
@@ -71,7 +80,7 @@ def _review(
     pathway: str | None = None,
     grade_bands: tuple[int, ...] | None = None,
 ) -> dict[str, Any]:
-    return {
+    metadata = {
         "version": 1,
         "skill_id": skill_id,
         "grade_bands": list(grade_bands or GRADE_BANDS),
@@ -84,11 +93,11 @@ def _review(
         "reviewed_at": "2026-10-25",
         "reviewer": "Vocogni VQE prototype content review",
         "review_checks": sorted(_REQUIRED_REVIEW_CHECKS),
-        # These values anchor verification to the actual authored item.
-        # Changing any included field invalidates the review automatically.
         "reviewed_content": reviewed_content,
         "curriculum_alignment": "Provisional lower-secondary planning tag; not an official syllabus code",
     }
+    metadata["reviewed_metadata"] = _reviewed_metadata_payload(metadata)
+    return metadata
 
 
 # Initial seed items were individually reviewed against their authored prompt,
@@ -991,6 +1000,13 @@ def _snapshot_matches(question: dict[str, Any], metadata: dict[str, Any]) -> boo
     )
 
 
+def _metadata_snapshot_matches(metadata: dict[str, Any]) -> bool:
+    snapshot = metadata.get("reviewed_metadata")
+    if not isinstance(snapshot, dict) or not snapshot:
+        return False
+    return _same_snapshot_value(snapshot, _reviewed_metadata_payload(metadata))
+
+
 def _question_fingerprint_payload(question: dict[str, Any]) -> dict[str, Any]:
     keys = (
         "id", "type", "prompt", "options", "answer", "tolerance",
@@ -1150,6 +1166,8 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
 
     if not _snapshot_matches(question, metadata):
         issues.append("Question content differs from the reviewed snapshot; review evidence is stale.")
+    if not _metadata_snapshot_matches(metadata):
+        issues.append("Question classification metadata differs from the reviewed snapshot; review evidence is stale.")
     missing_checks = _REQUIRED_REVIEW_CHECKS - set(metadata.get("review_checks", []))
     if missing_checks:
         issues.append("Missing verification checks: " + ", ".join(sorted(missing_checks)) + ".")
@@ -1486,4 +1504,6 @@ def validate_registry() -> list[str]:
             errors.append(f"{question_id}: version must be a positive integer.")
         if not isinstance(metadata.get("reviewed_content"), dict) or not metadata["reviewed_content"]:
             errors.append(f"{question_id}: reviewed content snapshot is required.")
+        if not _metadata_snapshot_matches(metadata):
+            errors.append(f"{question_id}: reviewed classification metadata snapshot is missing or stale.")
     return errors
