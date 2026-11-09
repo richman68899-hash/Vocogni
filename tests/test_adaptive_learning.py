@@ -357,6 +357,61 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(action["evidence_source"], "practice")
         self.assertEqual(action["accuracy_percent"], 50)
 
+    def test_untested_prerequisite_is_a_check_not_a_weakness(self):
+        skill_id = "math.algebra.linear_equations"
+        prerequisite = "math.algebra.variables_expressions"
+        progress = {"algebra": {"practice_attempts": {"algebra_l2": [{
+            "completed_at": "2026-11-08T10:00:00+00:00",
+            "results": [
+                {"question_id": "linear_q1", "skill_id": skill_id, "verification_status": "verified", "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "linear_q2", "skill_id": skill_id, "verification_status": "verified", "correct": False, "score": 0, "max_marks": 1},
+            ],
+        }]}}}
+        records = [
+            {"course_id": "algebra", "lesson_id": "algebra_l2", "question_id": qid,
+             "verification_status": "verified", "question": {"skill_id": skill_id}}
+            for qid in ("linear_q1", "linear_q2")
+        ]
+        records.append({
+            "course_id": "algebra", "lesson_id": "algebra_l2",
+            "question_id": "variables_check_q1", "verification_status": "verified",
+            "question": {"skill_id": prerequisite},
+        })
+        with (
+            patch.object(question_engine, "iter_question_records", return_value=records),
+            patch.object(adaptive_learning, "_lesson_for_skill", return_value=("algebra", "algebra_l2")),
+        ):
+            plan = adaptive_learning.build_learning_plan(progress)
+        action = next(row for row in plan["actions"] if row["skill_id"] == prerequisite)
+        self.assertEqual(action["evidence_source"], "none")
+        self.assertIsNone(action["accuracy_percent"])
+        self.assertEqual(action["attempts"], 0)
+        self.assertTrue(action["is_prerequisite_check"])
+        self.assertFalse(action["is_prerequisite_review"])
+        self.assertIn("no recorded", action["reason"].lower())
+        self.assertNotIn("below the 75%", action["reason"])
+
+    def test_shared_prerequisite_is_recommended_only_once(self):
+        variables = "math.algebra.variables_expressions"
+        progress = {"algebra": {"practice_attempts": {"algebra_l2": [{
+            "completed_at": "2026-11-08T10:00:00+00:00",
+            "results": [
+                {"question_id": "variables_q1", "skill_id": variables, "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "variables_q2", "skill_id": variables, "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "equations_q1", "skill_id": "math.algebra.linear_equations", "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "equations_q2", "skill_id": "math.algebra.linear_equations", "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "translation_q1", "skill_id": "math.problem_solving.expression_translation", "correct": False, "score": 0, "max_marks": 1},
+                {"question_id": "translation_q2", "skill_id": "math.problem_solving.expression_translation", "correct": False, "score": 0, "max_marks": 1},
+            ],
+        }]}}}
+        plan = _build_with_verified_fixtures(adaptive_learning.build_learning_plan, progress)
+        target_ids = [row["skill_id"] for row in plan["actions"]]
+        self.assertEqual(
+            target_ids.count(variables),
+            1,
+            "A shared prerequisite should not occupy multiple recommendation slots.",
+        )
+
     def test_intervention_timeline_includes_verified_transfer_separately(self):
         progress = {
             "fractions": {

@@ -572,7 +572,9 @@ def _render_recommendations(progress):
                 st.write(action["reason"])
                 st.write("**Recommended action:** " + action["action"])
                 if action["is_prerequisite_review"]:
-                    st.caption("Prerequisite review: this skill supports a weaker downstream skill.")
+                    st.caption("Prerequisite review: verified evidence is below the review threshold.")
+                elif action.get("is_prerequisite_check"):
+                    st.caption("Prerequisite check: evidence has not been collected yet.")
                 if action["accuracy_percent"] is not None:
                     evidence_label = "Diagnostic starting-check result" if action["evidence_source"] == "diagnostic" else "Recorded practice performance"
                     st.caption(f"{evidence_label}: {action['accuracy_percent']}%")

@@ -639,7 +639,7 @@ def _weakness_priority(item: dict[str, Any]) -> float:
 
 
 def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, Any]:
-    """Return ranked skill actions, evidence and prerequisite-aware routing."""
+    """Return ranked skill actions with explicit evidence-aware prerequisite routing."""
     evidence = _collect_skill_evidence(progress)
     ranked = []
     for skill_id, item in evidence.items():
@@ -659,29 +659,53 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
 
     ranked.sort(key=lambda row: (-row[0], row[2]["accuracy"], row[2]["skill"]))
     actions = []
+    routed_skills = set()
     for priority, skill_id, item, evidence_source in ranked:
-        prerequisites = [
-            prerequisite for prerequisite in math_taxonomy.SKILLS[skill_id].get("prerequisites", [])
-            if prerequisite in evidence and (
-                (
-                    evidence[prerequisite]["accuracy"]
-                    if evidence[prerequisite]["accuracy"] is not None
-                    else evidence[prerequisite]["diagnostic_accuracy"]
-                ) is None
-                or (
-                    evidence[prerequisite]["accuracy"]
-                    if evidence[prerequisite]["accuracy"] is not None
-                    else evidence[prerequisite]["diagnostic_accuracy"]
-                ) < 0.75
+        prerequisites = []
+        for prerequisite in math_taxonomy.SKILLS[skill_id].get("prerequisites", []):
+            if prerequisite not in evidence:
+                continue
+            prerequisite_item = evidence[prerequisite]
+            prerequisite_source = (
+                "practice" if prerequisite_item["accuracy"] is not None
+                else "diagnostic" if prerequisite_item["diagnostic_accuracy"] is not None
+                else "none"
             )
-        ]
-        target_skill = prerequisites[0] if prerequisites else skill_id
+            prerequisite_accuracy = (
+                prerequisite_item["accuracy"] if prerequisite_source == "practice"
+                else prerequisite_item["diagnostic_accuracy"] if prerequisite_source == "diagnostic"
+                else None
+            )
+            if prerequisite_accuracy is None:
+                prerequisites.append((prerequisite, "untested"))
+            elif prerequisite_accuracy < 0.75:
+                prerequisites.append((prerequisite, "below_threshold"))
+
+        # Prefer a demonstrated prerequisite gap over an untested prerequisite.
+        # Missing evidence is a reason to check, not evidence of failure.
+        weak_prerequisites = [entry for entry in prerequisites if entry[1] == "below_threshold"]
+        target_skill, prerequisite_status = (
+            weak_prerequisites[0] if weak_prerequisites
+            else prerequisites[0] if prerequisites
+            else (skill_id, None)
+        )
+        if target_skill in routed_skills:
+            continue
+
         target = evidence[target_skill]
-        target_source = "practice" if target["accuracy"] is not None else "diagnostic"
-        target_accuracy = target["accuracy"] if target_source == "practice" else target["diagnostic_accuracy"]
-        target_attempts = target["attempts"] if target_source == "practice" else len(target["diagnostic_ratios"])
-        target_repeat_errors = target["repeat_errors"] if target_source == "practice" else target["diagnostic_repeat_errors"]
-        target_mistake_tags = target["mistake_tags"] if target_source == "practice" else target["diagnostic_mistake_tags"]
+        target_source = (
+            "practice" if target["accuracy"] is not None
+            else "diagnostic" if target["diagnostic_accuracy"] is not None
+            else "none"
+        )
+        target_accuracy = (
+            target["accuracy"] if target_source == "practice"
+            else target["diagnostic_accuracy"] if target_source == "diagnostic"
+            else None
+        )
+        target_attempts = target["attempts"] if target_source == "practice" else len(target["diagnostic_ratios"]) if target_source == "diagnostic" else 0
+        target_repeat_errors = target["repeat_errors"] if target_source == "practice" else target["diagnostic_repeat_errors"] if target_source == "diagnostic" else 0
+        target_mistake_tags = target["mistake_tags"] if target_source == "practice" else target["diagnostic_mistake_tags"] if target_source == "diagnostic" else {}
         course_id, lesson_id = _lesson_for_skill(target_skill, target)
         if not course_id or not lesson_id:
             locations = target.get("diagnostic_locations", [])
@@ -695,16 +719,24 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             continue
 
         is_prerequisite = target_skill != skill_id
-        if is_prerequisite:
+        is_prerequisite_review = is_prerequisite and prerequisite_status == "below_threshold"
+        is_prerequisite_check = is_prerequisite and prerequisite_status == "untested"
+        if is_prerequisite_review:
             threshold_source = (
                 "practice evidence" if target_source == "practice"
                 else "baseline diagnostic evidence"
             )
             reason = (
-                f"{item['skill']} depends on {target['skill']}, which has "
-                f"not yet reached the 75% threshold based on {threshold_source}."
+                f"{item['skill']} depends on {target['skill']}, which is below "
+                f"the 75% review threshold based on {threshold_source}."
             )
             action = f"Review {target['skill']} before returning to {item['skill']}."
+        elif is_prerequisite_check:
+            reason = (
+                f"{item['skill']} depends on {target['skill']}, but there is no "
+                "recorded diagnostic or practice evidence for that prerequisite yet."
+            )
+            action = f"Complete a short check of {target['skill']} before continuing with {item['skill']}."
         elif item["repeat_errors"]:
             common_error = max(item["mistake_tags"], key=item["mistake_tags"].get)
             reason = (
@@ -734,8 +766,10 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             "common_error": max(target_mistake_tags, key=target_mistake_tags.get) if target_mistake_tags else None,
             "reason": reason,
             "action": action,
-            "is_prerequisite_review": is_prerequisite,
+            "is_prerequisite_review": is_prerequisite_review,
+            "is_prerequisite_check": is_prerequisite_check,
         })
+        routed_skills.add(target_skill)
         if len(actions) >= max(1, int(limit)):
             break
 
@@ -752,8 +786,9 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
         "evidence_note": (
             "Practice recommendations use saved question-level results. When "
             "practice is absent, mapped baseline diagnostic answers can suggest "
-            "a provisional review target. Diagnostic and practice scores stay "
-            "separate. These heuristics are not a validated diagnosis or proof "
-            "of mastery."
+            "a provisional review target. An untested prerequisite triggers a "
+            "check, not a weakness label. Diagnostic and practice scores stay "
+            "separate; repeated prerequisite targets are deduplicated. These "
+            "heuristics are not a validated diagnosis or proof of mastery."
         ),
     }
