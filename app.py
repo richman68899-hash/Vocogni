@@ -14,6 +14,7 @@ import streamlit as st
 
 import state
 import styles
+from verified_account import is_current_account_verified, verified_badge_html
 import onboarding
 from vocogni_ai import render_assistant
 from legal_notices import render_legal_notices
@@ -127,13 +128,19 @@ def _render_nav() -> None:
             quote=True,
         )
         st.sidebar.markdown("<hr>", unsafe_allow_html=True)
+        verified_badge = (
+            verified_badge_html(18) if is_current_account_verified() else ""
+        )
+        visible_name = html.escape(identity, quote=True)
         st.sidebar.markdown(
-            "<div style='display:flex;align-items:center;gap:.6rem;padding:.2rem 0;'>"
+            "<div style='display:flex;align-items:center;gap:.55rem;padding:.2rem 0;min-width:0;'>"
             f"<span title='{hover_label}' aria-label='{hover_label}' "
             "style='display:inline-flex;align-items:center;justify-content:center;"
-            "width:2rem;height:2rem;border-radius:50%;border:1px solid var(--vc-border,#d8e1dc);"
+            "width:2rem;height:2rem;flex:0 0 2rem;border-radius:50%;border:1px solid var(--vc-border,#d8e1dc);"
             "font-weight:700;cursor:default;'>"
-            f"{initial}</span><span class='vc-muted'>Account</span></div>",
+            f"{initial}</span>"
+            f"<span class='vc-muted' style='min-width:0;overflow-wrap:anywhere;'>{visible_name}</span>"
+            f"{verified_badge}</div>",
             unsafe_allow_html=True,
         )
 
