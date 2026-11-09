@@ -152,14 +152,19 @@ def _render_logout() -> None:
     ):
         return
 
-    try:
-        state.persist_learner_state()
-    except Exception as exc:
-        st.error(
+    # Force a final save through the normal autosave path so a failure
+    # remains visible, keeps the data marked dirty, and exposes Retry save.
+    state.mark_persistent_dirty()
+
+    if not state.flush_persistent_save():
+        error = st.session_state.get("_persistent_save_error")
+        message = (
             "Vocogni could not save your latest progress. "
-            "You have not been logged out. "
-            f"Error: {exc}"
+            "You have not been logged out. Use Retry save before leaving."
         )
+        if error:
+            message += f" Details: {error}"
+        st.error(message)
         return
 
     st.logout()
