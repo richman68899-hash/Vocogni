@@ -212,10 +212,6 @@ def render_tutorial(st: Any) -> None:
           border:1px solid var(--vc-border);border-radius:12px;
           background:var(--vc-surface);">
           <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:.85rem;">
-            <div aria-hidden="true" style="display:flex;align-items:center;justify-content:center;
-              width:42px;height:42px;flex:0 0 42px;border-radius:10px;
-              background:var(--vc-accent);color:var(--vc-on-accent);
-              font-size:1.2rem;font-weight:750;letter-spacing:-.05em;">V</div>
             <div>
               <div style="font-weight:700;letter-spacing:-.02em;color:var(--vc-text);">Vocogni guide</div>
               <div style="font-size:.82rem;color:var(--vc-subtext);">{html.escape(step_label)}</div>
@@ -232,7 +228,7 @@ def render_tutorial(st: Any) -> None:
             color:var(--vc-text);margin:0 0 .5rem 0;">{title}</h2>
           <p style="font-size:.94rem;line-height:1.62;color:var(--vc-text);margin:0 0 .6rem 0;">{body}</p>
           <p style="font-size:.84rem;line-height:1.55;color:var(--vc-subtext);
-            margin:0;padding-left:.75rem;border-left:2px solid var(--vc-border);">{detail}</p>
+            margin:0;">{detail}</p>
         </section>
         """,
         unsafe_allow_html=True,
