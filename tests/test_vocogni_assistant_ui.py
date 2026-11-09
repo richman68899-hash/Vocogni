@@ -7,11 +7,11 @@ import unittest
 class AssistantPromptVisibilityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (Path(__file__).resolve().parents[1] / "vocogni_assistant.py").read_text(
+        cls.source = (Path(__file__).resolve().parents[1] / "vocogni_ai.py").read_text(
             encoding="utf-8"
         )
 
-    def test_quick_requests_are_sticky_within_the_scrollable_panel(self):
+    def test_quick_requests_are_sticky_in_the_active_study_guide(self):
         selector = ".st-key-vocogni_assistant_quick_requests {"
         self.assertIn(selector, self.source)
         rule_start = self.source.index(selector)
@@ -22,7 +22,7 @@ class AssistantPromptVisibilityTests(unittest.TestCase):
         self.assertIn("top:", rule)
         self.assertIn("z-index:", rule)
 
-    def test_quick_requests_render_independently_of_message_history(self):
+    def test_quick_requests_render_independently_of_chat_history(self):
         render = self.source.split("def render_assistant(", 1)[1]
         quick_requests = 'with st.container(key="vocogni_assistant_quick_requests")'
         self.assertIn(quick_requests, render)
@@ -30,7 +30,7 @@ class AssistantPromptVisibilityTests(unittest.TestCase):
         history_index = render.index("for message in messages[-8:]")
         self.assertLess(prompts_index, history_index)
         self.assertNotIn("if messages", render[prompts_index:history_index])
-        self.assertIn("These shortcuts stay available while you chat.", render)
+        self.assertIn("These account-data shortcuts run locally and do not require external AI.", render)
 
 
 if __name__ == "__main__":
