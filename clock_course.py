@@ -386,6 +386,38 @@ LESSONS = [
                 "Real-schedule transfer",
             ),
             _mc(
+                "clock_l6_q7",
+                "A museum guide explains that the minute hand has completed one full turn while the hour hand moves from 2 toward 3. Which statement best explains the relationship?",
+                ["The hands move together; one full minute-hand turn represents one hour", "The hour hand moves one number every five minutes", "The minute hand measures hours and the short hand measures minutes", "The hour hand stays fixed until the minute hand reaches 12"],
+                "The hands move together; one full minute-hand turn represents one hour",
+                "The minute hand completes 60 minutes in one turn. During that same hour, the hour hand advances from 2 to 3.",
+                "Clock hand roles",
+            ),
+            _mc(
+                "clock_l6_q8",
+                "A timetable shows a train departure at 14:37. On a teaching clock, the minute hand points to 7 and is two small marks beyond it. What minute value should the learner record?",
+                ["37 minutes", "7 minutes", "35 minutes", "42 minutes"],
+                "37 minutes",
+                "The 7 represents 7 groups of 5 minutes: 35. Add two individual minute marks: 35 + 2 = 37.",
+                "Counting minute groups and individual ticks",
+            ),
+            _mc(
+                "clock_l6_q9",
+                "A school bell rings at 10:50. The short hand is close to 11. Which hour is still in progress when the bell rings?",
+                ["10", "11", "50", "12"],
+                "10",
+                "The hour hand has passed 10 but has not reached 11. The time is still in the 10 o'clock hour.",
+                "Hour hand position",
+            ),
+            _mc(
+                "clock_l6_q10",
+                "A technician describes a clock: the long hand points to 8 and is three small marks beyond it; the short hand is between 2 and 3. What time should be written on the inspection record?",
+                ["2:43", "3:43", "2:40", "8:03"],
+                "2:43",
+                "The long hand at 8 means 40 minutes; three extra marks make 43. The short hand has passed 2 but not 3, so the time is 2:43.",
+                "Combining hour and minute hands",
+            ),
+            _mc(
                 "clock_l6_transfer_q1",
                 "During a science demonstration, a learner needs to track how many minutes have passed on an analog wall clock. Which hand should they watch, and why?",
                 [
