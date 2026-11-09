@@ -50,15 +50,15 @@ class ProgressSectionsTests(unittest.TestCase):
             "Choose a course to review lesson progress",
             "A skill-by-skill view of evidence from practice questions",
             "Turns saved activity into suggested next actions",
-            "Focused practice for this lesson",
+            "Practise a specific lesson with questions from the course.",
             "Shows the selected topic's entry-diagnostic baseline",
             "A locally generated, rule-based learning summary.",
         ):
             with self.subTest(description=description):
                 self.assertTrue(
                     description in PROGRESS_SOURCE
-                    or (description == "Focused practice for this lesson"
-                        and "Focused practice for this lesson" in (ROOT / "coach.py").read_text(encoding="utf-8"))
+                    or (description == "Practise a specific lesson with questions from the course."
+                        and description in (ROOT / "coach.py").read_text(encoding="utf-8"))
                 )
 
     def test_section_titles_expose_course_selection_dependency(self):
