@@ -16,7 +16,7 @@ A floating support panel available throughout the Learn/Browse flow, including c
 - Open Profile, Progress, Learn, Notes, or Settings
 - Help / supported requests
 
-The intent handler is deterministic and framework-free. Unsupported requests receive a clear explanation instead of fabricated answers. It does not call a hosted AI model or send profile/progress data to a third-party API in this version.
+The local intent handler is deterministic and framework-free. Supported account-data commands use the saved learner data passed to the Study Guide. Open-ended subject tutoring can use the configured external AI provider only after explicit session-only opt-in; it is off by default. When enabled, the current message, up to eight prior AI-tutoring messages, and a limited learning summary may be sent to that provider.
 
 ## Data boundaries
 
@@ -28,8 +28,8 @@ The intent handler is deterministic and framework-free. Unsupported requests rec
 
 ## Interface
 
-A fixed bottom-right launcher opens a bounded-height responsive panel. Conversation display is limited to the latest eight messages; the current session retains at most twenty message records. Quick actions cover the most common initial requests.
+The sidebar Study Guide launcher opens the active responsive assistant panel. Conversation display is limited to the latest eight messages; the current session retains at most twenty message records. Four account-data shortcuts appear above the conversation and remain sticky while the page scrolls, so they can be used before or after the first message.
 
-## Future LLM integration
+## Optional AI tutoring
 
-A generative model should be added behind the pure `answer_request` interface only after choosing a provider, configuring secrets outside source control, defining data-sharing disclosure/consent, and keeping deterministic fallbacks for profile and history requests. Do not place API keys in code or send more learner data than the specific request needs.
+Configure the OpenAI-compatible provider through Streamlit secrets or environment variables, never source control. Keep session opt-in explicit and off by default, explain the provider data flow before enabling it, retain deterministic local fallbacks for profile and history requests, and send no more learner data than the documented limited context. Provider retention and training terms depend on the selected provider.

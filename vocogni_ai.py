@@ -210,6 +210,23 @@ def render_assistant(
             messages = []
             st.session_state.vocogni_assistant_messages = messages
 
+        # Keep account-data shortcuts available while the conversation scrolls.
+        st.markdown(
+            """
+            <style>
+            .st-key-vocogni_assistant_quick_requests {
+                position: sticky !important;
+                top: 0.1rem !important;
+                z-index: 5 !important;
+                background: var(--vc-surface, #fff) !important;
+                padding: 0.2rem 0 0.55rem !important;
+                border-bottom: 1px solid var(--vc-border, #d8e1dc) !important;
+                margin-bottom: 0.35rem;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         quick_request = None
         with st.container(key="vocogni_assistant_quick_requests"):
             st.markdown("**Quick requests**")
