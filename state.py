@@ -631,17 +631,28 @@ def load_saved_learner_state() -> None:
     database write before the rest of the application renders.
     """
 
-    if st.session_state.get(
-        "_persistent_state_loaded",
-        False,
-    ):
-        return
+    # Resolve the authenticated identity before deciding whether the
+    # current session has already loaded learner data. Streamlit session
+    # state can outlive an authentication change within the same browser
+    # session, so the loaded flag alone is not a sufficient cache key.
+    user_id = persistence.get_user_id()
+
+    if st.session_state.get("_persistent_state_loaded", False):
+        loaded_user_id = st.session_state.get("_persistent_user_id")
+
+        if loaded_user_id == user_id:
+            return
+
+        # The OIDC subject changed while this Streamlit session still held
+        # another learner's state. Clear all app/widget state before loading
+        # the new account. Never display or save the previous learner's data
+        # under the newly authenticated identity.
+        st.session_state.clear()
+        init_session_state()
 
     # ---------------------------------------------------------------
     # Authentication
     # ---------------------------------------------------------------
-
-    user_id = persistence.get_user_id()
 
     # ---------------------------------------------------------------
     # Load database record
