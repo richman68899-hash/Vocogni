@@ -55,6 +55,7 @@ import intervention_tracking
 import mistake_reflections
 import feedback_guidance
 import transfer_check
+import learning_measurement
 from . import revision_sprint as revision_sprint_section
 
 
@@ -2433,19 +2434,14 @@ def _render_complete(
     baseline = prog.setdefault("diagnostics", {}).get(lesson["id"])
     assessments = prog.setdefault("lesson_assessments", {})
     if baseline and flow["results"] and lesson["id"] not in assessments:
-        post_percent = round(correct_count / len(flow["results"]) * 100)
-        assessments[lesson["id"]] = {
-            "baseline_score": baseline.get("score", 0),
-            "baseline_total": baseline.get("total", 5),
-            "baseline_percent": baseline.get("percent", 0),
-            "post_correct": correct_count,
-            "post_total": len(flow["results"]),
-            "post_practice_percent": post_percent,
-            "percentage_point_difference": post_percent - baseline.get("percent", 0),
-            "pathway": baseline.get("outcome_key", "unknown"),
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-        }
-        state.mark_persistent_dirty()
+        checkpoint = learning_measurement.build_post_lesson_checkpoint(
+            baseline,
+            flow["results"],
+            pathway=baseline.get("outcome_key", "unknown"),
+        )
+        if checkpoint is not None:
+            assessments[lesson["id"]] = checkpoint
+            state.mark_persistent_dirty()
 
     question_word = (
         "question"
