@@ -226,6 +226,50 @@ class SessionIdentityBoundaryTests(unittest.TestCase):
         self.assertNotIn("A-only", repr(session))
 
 
+class StartupLoadFailureTests(unittest.TestCase):
+    def test_load_failure_stops_before_showing_or_saving_empty_workspace(self):
+        with (
+            patch.object(app, "_load_persistent_state", side_effect=RuntimeError("database unavailable")),
+            patch.object(app.st, "error") as show_error,
+            patch.object(app.st, "caption") as show_caption,
+            patch.object(app.st, "button", return_value=False) as button,
+            patch.object(app.st, "stop") as stop,
+        ):
+            result = app._load_persistent_state_safely()
+
+        self.assertFalse(result)
+        show_error.assert_called_once()
+        show_caption.assert_called_once()
+        button.assert_called_once_with(
+            "Retry loading saved learning data",
+            key="retry_persistent_state_load",
+            type="primary",
+        )
+        stop.assert_called_once()
+        self.assertNotIn("database unavailable", show_error.call_args.args[0])
+
+    def test_load_retry_reruns_but_never_marks_defaults_as_loaded(self):
+        with (
+            patch.object(app, "_load_persistent_state", side_effect=RuntimeError("temporary outage")),
+            patch.object(app.st, "error"),
+            patch.object(app.st, "caption"),
+            patch.object(app.st, "button", return_value=True),
+            patch.object(app.st, "rerun") as rerun,
+            patch.object(app.st, "stop") as stop,
+        ):
+            result = app._load_persistent_state_safely()
+
+        self.assertFalse(result)
+        rerun.assert_called_once()
+        stop.assert_called_once()
+
+    def test_successful_load_allows_application_to_continue(self):
+        with patch.object(app, "_load_persistent_state") as load:
+            result = app._load_persistent_state_safely()
+        self.assertTrue(result)
+        load.assert_called_once()
+
+
 class LogoutPersistenceTests(unittest.TestCase):
     def test_logout_stays_signed_in_when_forced_save_fails(self):
         with (
