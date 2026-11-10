@@ -5,7 +5,7 @@ from unittest.mock import patch
 from ai_prototype.engine import answer, analyze_learning_patterns
 from ai_prototype.llm import LLMError, is_configured, resolve_config
 from ai_prototype.patterns import detect_patterns
-from vocogni_ai import _learner_context
+from vocogni_ai import _external_ai_tutoring_enabled, _learner_context
 
 
 class PatternRecognitionTests(unittest.TestCase):
@@ -91,6 +91,66 @@ class EngineTests(unittest.TestCase):
         sent_messages = mock_chat.call_args.args[0]
         self.assertIn("Grade: 8", sent_messages[0]["content"])
         self.assertEqual(mock_chat.call_args.kwargs["config"], config)
+
+
+class ExternalAiOperatorGateTests(unittest.TestCase):
+    def test_external_ai_is_disabled_by_default_even_with_provider_credentials(self):
+        from types import SimpleNamespace
+        secrets = {"llm": {
+            "base_url": "https://example.test/v1",
+            "model": "test-model",
+            "api_key": "configured-secret",
+        }}
+        st = SimpleNamespace(secrets=secrets)
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertFalse(_external_ai_tutoring_enabled(st))
+
+    def test_environment_flag_must_be_explicitly_truthy(self):
+        from types import SimpleNamespace
+        st = SimpleNamespace(secrets={})
+        for value in ("", "false", "0", "no", "off", "enabled"):
+            with self.subTest(value=value), patch.dict(
+                "os.environ",
+                {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": value},
+                clear=True,
+            ):
+                self.assertFalse(_external_ai_tutoring_enabled(st))
+        for value in ("true", "1", "yes", "on", " TRUE "):
+            with self.subTest(value=value), patch.dict(
+                "os.environ",
+                {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": value},
+                clear=True,
+            ):
+                self.assertTrue(_external_ai_tutoring_enabled(st))
+
+    def test_streamlit_secret_overrides_environment_flag(self):
+        from types import SimpleNamespace
+        st = SimpleNamespace(secrets={
+            "llm": {"enable_external_ai_tutoring": False}
+        })
+        with patch.dict(
+            "os.environ",
+            {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": "true"},
+            clear=True,
+        ):
+            self.assertFalse(_external_ai_tutoring_enabled(st))
+
+    def test_streamlit_secret_can_explicitly_enable_gate(self):
+        from types import SimpleNamespace
+        st = SimpleNamespace(secrets={
+            "llm": {"enable_external_ai_tutoring": True}
+        })
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertTrue(_external_ai_tutoring_enabled(st))
+
+    def test_unreadable_or_missing_secret_does_not_enable_gate(self):
+        class BrokenSecrets:
+            def get(self, *_args, **_kwargs):
+                raise RuntimeError("secrets unavailable")
+
+        st = SimpleNamespace(secrets=BrokenSecrets())
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertFalse(_external_ai_tutoring_enabled(st))
 
 
 class LearnerContextTests(unittest.TestCase):
