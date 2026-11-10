@@ -85,7 +85,7 @@ The LLM generates explanations and conversational text. It does not:
 - confirm a recurring misconception; or
 - automatically label every learner error.
 
-The current pattern detector is a small, text-based heuristic. Full Learning Pattern Memory, structured attempt events, intervention tracking, and measured retention/transfer are not yet implemented.
+The current pattern detector is a small, text-based heuristic, not a trained model. The learning-memory module stores aggregate skill and rubric evidence. Course lessons also record explicit exposures to concept explanations, worked examples, hints, answer feedback, and targeted repair cues. The Progress page links each recorded support to up to the next three verified answers for that skill. This is descriptive sequencing, not causal evidence that a support worked. Scheduled delayed-retention checks and validated learning-effectiveness measurements are not yet implemented.
 
 ## Privacy, safety, and deployment limits
 
