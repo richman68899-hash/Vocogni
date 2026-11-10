@@ -20,9 +20,13 @@ def select_confirmation_question(*, course_id: str, skill_id: str, exclude_quest
     """Return the first unused, VQE-verified MC/numeric practice item for a skill."""
     if not str(course_id or "").strip() or not str(skill_id or "").strip():
         return None
+    # Any reviewed item can provide an independent check; conceptual
+    # questions are important for diagnosing foundational understanding.
     candidates = question_engine.select_questions(
-        course_id=str(course_id), skill_id=str(skill_id), purpose="practice",
-        verified_only=True, include_pathways=False,
+        course_id=str(course_id),
+        skill_id=str(skill_id),
+        verified_only=True,
+        include_pathways=True,
         exclude_ids={str(item) for item in exclude_question_ids},
     )
     for record in candidates:

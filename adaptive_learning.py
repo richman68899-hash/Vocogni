@@ -889,8 +889,8 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             "practice is absent, mapped baseline diagnostic answers and separately "
             "saved skill-confirmation checks can suggest a provisional review target. "
             "Confirmation checks stay separate from practice accuracy. A single "
-            "diagnostic item is always 
-            "marked for confirmation with a distinct question before it is "
+            "diagnostic item is always marked for confirmation with a distinct "
+            "question before it is treated as a persistent gap. "
             "treated as a persistent gap. An untested prerequisite triggers a "
             "check, not a weakness label. Diagnostic and practice scores stay "
             "separate; repeated prerequisite targets are deduplicated. These "
