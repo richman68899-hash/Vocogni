@@ -600,8 +600,20 @@ def _render_recommendations(progress):
                 )
                 st.write(action["reason"])
                 st.write("**Recommended action:** " + action["action"])
-                if action["is_prerequisite_review"]:
-                    st.caption("Prerequisite review: verified evidence is below the review threshold.")
+                if action.get("confirmation_required"):
+                    st.caption(
+                        "Preliminary diagnostic signal: confirm it with another "
+                        "distinct question before treating it as a persistent gap."
+                    )
+                elif action["is_prerequisite_review"]:
+                    source_label = (
+                        "practice evidence" if action["evidence_source"] == "practice"
+                        else "multiple diagnostic items"
+                    )
+                    st.caption(
+                        f"Prerequisite review signal: {source_label} are "
+                        "below the review threshold."
+                    )
                 elif action.get("is_prerequisite_check"):
                     st.caption("Prerequisite check: evidence has not been collected yet.")
                 if action["accuracy_percent"] is not None:

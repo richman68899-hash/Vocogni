@@ -13,7 +13,9 @@ Lessons did not reliably establish a learner's starting point. Without a baselin
   - Simple Fractions — Understanding Fractions.
   - Algebra Basics — What Is a Variable?
   - Word Problems — Translating Words into Math.
-- Score, prerequisite check, named skill weaknesses, answer explanations, placement rationale, and next-step recommendation.
+- Score, prerequisite check, named skill signals, answer explanations, placement rationale, and next-step recommendation.
+- Optional item-level learner confidence, stored as context but never used to alter correctness, score, or pathway placement.
+- Diagnostic-only recommendations based on one distinct item are explicitly provisional and ask for confirmation with another distinct question before prescribing a persistent weakness intervention.
 - Five possible routes: prerequisite review, Level 1 (Easy), Level 2 (Medium), Level 3 (Hard), or a real-life project.
 - One saved diagnostic result per learner/course/lesson ID. Existing result is shown on revisit; the diagnostic is not submitted again.
 - Separate persistence for diagnostic scores and post-lesson practice checkpoint records.
@@ -40,6 +42,8 @@ Diagnostic items are kept separate from ordinary practice question counts/accura
 - Placement thresholds have not been validated with real learners.
 - The post-lesson checkpoint uses lesson practice questions, not an equivalent standardized post-test. A percentage-point difference is descriptive and must not be reported as proven learning gain.
 - Five selected-response items provide a coarse starting-point signal, not a comprehensive profile of ability.
+- Confidence is self-reported and can be inaccurate. A confident wrong answer is a follow-up signal, not proof of a misconception; a correct guess is not proof of secure understanding.
+- A single diagnostic item mapped to a skill is not sufficient to confirm a gap. The Learning Intelligence recommendation asks for a separate check before treating it as persistent.
 - Existing learners who completed one of these lessons before v1.4 are not forced to complete a new diagnostic on review.
 - The diagnostic is not a generative AI system and does not call an external model.
 
@@ -50,6 +54,8 @@ Diagnostic items are kept separate from ordinary practice question counts/accura
 - [ ] The prerequisite-failure override behaves as documented.
 - [ ] Scores 2/5, 3/5, 4/5, and 5/5 with prerequisite correct route to Levels 1, 2, 3, and Project respectively.
 - [ ] Each incorrect item adds the correct skill tag to the weakness report.
+- [ ] Optional confidence is stored per item and does not alter correctness, score, or placement.
+- [ ] Single-item diagnostic recommendations are labelled preliminary and require a distinct follow-up question.
 - [ ] Diagnostic scores do not increase ordinary practice-question or mistake totals.
 - [ ] Diagnostic results survive refresh and re-login.
 - [ ] Starting routes and post-lesson checkpoints persist.

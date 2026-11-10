@@ -93,6 +93,56 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(plan["actions"][0]["skill_id"], prerequisite)
         self.assertTrue(plan["actions"][0]["is_prerequisite_review"])
 
+    def test_single_item_diagnostic_signal_requires_confirmation(self):
+        progress = {
+            "fractions": {
+                "diagnostics": {
+                    "fractions_l1": {
+                        "completed_at": "2026-10-30T09:00:00+00:00",
+                        "answer_review": [{
+                            "question_id": "fractions_l1_d1",
+                            "skill_tag": "Meaning of the denominator",
+                            "correct": False,
+                        }],
+                    }
+                }
+            }
+        }
+        plan = adaptive_learning.build_learning_plan(progress)
+        action = next(
+            item for item in plan["actions"]
+            if item["skill_id"] == "math.number.fraction_representation"
+        )
+        self.assertTrue(action["confirmation_required"])
+        self.assertEqual(action["diagnostic_items"], 1)
+        self.assertEqual(action["evidence_strength"], "single_diagnostic_item")
+        self.assertIn("another distinct question", action["action"])
+        self.assertIn("preliminary signal", action["reason"])
+
+    def test_two_distinct_diagnostic_items_are_counted_separately(self):
+        progress = {
+            "fractions": {
+                "diagnostics": {
+                    "fractions_l1": {
+                        "completed_at": "2026-10-30T09:00:00+00:00",
+                        "answer_review": [
+                            {"question_id": "fractions_l1_d1", "skill_tag": "Meaning of the denominator", "correct": False},
+                            {"question_id": "fractions_l1_d2", "skill_tag": "Representing fractions", "correct": False},
+                            {"question_id": "fractions_l1_d2", "skill_tag": "Representing fractions", "correct": False},
+                        ],
+                    }
+                }
+            }
+        }
+        plan = adaptive_learning.build_learning_plan(progress)
+        action = next(
+            item for item in plan["actions"]
+            if item["skill_id"] == "math.number.fraction_representation"
+        )
+        self.assertEqual(action["diagnostic_items"], 2)
+        self.assertFalse(action["confirmation_required"])
+        self.assertEqual(action["evidence_strength"], "multiple_diagnostic_items")
+
     def test_plan_uses_existing_skill_taxonomy_and_does_not_mutate_progress(self):
         progress = {"fractions": {"practice_attempts": {}}}
         before = repr(progress)

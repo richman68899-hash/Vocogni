@@ -154,13 +154,43 @@ def _is_correct(question: dict[str, Any], answer: Any) -> bool:
     return bool(logic.check_answer(question, answer))
 
 
-def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict[str, Any]:
+CONFIDENCE_LABELS = {
+    "guessing": "Guessing",
+    "somewhat_sure": "Somewhat sure",
+    "very_sure": "Very sure",
+}
+
+
+def _confidence_interpretation(confidence: str | None, correct: bool) -> str:
+    """Describe self-reported certainty without changing correctness or placement."""
+    if confidence == "guessing" and correct:
+        return "Correct while guessing — check with another question before treating this as secure."
+    if confidence == "guessing":
+        return "Incorrect while guessing — this response is uncertain and does not identify why it was wrong."
+    if confidence == "somewhat_sure" and correct:
+        return "Correct with moderate confidence — positive but still limited to one item."
+    if confidence == "somewhat_sure":
+        return "Incorrect with moderate confidence — a possible area to probe with another question."
+    if confidence == "very_sure" and correct:
+        return "Correct with high confidence — positive evidence, but still only one item."
+    if confidence == "very_sure":
+        return "Incorrect with high confidence — a useful follow-up signal, not a confirmed misconception."
+    return "Confidence was not recorded; correctness alone does not explain the learner's reasoning."
+
+
+def evaluate_diagnostic(
+    config: dict[str, Any],
+    answers: dict[str, Any],
+    confidence: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Score one submitted attempt and return an auditable explanation of placement."""
     errors = validate_diagnostic_config(config)
     if errors:
         raise ValueError("Invalid diagnostic configuration: " + " ".join(errors))
 
     review: list[dict[str, Any]] = []
+    confidence = confidence if isinstance(confidence, dict) else {}
+    confidence_counts = {key: 0 for key in CONFIDENCE_LABELS}
     correct_count = 0
     marks_awarded = 0
     maximum_marks = 0
@@ -186,6 +216,10 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         correct_count += int(correct)
         if question["stage"] == "prerequisite":
             prerequisite_correct = correct
+        raw_confidence = str(confidence.get(question["id"]) or "").strip().casefold()
+        confidence_level = raw_confidence if raw_confidence in CONFIDENCE_LABELS else None
+        if confidence_level:
+            confidence_counts[confidence_level] += 1
         item = {
             "question_id": question["id"],
             "stage": question["stage"],
@@ -195,6 +229,11 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
             "expected_answer": question["answer"],
             "correct": correct,
             "explanation": question["explanation"],
+            "confidence": confidence_level,
+            "confidence_label": CONFIDENCE_LABELS.get(confidence_level),
+            "confidence_interpretation": _confidence_interpretation(
+                confidence_level, correct
+            ),
         }
         if marking:
             item.update({
@@ -265,6 +304,12 @@ def evaluate_diagnostic(config: dict[str, Any], answers: dict[str, Any]) -> dict
         "prerequisite_correct": prerequisite_correct,
         "weaknesses": weaknesses,
         "answer_review": review,
+        "confidence_counts": confidence_counts,
+        "confidence_note": (
+            "Confidence is self-reported context. It does not change the score, "
+            "placement, or whether an answer is correct; a single response still "
+            "cannot confirm a misconception or secure mastery."
+        ),
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "engine_version": "1.4-rule-based-1",
         "diagnostic_version": config.get("version", 1),
