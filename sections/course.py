@@ -2426,7 +2426,7 @@ def _render_complete(
     ordinary_results = [x for x in flow["results"] if x.get("evidence_type") != "independent_transfer"]
     transfer_results = [x for x in flow["results"] if x.get("evidence_type") == "independent_transfer"]
     correct_count = sum(1 for result in ordinary_results if result["correct"])
-    total_count = len(ordinary_results) or 1
+    total_count = len(ordinary_results)
 
     # Store a single descriptive post-lesson checkpoint for comparison with
     # the one-time baseline. This is not claimed to be a validated learning-gain
@@ -2449,14 +2449,20 @@ def _render_complete(
         else "questions"
     )
 
-    st.markdown(
-        f"<div class='vc-card'>"
-        f"<strong>Lesson complete.</strong> "
-        f"You answered {correct_count} of "
-        f"{total_count} practice {question_word} correctly."
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    if total_count:
+        st.markdown(
+            f"<div class='vc-card'>"
+            f"<strong>Lesson complete.</strong> "
+            f"You answered {correct_count} of "
+            f"{total_count} practice {question_word} correctly."
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info(
+            "Lesson complete. No ordinary practice questions were recorded; "
+            "the independent transfer result is shown separately below."
+        )
     for transfer_result in transfer_results:
         status = "correct" if transfer_result.get("correct") else "not yet correct"
         st.info(f"Independent transfer check: {status}. This is one application sample, not proof of mastery.")
