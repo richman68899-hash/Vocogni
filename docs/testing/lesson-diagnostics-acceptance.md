@@ -21,6 +21,9 @@
 | DG-15 | Use two separate test accounts | Each account sees only its own diagnostic data | Not tested |
 | DG-16 | Test form, result and progress page on phone/tablet and desktop | No layout clipping, duplicate-key errors, or broken navigation | Not tested |
 | DG-17 | Simulate a save failure after submission | Save failure is visible and the result is not falsely described as durably saved | Not tested |
+| DG-18 | Record optional confidence for correct and incorrect answers | Confidence appears in answer review but does not change score or pathway placement | Not tested |
+| DG-19 | Create a skill signal from one diagnostic item | Recommendation is labelled preliminary and asks for a distinct confirmation question | Not tested |
+| DG-20 | Repeat the same diagnostic question ID in legacy data | Duplicate item does not inflate the distinct diagnostic evidence count | Not tested |
 
 ## Test command
 From the repository root, after installing project requirements:

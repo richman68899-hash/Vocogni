@@ -1448,6 +1448,7 @@ def _render_diagnostic(lesson, course_id) -> None:
         "worth reviewing before recommending a learning route."
     )
     answers = {}
+    confidence = {}
     with st.form(f"lesson_diagnostic_{lesson['id']}", clear_on_submit=False):
         for index, question in enumerate(config["questions"], start=1):
             st.markdown(f"**Question {index} of {len(config['questions'])}**")
@@ -1475,6 +1476,16 @@ def _render_diagnostic(lesson, course_id) -> None:
                         answers[question["id"]] = raw
                 else:
                     answers[question["id"]] = None
+            confidence[question["id"]] = st.selectbox(
+                "Confidence (optional)",
+                options=[None, "guessing", "somewhat_sure", "very_sure"],
+                index=0,
+                format_func=lambda value: (
+                    "Not recorded" if value is None
+                    else diagnostics.CONFIDENCE_LABELS[value]
+                ),
+                key=f"diagnostic_confidence_{lesson['id']}_{question['id']}",
+            )
         submitted = st.form_submit_button(
             "Submit diagnostic", type="primary", use_container_width=True
         )
@@ -1498,7 +1509,9 @@ def _render_diagnostic(lesson, course_id) -> None:
         return
 
     try:
-        result = diagnostics.evaluate_diagnostic(config, answers)
+        result = diagnostics.evaluate_diagnostic(
+            config, answers, confidence=confidence
+        )
     except (TypeError, ValueError) as exc:
         st.error(f"Diagnostic could not be scored: {exc}")
         return
@@ -1562,6 +1575,7 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
             st.caption(item["prompt"])
             st.write(f"Your answer: {item.get('user_answer')}")
             st.write(f"Expected answer: {item.get('expected_answer')}")
+            st.caption(item.get("confidence_interpretation", "Confidence was not recorded."))
             st.write(item["explanation"])
 
     if result.get("outcome_key") == "prerequisite":

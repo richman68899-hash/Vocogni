@@ -51,6 +51,7 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             "diagnostic_ratios": [],
             "diagnostic_mistake_tags": defaultdict(int),
             "diagnostic_locations": set(),
+            "diagnostic_question_ids": set(),
             "locations": set(),
         }
 
@@ -136,6 +137,11 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 if skill_id not in evidence:
                     continue
                 item = evidence[skill_id]
+                question_id = str(result.get("question_id") or "")
+                evidence_id = (str(course_id), str(lesson_id), question_id)
+                if evidence_id in item["diagnostic_question_ids"]:
+                    continue
+                item["diagnostic_question_ids"].add(evidence_id)
                 item["diagnostic_ratios"].append(_event_ratio(result))
                 item["diagnostic_locations"].add((str(course_id), str(lesson_id)))
                 if not result.get("correct") and result.get("skill_tag"):
@@ -649,7 +655,10 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             continue
         scoring = dict(item)
         scoring["accuracy"] = accuracy
-        scoring["attempts"] = item["attempts"] if source == "practice" else len(item["diagnostic_ratios"])
+        scoring["attempts"] = (
+            item["attempts"] if source == "practice"
+            else len(item["diagnostic_question_ids"])
+        )
         scoring["repeat_errors"] = item["repeat_errors"] if source == "practice" else item["diagnostic_repeat_errors"]
         scoring["mistake_tags"] = item["mistake_tags"] if source == "practice" else item["diagnostic_mistake_tags"]
         scoring["recent_accuracy"] = item["recent_accuracy"] if source == "practice" else None
@@ -703,7 +712,11 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             else target["diagnostic_accuracy"] if target_source == "diagnostic"
             else None
         )
-        target_attempts = target["attempts"] if target_source == "practice" else len(target["diagnostic_ratios"]) if target_source == "diagnostic" else 0
+        target_attempts = (
+            target["attempts"] if target_source == "practice"
+            else len(target["diagnostic_question_ids"])
+            if target_source == "diagnostic" else 0
+        )
         target_repeat_errors = target["repeat_errors"] if target_source == "practice" else target["diagnostic_repeat_errors"] if target_source == "diagnostic" else 0
         target_mistake_tags = target["mistake_tags"] if target_source == "practice" else target["diagnostic_mistake_tags"] if target_source == "diagnostic" else {}
         course_id, lesson_id = _lesson_for_skill(target_skill, target)
@@ -750,8 +763,34 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
                 f"{round(item['accuracy'] * 100)}%."
             )
             action = f"Review {target['skill']}, then complete a fresh practice set."
+        # A single selected-response diagnostic item is a hypothesis to check,
+        # not enough evidence to prescribe a persistent weakness intervention.
+        confirmation_required = (
+            target_source == "diagnostic" and target_attempts < 2
+        )
+        if confirmation_required:
+            reason = (
+                f"One distinct baseline diagnostic item suggests {target['skill']} "
+                f"may need attention ({round(target_accuracy * 100)}% on that item). "
+                "This is a preliminary signal, not a confirmed skill gap."
+            )
+            action = (
+                f"Check {target['skill']} with another distinct question before "
+                "treating it as a persistent weakness."
+            )
+
         actions.append({
             "evidence_source": target_source,
+            "evidence_strength": (
+                "single_diagnostic_item" if confirmation_required
+                else "multiple_diagnostic_items" if target_source == "diagnostic"
+                else "practice_observed"
+            ),
+            "confirmation_required": confirmation_required,
+            "diagnostic_items": (
+                len(target["diagnostic_question_ids"])
+                if target_source == "diagnostic" else 0
+            ),
             "skill_id": target_skill,
             "skill": target["skill"],
             "source_skill_id": skill_id,
@@ -786,7 +825,9 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
         "evidence_note": (
             "Practice recommendations use saved question-level results. When "
             "practice is absent, mapped baseline diagnostic answers can suggest "
-            "a provisional review target. An untested prerequisite triggers a "
+            "a provisional review target. A single diagnostic item is always "
+            "marked for confirmation with a distinct question before it is "
+            "treated as a persistent gap. An untested prerequisite triggers a "
             "check, not a weakness label. Diagnostic and practice scores stay "
             "separate; repeated prerequisite targets are deduplicated. These "
             "heuristics are not a validated diagnosis or proof of mastery."

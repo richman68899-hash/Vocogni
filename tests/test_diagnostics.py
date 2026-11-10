@@ -66,6 +66,41 @@ class DiagnosticEngineTests(unittest.TestCase):
                 self.assertEqual(result["outcome_key"], "project")
                 self.assertEqual(result["weaknesses"], [])
 
+    def test_confidence_is_recorded_but_does_not_change_score_or_placement(self):
+        course, lesson = configured_lessons()[0]
+        config = lesson["diagnostic"]
+        answers = {q["id"]: q["answer"] for q in config["questions"]}
+        target = config["questions"][1]
+        answers[target["id"]] = deliberately_wrong_answer(target)
+
+        plain = diagnostics.evaluate_diagnostic(config, answers)
+        informed = diagnostics.evaluate_diagnostic(
+            config,
+            answers,
+            confidence={
+                target["id"]: "very_sure",
+                config["questions"][2]["id"]: "guessing",
+            },
+        )
+
+        self.assertEqual(informed["score"], plain["score"])
+        self.assertEqual(informed["outcome_key"], plain["outcome_key"])
+        review = {item["question_id"]: item for item in informed["answer_review"]}
+        self.assertEqual(review[target["id"]]["confidence"], "very_sure")
+        self.assertIn("not a confirmed misconception", review[target["id"]]["confidence_interpretation"])
+        self.assertEqual(review[config["questions"][2]["id"]]["confidence"], "guessing")
+        self.assertEqual(informed["confidence_counts"]["very_sure"], 1)
+        self.assertEqual(informed["confidence_counts"]["guessing"], 1)
+
+    def test_unrecognised_confidence_is_ignored(self):
+        course, lesson = configured_lessons()[0]
+        config = lesson["diagnostic"]
+        answers = {q["id"]: q["answer"] for q in config["questions"]}
+        result = diagnostics.evaluate_diagnostic(
+            config, answers, confidence={config["questions"][0]["id"]: "certain-ish"}
+        )
+        self.assertIsNone(result["answer_review"][0]["confidence"])
+
     def test_prerequisite_failure_overrides_high_total_score(self):
         for course, lesson in configured_lessons():
             config = lesson["diagnostic"]
