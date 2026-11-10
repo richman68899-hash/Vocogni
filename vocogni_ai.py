@@ -36,6 +36,32 @@ def _provider_config(st: Any) -> dict[str, str]:
     return config
 
 
+def _external_ai_tutoring_enabled(st: Any) -> bool:
+    """Require explicit server-side operator approval for outbound AI requests.
+
+    Provider credentials alone never enable external tutoring. The setting is
+    off by default and may be supplied as VOCogni_ENABLE_EXTERNAL_AI_TUTORING
+    or [llm].enable_external_ai_tutoring in Streamlit secrets. The secret, when
+    present, takes precedence over the environment value.
+    """
+    configured_value: Any = os.getenv(
+        "VOCogni_ENABLE_EXTERNAL_AI_TUTORING", ""
+    )
+    try:
+        section = st.secrets.get("llm", {})
+        if section is not None and "enable_external_ai_tutoring" in section:
+            configured_value = section.get("enable_external_ai_tutoring")
+    except Exception:
+        # Missing or unreadable secrets must fail closed.
+        pass
+
+    if isinstance(configured_value, bool):
+        return configured_value
+    return str(configured_value or "").strip().casefold() in {
+        "1", "true", "yes", "on"
+    }
+
+
 def _learner_context(
     profile: dict[str, Any] | None,
     progress: dict[str, Any] | None,
@@ -143,7 +169,9 @@ def render_assistant(
         )
         if not str(provider_config.get(key, "")).strip()
     ]
+    operator_enabled = _external_ai_tutoring_enabled(st)
     provider_ready = is_configured(provider_config)
+    external_ai_available = operator_enabled and provider_ready
 
     with st.sidebar.container(key="vocogni_assistant_launcher"):
         button_label = "Close Study Guide" if st.session_state.vocogni_assistant_open else "Study Guide"
@@ -164,20 +192,29 @@ def render_assistant(
                 st.session_state.vocogni_assistant_open = False
                 st.rerun()
 
-        if not provider_ready:
+        if not external_ai_available:
+            # Clear a previous session opt-in immediately if the operator gate
+            # or provider configuration is removed during a running session.
             st.session_state.vocogni_ai_opt_in = False
 
         ai_enabled = st.checkbox(
             "Enable external AI tutoring for this session",
             key="vocogni_ai_opt_in",
-            disabled=not provider_ready,
+            disabled=not external_ai_available,
         )
-        if provider_ready:
+        if external_ai_available:
             st.caption(
                 "When enabled, open-ended questions are sent to the configured provider "
                 "with up to 8 messages from previous AI-tutoring turns and a limited learning summary. "
                 "The summary may include grade level, learning preferences, course accuracy, and mistake tags. "
                 "Local profile/notes/progress-summary replies are excluded from chat history."
+            )
+        elif not operator_enabled:
+            st.info(
+                "External AI tutoring is disabled by the operator. "
+                "Local Study Guide commands still work. The operator must explicitly "
+                "enable the server-side AI gate only after reviewing the provider, data "
+                "flow, safeguarding, and consent requirements."
             )
         else:
             missing_text = ", ".join(missing_provider_settings)
@@ -278,7 +315,7 @@ def render_assistant(
                 )
                 mode = "local"
                 if _is_unhandled(reply, route):
-                    if ai_enabled and provider_ready:
+                    if ai_enabled and external_ai_available:
                         history = _recent_ai_history(messages[:-1])
                         result = generate_ai_answer(
                             chosen_query,
