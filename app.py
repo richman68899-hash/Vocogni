@@ -181,6 +181,33 @@ def _load_persistent_state() -> None:
     state.load_saved_learner_state()
 
 
+def _load_persistent_state_safely() -> bool:
+    """Block the learner UI when durable state could not be restored."""
+    try:
+        _load_persistent_state()
+    except Exception:
+        # Never continue into an empty default workspace after a load failure:
+        # the normal end-of-run autosave could overwrite valid data with defaults.
+        st.error(
+            "Vocogni could not load your saved learning data. "
+            "Your lessons are paused, and no empty learner state will be saved. "
+            "Check your connection and retry."
+        )
+        st.caption(
+            "If the problem continues, contact the person operating Vocogni. "
+            "Do not refresh repeatedly while a save or account change is in progress."
+        )
+        if st.button(
+            "Retry loading saved learning data",
+            key="retry_persistent_state_load",
+            type="primary",
+        ):
+            st.rerun()
+        st.stop()
+        return False
+    return True
+
+
 def main() -> None:
     """Run the authenticated Vocogni application."""
     st.set_page_config(
@@ -194,7 +221,8 @@ def main() -> None:
         _render_login()
 
     state.init_session_state()
-    _load_persistent_state()
+    if not _load_persistent_state_safely():
+        return
 
     # Apply the learner's saved theme before rendering any authenticated UI.
     # This avoids a late style injection after the page content has appeared.
