@@ -544,6 +544,12 @@ def _render_skill_confirmation():
             submitted = st.form_submit_button(
                 "Submit confirmation", type="primary", use_container_width=True
             )
+        if st.button(
+            "Cancel confirmation",
+            key=f"cancel_skill_confirmation_{question.get('id', 'item')}",
+        ):
+            st.session_state.pop("skill_confirmation_flow", None)
+            st.rerun()
         if not submitted:
             return
         if answer is None or (isinstance(answer, str) and not answer.strip()):

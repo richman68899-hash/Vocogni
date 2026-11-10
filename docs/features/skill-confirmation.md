@@ -4,7 +4,7 @@
 
 ## Learner flow
 
-When Learning Intelligence flags a skill from only one baseline diagnostic item, the learner can request one additional question for that same skill. Vocogni selects from the current Verified Question Engine registry, limited to the same course, practice-purpose questions, and multiple-choice/numeric response types. Question IDs already used in saved diagnostic or verified practice evidence are excluded.
+When Learning Intelligence flags a skill from only one baseline diagnostic item, the learner can request one additional question for that same skill. Vocogni selects from the current Verified Question Engine registry, limited to the same course and skill, and to multiple-choice/numeric response types. It may use a reviewed conceptual or applied item; the learner is not restricted to a particular question purpose. Question IDs already used in saved diagnostic or verified practice evidence are excluded.
 
 If no unused verified item exists for that skill, Vocogni explains the content-bank limitation. It does not repeat an item or fall back to an unreviewed legacy question.
 
