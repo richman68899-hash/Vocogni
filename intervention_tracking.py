@@ -6,6 +6,7 @@ Raw answers, prompts, notes, or chat content are never stored here.
 """
 from __future__ import annotations
 
+from bisect import bisect_right
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,11 +20,11 @@ HISTORY_LIMIT = 300
 FOLLOW_UP_LIMIT = 3
 
 INTERVENTION_LABELS = {
-    "concept_explanation": "Concept explanation viewed",
-    "worked_example": "Worked example viewed",
-    "hint": "Hint viewed",
-    "answer_feedback": "Answer feedback viewed",
-    "targeted_repair": "Targeted repair cue viewed",
+    "concept_explanation": "Concept explanation shown",
+    "worked_example": "Worked example shown",
+    "hint": "Hint shown",
+    "answer_feedback": "Answer feedback shown",
+    "targeted_repair": "Targeted repair cue shown",
 }
 
 
@@ -141,10 +142,18 @@ def _verified_answers(progress: dict[str, Any]) -> list[dict[str, Any]]:
                     answered_at = _parse_timestamp(result.get("answered_at"))
                     if not question_id or answered_at is None:
                         continue
+                    # Practice-sprint containers may hold a question sourced
+                    # from another lesson. The saved provenance identifies its
+                    # canonical source lesson; fall back only for legacy records.
+                    source_lesson_id = str(
+                        result.get("lesson_id")
+                        or result.get("source_lesson_id")
+                        or lesson_id
+                    )
                     metadata = question_engine.attempt_metadata(
                         question_id,
                         course_id=course_id,
-                        lesson_id=lesson_id,
+                        lesson_id=source_lesson_id,
                     )
                     if metadata.get("verification_status") != "verified":
                         continue
@@ -173,7 +182,18 @@ def build_intervention_report(
     if not isinstance(progress, dict):
         progress = {}
 
-    answers = _verified_answers(progress)
+    # Index the ordered answer stream once. Each support event can then find
+    # its next three same-course/same-skill answers in O(log n), rather than
+    # rescanning every answer for every event.
+    answers_by_skill: dict[tuple[str, str], dict[str, list[Any]]] = {}
+    for answer in _verified_answers(progress):
+        key = (answer["course_id"], answer["skill_id"])
+        bucket = answers_by_skill.setdefault(
+            key, {"timestamps": [], "answers": []}
+        )
+        bucket["timestamps"].append(answer["answered_at"])
+        bucket["answers"].append(answer)
+
     events: list[dict[str, Any]] = []
     for raw_course_id, course_progress in progress.items():
         course_id = str(raw_course_id)
@@ -194,13 +214,12 @@ def build_intervention_report(
             skill_id = str(event.get("skill_id") or "") or None
             follow_up = []
             if skill_id:
-                follow_up = [
-                    answer
-                    for answer in answers
-                    if answer["course_id"] == course_id
-                    and answer["skill_id"] == skill_id
-                    and answer["answered_at"] > occurred_at
-                ][:FOLLOW_UP_LIMIT]
+                bucket = answers_by_skill.get((course_id, skill_id))
+                if bucket:
+                    start = bisect_right(bucket["timestamps"], occurred_at)
+                    follow_up = bucket["answers"][
+                        start:start + FOLLOW_UP_LIMIT
+                    ]
 
             course = data.get_course(course_id)
             lesson, _ = data.get_lesson(course_id, str(event.get("lesson_id") or ""))
@@ -234,7 +253,9 @@ def build_intervention_report(
         "events": events[:display_limit],
         "evidence_note": (
             "Follow-up is the next up to three later answers that still pass the "
-            "current Verified Question Engine check for the same skill. Multiple "
+            "current Verified Question Engine check for the same skill. Answers "
+            "are resolved using their saved canonical question-source lesson when "
+            "available, with the attempt lesson used only for legacy records. Multiple "
             "support events can share subsequent answers; this is a descriptive "
             "sequence, not evidence that a support caused a result. Older answer "
             "records without per-answer timestamps are not matched."

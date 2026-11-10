@@ -4,7 +4,7 @@
 
 ## What is recorded
 
-The lesson flow appends an event when a learner advances past the concept explanation, advances past the worked example, explicitly reveals a hint (or is shown an automatic hint), sees item feedback, or is shown a targeted repair cue.
+The lesson flow appends an event when a learner advances past the concept explanation, advances past the worked example, explicitly reveals a hint (or is shown an automatic hint), reaches item feedback, or is shown a targeted repair cue. These are UI exposure events, not evidence that the learner read, understood, or attended to the content.
 
 Each event stores only:
 - a stable event ID for deduplication;
@@ -18,6 +18,8 @@ Raw answers, question prompts, notes, and assistant messages are not copied into
 ## How follow-up is calculated
 
 For each support event, Vocogni looks for up to the next three later practice answers in the same course and verified skill. It re-resolves each question against the current Verified Question Engine registry and requires the answer's per-item answered_at timestamp to be later than the support event. Older answer records without that timestamp are intentionally not matched.
+
+The report resolves an answer against its saved canonical question-source lesson when that provenance is available; older records fall back to the lesson containing the practice attempt. Answers are indexed once by course and skill so each support event can retrieve its short follow-up window without rescanning the whole history.
 
 The report shows the observed accuracy among those later answers. It does not claim that a support caused improvement: several supports may precede the same answers, the questions are not controlled equivalents, and the student may receive other instruction. It is not a validated measure of retention or transfer.
 
