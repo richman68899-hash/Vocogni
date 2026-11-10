@@ -118,6 +118,8 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(action["evidence_strength"], "single_diagnostic_item")
         self.assertIn("another distinct question", action["action"])
         self.assertIn("preliminary signal", action["reason"])
+        self.assertIn("fractions_l1_d1", action["evidence_question_ids"])
+        self.assertEqual(action["confirmation_items"], 0)
 
     def test_two_distinct_diagnostic_items_are_counted_separately(self):
         progress = {
@@ -142,6 +144,78 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(action["diagnostic_items"], 2)
         self.assertFalse(action["confirmation_required"])
         self.assertEqual(action["evidence_strength"], "multiple_diagnostic_items")
+
+    def test_saved_skill_confirmation_counts_as_a_second_diagnostic_evidence_item(self):
+        progress = {
+            "fractions": {
+                "diagnostics": {
+                    "fractions_l1": {
+                        "completed_at": "2026-10-30T09:00:00+00:00",
+                        "answer_review": [{
+                            "question_id": "fractions_l1_d1",
+                            "skill_tag": "Meaning of the denominator",
+                            "correct": False,
+                        }]
+                    }
+                },
+                "skill_confirmation_attempts": [{
+                    "lesson_id": "fractions_l1",
+                    "completed_at": "2026-10-30T09:10:00+00:00",
+                    "results": [{
+                        "question_id": "fractions_l1_q2",
+                        "lesson_id": "fractions_l1",
+                        "skill_id": "math.number.fraction_representation",
+                        "verification_status": "verified",
+                        "correct": True,
+                        "score": 1,
+                        "max_marks": 1,
+                    }]
+                }]
+            }
+        }
+        records = [{
+            "course_id": "fractions",
+            "lesson_id": "fractions_l1",
+            "question_id": "fractions_l1_q2",
+            "verification_status": "verified",
+            "question": {"skill_id": "math.number.fraction_representation"},
+        }]
+        with patch.object(question_engine, "iter_question_records", return_value=records):
+            plan = adaptive_learning.build_learning_plan(progress)
+        action = next(item for item in plan["actions"] if item["skill_id"] == "math.number.fraction_representation")
+        self.assertFalse(action["confirmation_required"])
+        self.assertEqual(action["diagnostic_items"], 2)
+        self.assertEqual(action["confirmation_items"], 1)
+        self.assertIn("fractions_l1_q2", action["evidence_question_ids"])
+        self.assertEqual(plan["skills_with_practice_evidence"], 0)
+
+    def test_unverified_confirmation_cannot_change_diagnostic_evidence(self):
+        progress = {
+            "fractions": {
+                "diagnostics": {
+                    "fractions_l1": {"answer_review": [{
+                        "question_id": "fractions_l1_d1",
+                        "skill_tag": "Meaning of the denominator",
+                        "correct": False,
+                    }]}
+                },
+                "skill_confirmation_attempts": [{
+                    "lesson_id": "fractions_l1",
+                    "results": [{
+                        "question_id": "unreviewed_q",
+                        "skill_id": "math.number.fraction_representation",
+                        "verification_status": "verified",
+                        "correct": True,
+                    }]
+                }]
+            }
+        }
+        with patch.object(question_engine, "iter_question_records", return_value=[]):
+            plan = adaptive_learning.build_learning_plan(progress)
+        action = next(item for item in plan["actions"] if item["skill_id"] == "math.number.fraction_representation")
+        self.assertTrue(action["confirmation_required"])
+        self.assertEqual(action["diagnostic_items"], 1)
+        self.assertEqual(action["confirmation_items"], 0)
 
     def test_plan_uses_existing_skill_taxonomy_and_does_not_mutate_progress(self):
         progress = {"fractions": {"practice_attempts": {}}}

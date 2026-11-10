@@ -10,6 +10,7 @@ import coach
 import state
 import adaptive_learning
 import intervention_tracking
+import skill_confirmation
 
 
 # The overview stays open on first use; detailed panels start collapsed to
@@ -441,6 +442,134 @@ def _render_lesson_diagnostics(progress):
                 )
     st.caption("These prototype diagnostics highlight topics to review. They are not a validated measure of ability or mastery.")
 
+def _start_skill_confirmation(action):
+    """Open one unused, verified practice question for a provisional skill signal."""
+    record = skill_confirmation.select_confirmation_question(
+        course_id=action["course_id"],
+        skill_id=action["skill_id"],
+        exclude_question_ids=action.get("evidence_question_ids", []),
+    )
+    if record is None:
+        st.info(
+            "There is no unused, verified practice question for this exact skill "
+            "in the current course bank. Vocogni will not repeat an item or use "
+            "an unreviewed question as confirmation."
+        )
+        return False
+    st.session_state["skill_confirmation_flow"] = {
+        "status": "in_progress",
+        "course_id": action["course_id"],
+        "skill_id": action["skill_id"],
+        "skill": action["skill"],
+        "question_record": record,
+    }
+    return True
+
+
+def _render_skill_confirmation():
+    """Render and persist an independent one-question diagnostic confirmation."""
+    flow = st.session_state.get("skill_confirmation_flow")
+    if not isinstance(flow, dict):
+        return
+    with st.container(border=True):
+        st.markdown("#### One-question skill confirmation")
+        if flow.get("status") == "invalid":
+            st.error(flow.get("error_message", "This question can no longer be used for confirmation."))
+            if st.button("Close confirmation", key="close_invalid_skill_confirmation"):
+                st.session_state.pop("skill_confirmation_flow", None)
+                st.rerun()
+            return
+
+        record = flow.get("question_record", {})
+        question = record.get("question", {}) if isinstance(record, dict) else {}
+        st.caption(
+            "A different, currently verified question for the same skill. "
+            "This is a second evidence point, not proof of mastery."
+        )
+        if flow.get("status") == "complete":
+            result = flow.get("result", {})
+            st.markdown(f"**{flow.get('skill', 'Skill')}**")
+            st.metric(
+                "Confirmation result",
+                "Correct" if result.get("correct") else "Not yet correct",
+                "1 distinct verified question",
+            )
+            if not result.get("correct"):
+                st.write(f"Expected answer: {result.get('expected_answer')}")
+            st.write(result.get("explanation", "Review the explanation in the lesson."))
+            if not flow.get("save_confirmed") and not state.has_pending_persistence():
+                flow["save_confirmed"] = True
+            if flow.get("save_confirmed"):
+                st.success("Your confirmation answer is saved.")
+            else:
+                st.warning(
+                    "This result is still in the current session and has not yet "
+                    "been confirmed as saved."
+                )
+                if st.button(
+                    "Retry saving confirmation",
+                    key=f"retry_skill_confirmation_{record.get('question_id', 'item')}",
+                ):
+                    if state.flush_persistent_save():
+                        flow["save_confirmed"] = True
+                        st.rerun()
+            if st.button(
+                "Close confirmation",
+                key=f"close_skill_confirmation_{record.get('question_id', 'item')}",
+            ):
+                st.session_state.pop("skill_confirmation_flow", None)
+                st.rerun()
+            return
+
+        st.markdown(f"**{question.get('prompt', 'Question unavailable')}**")
+        with st.form(
+            f"skill_confirmation_form_{question.get('id', 'item')}",
+            clear_on_submit=False,
+        ):
+            if question.get("type") == "mc":
+                answer = st.radio(
+                    "Choose one answer",
+                    question.get("options", []),
+                    index=None,
+                    key=f"skill_confirmation_answer_{question.get('id')}",
+                )
+            elif question.get("type") == "numeric":
+                answer = st.text_input(
+                    question.get("input_hint", "Enter your answer"),
+                    key=f"skill_confirmation_answer_{question.get('id')}",
+                )
+            else:
+                st.error("This confirmation question uses an unsupported response type.")
+                return
+            submitted = st.form_submit_button(
+                "Submit confirmation", type="primary", use_container_width=True
+            )
+        if st.button(
+            "Cancel confirmation",
+            key=f"cancel_skill_confirmation_{question.get('id', 'item')}",
+        ):
+            st.session_state.pop("skill_confirmation_flow", None)
+            st.rerun()
+        if not submitted:
+            return
+        if answer is None or (isinstance(answer, str) and not answer.strip()):
+            st.warning("Enter an answer before submitting.")
+            return
+        try:
+            result = skill_confirmation.record_confirmation(
+                st.session_state.progress, record, answer
+            )
+        except (TypeError, ValueError) as exc:
+            flow["status"] = "invalid"
+            flow["error_message"] = f"This confirmation could not be recorded: {exc}"
+            st.rerun()
+            return
+        state.mark_persistent_dirty()
+        saved = state.flush_persistent_save()
+        flow.update({"status": "complete", "result": result, "save_confirmed": saved})
+        st.rerun()
+
+
 def _render_recommendations(progress):
     st.caption("Turns saved activity into suggested next actions, so you know what to practise next.")
     recs = logic.generate_recommendations(progress)
@@ -458,8 +587,10 @@ def _render_recommendations(progress):
     plan = adaptive_learning.build_learning_plan(progress, limit=3)
     st.caption(
         "Offline skill-gap recommendations use verified practice first, then mapped "
-        "baseline diagnostic evidence when practice is not yet available. No LLM or network request is used."
+        "baseline diagnostic evidence and separately recorded confirmation checks "
+        "when practice is not yet available. No LLM or network request is used."
     )
+    _render_skill_confirmation()
     st.markdown("#### Skill trajectory")
     trajectory = adaptive_learning.build_skill_trajectories(progress, limit=5)
     st.caption(
@@ -605,7 +736,25 @@ def _render_recommendations(progress):
                         "Preliminary diagnostic signal: confirm it with another "
                         "distinct question before treating it as a persistent gap."
                     )
-                elif action["is_prerequisite_review"]:
+                    if action.get("confirmation_items"):
+                        st.caption(
+                            f"{action['confirmation_items']} separate confirmation "
+                            "question(s) already recorded for this skill."
+                        )
+                    if st.button(
+                        "Check with a different question",
+                        key=f"confirm_skill_{action['course_id']}_{action['skill_id']}_{index}",
+                        type="primary",
+                        use_container_width=True,
+                    ):
+                        if _start_skill_confirmation(action):
+                            st.rerun()
+                elif action.get("confirmation_items"):
+                    st.caption(
+                        f"Includes {action['confirmation_items']} separate, verified "
+                        "confirmation question(s). This remains a small sample, not proof of mastery."
+                    )
+                if action["is_prerequisite_review"]:
                     source_label = (
                         "practice evidence" if action["evidence_source"] == "practice"
                         else "multiple diagnostic items"

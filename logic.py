@@ -77,6 +77,7 @@ def blank_course_progress():
         "diagnostics": {},
         "lesson_assessments": {},
         "practice_attempts": {},
+        "skill_confirmation_attempts": [],
         "lesson_screen_progress": {},
     }
 
