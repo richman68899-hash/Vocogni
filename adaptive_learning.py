@@ -138,7 +138,10 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                     continue
                 item = evidence[skill_id]
                 question_id = str(result.get("question_id") or "")
-                evidence_id = (str(course_id), str(lesson_id), question_id)
+                stable_question_id = question_id or f"legacy-item-{result_index}"
+                evidence_id = (
+                    str(course_id), str(lesson_id), stable_question_id
+                )
                 if evidence_id in item["diagnostic_question_ids"]:
                     continue
                 item["diagnostic_question_ids"].add(evidence_id)
@@ -352,7 +355,7 @@ def build_intervention_timeline(
                 review = diagnostic.get("answer_review", [])
                 if not isinstance(review, list):
                     review = []
-                for result in review:
+                for result_index, result in enumerate(review):
                     if not isinstance(result, dict):
                         continue
                     tag = _normalise_label(result.get("skill_tag"))
@@ -772,7 +775,8 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
             reason = (
                 f"One distinct baseline diagnostic item suggests {target['skill']} "
                 f"may need attention ({round(target_accuracy * 100)}% on that item). "
-                "This is a preliminary signal, not a confirmed skill gap."
+                "This is a preliminary signal, not a confirmed skill gap; "
+                "it is based on baseline diagnostic evidence."
             )
             action = (
                 f"Check {target['skill']} with another distinct question before "

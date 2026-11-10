@@ -148,6 +148,12 @@ def validate_diagnostic_config(config: Any) -> list[str]:
     return errors
 
 
+def _is_correct(question: dict[str, Any], answer: Any) -> bool:
+    if answer is None or (isinstance(answer, str) and not answer.strip()):
+        return False
+    return bool(logic.check_answer(question, answer))
+
+
 CONFIDENCE_LABELS = {
     "guessing": "Guessing",
     "somewhat_sure": "Somewhat sure",
