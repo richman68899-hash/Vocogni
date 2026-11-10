@@ -144,6 +144,8 @@ class ExternalAiOperatorGateTests(unittest.TestCase):
             self.assertTrue(_external_ai_tutoring_enabled(st))
 
     def test_unreadable_or_missing_secret_does_not_enable_gate(self):
+        from types import SimpleNamespace
+
         class BrokenSecrets:
             def get(self, *_args, **_kwargs):
                 raise RuntimeError("secrets unavailable")
