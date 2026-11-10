@@ -55,6 +55,7 @@ import intervention_tracking
 import mistake_reflections
 import feedback_guidance
 import transfer_check
+import learning_measurement
 from . import revision_sprint as revision_sprint_section
 
 
@@ -2425,7 +2426,7 @@ def _render_complete(
     ordinary_results = [x for x in flow["results"] if x.get("evidence_type") != "independent_transfer"]
     transfer_results = [x for x in flow["results"] if x.get("evidence_type") == "independent_transfer"]
     correct_count = sum(1 for result in ordinary_results if result["correct"])
-    total_count = len(ordinary_results) or 1
+    total_count = len(ordinary_results)
 
     # Store a single descriptive post-lesson checkpoint for comparison with
     # the one-time baseline. This is not claimed to be a validated learning-gain
@@ -2433,19 +2434,14 @@ def _render_complete(
     baseline = prog.setdefault("diagnostics", {}).get(lesson["id"])
     assessments = prog.setdefault("lesson_assessments", {})
     if baseline and flow["results"] and lesson["id"] not in assessments:
-        post_percent = round(correct_count / len(flow["results"]) * 100)
-        assessments[lesson["id"]] = {
-            "baseline_score": baseline.get("score", 0),
-            "baseline_total": baseline.get("total", 5),
-            "baseline_percent": baseline.get("percent", 0),
-            "post_correct": correct_count,
-            "post_total": len(flow["results"]),
-            "post_practice_percent": post_percent,
-            "percentage_point_difference": post_percent - baseline.get("percent", 0),
-            "pathway": baseline.get("outcome_key", "unknown"),
-            "completed_at": datetime.now(timezone.utc).isoformat(),
-        }
-        state.mark_persistent_dirty()
+        checkpoint = learning_measurement.build_post_lesson_checkpoint(
+            baseline,
+            flow["results"],
+            pathway=baseline.get("outcome_key", "unknown"),
+        )
+        if checkpoint is not None:
+            assessments[lesson["id"]] = checkpoint
+            state.mark_persistent_dirty()
 
     question_word = (
         "question"
@@ -2453,14 +2449,20 @@ def _render_complete(
         else "questions"
     )
 
-    st.markdown(
-        f"<div class='vc-card'>"
-        f"<strong>Lesson complete.</strong> "
-        f"You answered {correct_count} of "
-        f"{total_count} practice {question_word} correctly."
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+    if total_count:
+        st.markdown(
+            f"<div class='vc-card'>"
+            f"<strong>Lesson complete.</strong> "
+            f"You answered {correct_count} of "
+            f"{total_count} practice {question_word} correctly."
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info(
+            "Lesson complete. No ordinary practice questions were recorded; "
+            "the independent transfer result is shown separately below."
+        )
     for transfer_result in transfer_results:
         status = "correct" if transfer_result.get("correct") else "not yet correct"
         st.info(f"Independent transfer check: {status}. This is one application sample, not proof of mastery.")
