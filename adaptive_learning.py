@@ -129,7 +129,7 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             review = diagnostic.get("answer_review", [])
             if not isinstance(review, list):
                 continue
-            for result in review:
+            for result_index, result in enumerate(review):
                 if not isinstance(result, dict):
                     continue
                 tag = _normalise_label(result.get("skill_tag"))
