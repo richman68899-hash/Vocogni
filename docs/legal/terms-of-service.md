@@ -5,13 +5,13 @@
 - **Service operator:** NOT CONFIGURED — identify the responsible individual or legal entity before public launch
 - **Support contact:** NOT CONFIGURED — add a monitored support contact before public launch
 - **Effective date:** NOT SET — publish an effective date only after legal review
-- **Version:** 0.1-draft
+- **Version:** 0.2-draft
 
 ## 1. What Vocogni is
 
 Vocogni is an educational learning prototype. Depending on the current release, it may provide authored lessons, practice questions, rule-based diagnostics, answer feedback, course progress, learning notes, milestones, and recommendations based on recorded activity. Features can change as the prototype develops.
 
-The current Vocogni Study Guide is a **rule-based helper**, not a general-purpose generative AI chatbot. It matches supported requests to existing code and the learner data passed to it. In the current implementation it does not call an external generative AI model.
+The Vocogni Study Guide has two modes. Local commands use deterministic application logic to work with supported requests and saved Vocogni information; they do not require an external generative-AI request. Optional AI tutoring can answer open-ended subject questions through an operator-configured external provider. It is disabled by default and requires the learner to enable the session-only opt-in control. When enabled, the provider receives the current tutoring message, up to eight selected messages from previous AI-tutoring turns, and a limited learning-context summary. The generated response may be wrong or incomplete. It does not mark answers, change answer keys, score diagnostics, write durable learner progress, or independently determine mastery. The operator must identify and review the actual provider and its data-handling terms before enabling this feature for real learners.
 
 ## 2. Who may use the service
 
@@ -56,7 +56,7 @@ You remain responsible for content you choose to enter, including notes and prof
 
 ## 7. Third-party services
 
-The current architecture uses third-party services for authentication, hosting, and storage, including Auth0 and Supabase. These services may process technical or account information as needed to operate their respective parts of the product. The operator must publish the actual provider list, applicable terms, hosting/data regions, and cross-border processing details before launch.
+The current architecture uses third-party services for authentication, hosting, and storage, including Auth0 and Supabase. These services may process technical or account information as needed to operate their respective parts of the product. If optional AI tutoring is enabled, the configured external model provider also processes the current tutoring message, selected prior AI-tutoring context, and limited learning summary described in the Privacy Notice. The actual provider and its terms, retention, training use, subprocessors, hosting/data regions, and cross-border processing details must be reviewed and disclosed before it is enabled for real learners.
 
 ## 8. Availability, changes, and account closure
 

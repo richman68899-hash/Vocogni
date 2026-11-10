@@ -28,6 +28,17 @@ class PrivacyPolicyDraftTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase.casefold(), self.policy.casefold())
 
+    def test_policy_matches_optional_external_ai_runtime(self):
+        text = self.policy.casefold()
+        self.assertIn("optional external ai tutoring", text)
+        self.assertIn("disabled by default", text)
+        self.assertIn("session-only opt-in", text)
+        self.assertIn("up to eight selected messages", text)
+        self.assertIn("limited learning-context summary", text)
+        self.assertIn("does not mark answers", text)
+        self.assertIn("actual provider", text)
+        self.assertNotIn("does not currently call a third-party generative-ai model", text)
+
     def test_policy_does_not_claim_children_are_already_supported(self):
         self.assertIn("does not establish that it identifies child users", self.policy)
         self.assertIn("not parental consent", self.policy)

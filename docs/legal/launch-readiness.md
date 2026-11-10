@@ -15,7 +15,7 @@ Internal release checklist. Do not treat the presence of legal-document drafts a
 - [ ] Determine and complete any applicable Indonesian private electronic system operator registration and other obligations with qualified counsel.
 - [ ] Decide whether users must explicitly accept final terms; if so, implement versioned consent records and a clear re-acceptance process. Do not collect a consent acknowledgement against this draft.
 - [ ] Verify the current source is the code deployed to production and that public statements match that deployment.
-- [ ] Confirm the shipped assistant and all AI/data-flow statements match deployed code. If adding generative AI, complete the separate requirements in ai-use-and-safety.md before enabling it.
+- [ ] Confirm the shipped assistant and all AI/data-flow statements match deployed code. The current source has local rule-based commands plus a separate optional external AI-tutoring path that is disabled by default and requires session opt-in. Before enabling that path for real learners, identify the configured provider, review its terms/retention/training/subprocessors/region settings, test the exact data sent, and complete the separate requirements in ai-use-and-safety.md.
 - [ ] Verify that users can find the policies before sign-in and while signed in, and decide whether final terms acceptance is required. Never record acceptance of draft notices as if they were final.
 - [ ] Run security, privacy, persistence, account-isolation, accessibility, and mobile UI tests on the actual deployment.
 
@@ -23,7 +23,7 @@ Internal release checklist. Do not treat the presence of legal-document drafts a
 
 - Authentication is handled through Auth0.
 - Learner state is persisted through Supabase/PostgreSQL.
-- The current Vocogni Assistant is rule-based and does not call an external generative AI model.
+- The Study Guide has deterministic local commands and a separate optional external AI-tutoring path. The latter is disabled by default, requires a session-only learner opt-in, and sends a bounded subset of chat history plus a limited learning-context summary to the operator-configured provider when used. The actual provider/deployment configuration and its contractual data handling have not been independently verified by this source review.
 - The repository review did not confirm a complete self-service account deletion workflow, final data retention schedule, legal operator/contact details, or legal review.
 
 Recheck this list whenever the architecture or provider configuration changes.
