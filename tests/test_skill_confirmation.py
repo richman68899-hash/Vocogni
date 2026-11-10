@@ -24,9 +24,8 @@ class SkillConfirmationTests(unittest.TestCase):
             for record in question_engine.select_questions(
                 course_id="fractions",
                 skill_id="math.number.fraction_representation",
-                purpose="practice",
                 verified_only=True,
-                include_pathways=False,
+                include_pathways=True,
             )
         }
         self.assertIsNone(skill_confirmation.select_confirmation_question(
