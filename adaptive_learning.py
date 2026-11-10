@@ -52,6 +52,8 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             "diagnostic_mistake_tags": defaultdict(int),
             "diagnostic_locations": set(),
             "diagnostic_question_ids": set(),
+            "confirmation_question_ids": set(),
+            "practice_question_ids": set(),
             "locations": set(),
         }
 
@@ -107,6 +109,9 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                     if skill_id not in evidence:
                         continue
                     item = evidence[skill_id]
+                    item["practice_question_ids"].add(
+                        (str(course_id), str(lesson_id), qid)
+                    )
                     ratio = _result_ratio(result)
                     item["attempts"] += 1
                     item["ratios"].append(ratio)
@@ -149,6 +154,46 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 item["diagnostic_locations"].add((str(course_id), str(lesson_id)))
                 if not result.get("correct") and result.get("skill_tag"):
                     item["diagnostic_mistake_tags"][str(result["skill_tag"])] += 1
+
+    # Keep independent diagnostic confirmations outside ordinary practice accuracy.
+    for course_id, course_progress in (progress or {}).items():
+        if not isinstance(course_progress, dict):
+            continue
+        confirmations = course_progress.get("skill_confirmation_attempts", [])
+        if not isinstance(confirmations, list):
+            continue
+        for confirmation in confirmations:
+            if not isinstance(confirmation, dict):
+                continue
+            attempt_lesson_id = str(confirmation.get("lesson_id") or "")
+            results = confirmation.get("results", [])
+            if not isinstance(results, list):
+                continue
+            for result in results:
+                if not isinstance(result, dict) or result.get("verification_status") != "verified":
+                    continue
+                qid = str(result.get("question_id") or "")
+                source_lesson_id = str(result.get("lesson_id") or attempt_lesson_id)
+                metadata = question_map.get((str(course_id), source_lesson_id, qid))
+                if not metadata:
+                    continue
+                skill_id = metadata.get("skill_id")
+                if result.get("skill_id") and result.get("skill_id") != skill_id:
+                    continue
+                if skill_id not in evidence:
+                    continue
+                evidence_id = (str(course_id), source_lesson_id, qid)
+                item = evidence[skill_id]
+                if evidence_id in item["diagnostic_question_ids"] or evidence_id in item["practice_question_ids"]:
+                    continue
+                item["diagnostic_question_ids"].add(evidence_id)
+                item["confirmation_question_ids"].add(evidence_id)
+                item["diagnostic_ratios"].append(_event_ratio(result))
+                item["diagnostic_locations"].add((str(course_id), source_lesson_id))
+                if not result.get("correct"):
+                    tag = result.get("mistake_tag") or metadata.get("mistake_tag")
+                    if tag:
+                        item["diagnostic_mistake_tags"][str(tag)] += 1
 
     for item in evidence.values():
         item["accuracy"] = (
@@ -795,6 +840,19 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
                 len(target["diagnostic_question_ids"])
                 if target_source == "diagnostic" else 0
             ),
+            "confirmation_items": (
+                len(target["confirmation_question_ids"])
+                if target_source == "diagnostic" else 0
+            ),
+            "evidence_question_ids": sorted({
+                qid for source_course, _source_lesson, qid
+                in target["diagnostic_question_ids"]
+                if source_course == course_id and qid
+            } | {
+                qid for source_course, _source_lesson, qid
+                in target["practice_question_ids"]
+                if source_course == course_id and qid
+            }),
             "skill_id": target_skill,
             "skill": target["skill"],
             "source_skill_id": skill_id,
@@ -828,8 +886,10 @@ def build_learning_plan(progress: dict[str, Any], limit: int = 3) -> dict[str, A
         "skills_with_diagnostic_evidence": diagnostically_tested,
         "evidence_note": (
             "Practice recommendations use saved question-level results. When "
-            "practice is absent, mapped baseline diagnostic answers can suggest "
-            "a provisional review target. A single diagnostic item is always "
+            "practice is absent, mapped baseline diagnostic answers and separately "
+            "saved skill-confirmation checks can suggest a provisional review target. "
+            "Confirmation checks stay separate from practice accuracy. A single "
+            "diagnostic item is always 
             "marked for confirmation with a distinct question before it is "
             "treated as a persistent gap. An untested prerequisite triggers a "
             "check, not a weakness label. Diagnostic and practice scores stay "
