@@ -9,6 +9,7 @@ import logic
 import coach
 import state
 import adaptive_learning
+import intervention_tracking
 
 
 # The overview stays open on first use; detailed panels start collapsed to
@@ -502,6 +503,34 @@ def _render_recommendations(progress):
                     f"{item['overall_accuracy_percent']}% overall performance"
                 )
     st.caption(trajectory["evidence_note"])
+
+    st.markdown("#### Teaching support and follow-up")
+    support_report = intervention_tracking.build_intervention_report(progress, limit=8)
+    st.caption(
+        "Records supports that learners actually opened or viewed. For each support, "
+        "the follow-up shows up to the next three verified answers for that skill. "
+        "These observations are descriptive and do not prove that a support caused improvement."
+    )
+    if not support_report["events"]:
+        st.info("No teaching-support exposures have been recorded yet.")
+    else:
+        for event in support_report["events"]:
+            with st.container(border=True):
+                st.markdown(f"**{event['intervention_label']} — {event['skill'] or 'Lesson support'}**")
+                st.caption(
+                    f"{event['course_title']} · {event['lesson_title']} · "
+                    f"{event['occurred_at'][:16].replace('T', ' ')}"
+                )
+                if event["follow_up_answer_count"]:
+                    st.write(
+                        f"Next verified answers: {event['follow_up_accuracy_percent']}% "
+                        f"across {event['follow_up_answer_count']} item(s)."
+                    )
+                    if event["follow_up_answer_count"] < 3:
+                        st.caption("Early follow-up only; three later answers are needed for the full descriptive window.")
+                else:
+                    st.caption("No later verified practice answers have been recorded for this skill.")
+    st.caption(support_report["evidence_note"])
 
     st.markdown("#### Intervention timeline")
     timeline = adaptive_learning.build_intervention_timeline(progress, limit=10)

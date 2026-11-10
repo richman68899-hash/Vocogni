@@ -51,6 +51,7 @@ import learning_memory
 import logic
 import question_engine
 import state
+import intervention_tracking
 import mistake_reflections
 import feedback_guidance
 import transfer_check
@@ -74,6 +75,89 @@ def _rerun_after_persistence() -> None:
 
     if success:
         st.rerun()
+
+
+def _record_learning_intervention(
+    course_id,
+    lesson,
+    flow,
+    intervention_type,
+    *,
+    question=None,
+    skill_id=None,
+    question_id=None,
+    event_suffix="",
+) -> None:
+    """Record an actual learner-visible support exposure without answer content."""
+    if question is not None:
+        question_id = str(question.get("id") or "") or None
+        source_lesson_id = str(question.get("source_lesson_id") or lesson["id"])
+        metadata = question_engine.attempt_metadata(
+            question_id or "",
+            course_id=course_id,
+            lesson_id=source_lesson_id,
+        )
+        # Only current VQE-verified metadata may connect a support event to a skill.
+        skill_id = (
+            metadata.get("skill_id")
+            if metadata.get("verification_status") == "verified"
+            else None
+        )
+
+    attempt_number = int(flow.get("attempt_number", 1) or 1)
+    identity = ":".join(
+        str(part or "")
+        for part in (
+            course_id,
+            lesson["id"],
+            attempt_number,
+            intervention_type,
+            question_id or "lesson",
+            event_suffix,
+        )
+    )
+    created = intervention_tracking.record_intervention(
+        st.session_state.progress,
+        course_id=course_id,
+        lesson_id=lesson["id"],
+        intervention_type=intervention_type,
+        event_id=identity,
+        skill_id=skill_id,
+        question_id=question_id,
+        attempt_number=attempt_number,
+    )
+    if created:
+        state.mark_persistent_dirty()
+
+
+def _record_lesson_intervention(course_id, lesson, flow, intervention_type) -> None:
+    """Record lesson-wide support against each distinct verified skill in the lesson."""
+    seen_skills = set()
+    for record in question_engine.iter_question_records(
+        course_id=course_id,
+        lesson_id=lesson["id"],
+    ):
+        if record.get("verification_status") != "verified":
+            continue
+        question = record.get("question", {})
+        skill_id = question.get("skill_id")
+        if not skill_id or skill_id in seen_skills:
+            continue
+        seen_skills.add(skill_id)
+        _record_learning_intervention(
+            course_id,
+            lesson,
+            flow,
+            intervention_type,
+            question={
+                "id": record.get("question_id"),
+                "skill_id": skill_id,
+            },
+        )
+    if not seen_skills:
+        _record_learning_intervention(
+            course_id, lesson, flow, intervention_type
+        )
 
 
 def _next_learning_lesson(progress, course_id):
@@ -919,6 +1003,9 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
             else "Next: Worked example"
         )
         if st.button(next_example_label, type="primary", key=f"screen1_next_{lesson['id']}"):
+            _record_lesson_intervention(
+                course_id, lesson, flow, "concept_explanation"
+            )
             history = (
                 st.session_state.progress.get(course_id, {})
                 .get("practice_attempts", {})
@@ -973,6 +1060,9 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
 
         next_practice_label = "Begin post-test" if lesson.get("kind") == "assessment" else "Next: Practice questions"
         if st.button(next_practice_label, type="primary", key=f"screen2_next_{lesson['id']}"):
+            _record_lesson_intervention(
+                course_id, lesson, flow, "worked_example"
+            )
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
             questions = transfer_check.append_transfer_question(
                 questions, course_id=course_id, lesson_id=lesson["id"]
@@ -1633,6 +1723,10 @@ def _render_question(
 
         if hint:
             if hint_mode == "Easy":
+                _record_learning_intervention(
+                    course_id, lesson, flow, "hint", question=question,
+                    event_suffix="automatically_shown",
+                )
                 st.caption(f"Hint: {hint}")
             elif hint_mode == "Adaptive":
                 hint_state_key = (
@@ -1645,6 +1739,10 @@ def _render_question(
                     f"{flow.get('attempt_number', 1)}_{question['id']}",
                 ):
                     st.session_state[hint_state_key] = True
+                    _record_learning_intervention(
+                        course_id, lesson, flow, "hint", question=question,
+                        event_suffix="revealed",
+                    )
                 if st.session_state.get(hint_state_key, False):
                     st.caption(f"Hint: {hint}")
 
@@ -1763,6 +1861,7 @@ def _render_question(
 
         result_record = {
             "answer_id": answer_id,
+            "answered_at": datetime.now(timezone.utc).isoformat(),
             "question_id": question.get("id"),
             "question_prompt": str(question.get("prompt") or ""),
             "user_answer": user_answer,
@@ -2015,6 +2114,29 @@ def _render_feedback(
         and display_settings.get("feedback_timing", "Immediate") != "Immediate"
     )
 
+    current_result_for_support = next(
+        (
+            item for item in reversed(flow.get("results", []))
+            if item.get("question_id") == question.get("id")
+            and item.get("user_answer") == flow.get("last_user_answer")
+        ),
+        None,
+    )
+    support_answer_id = (
+        str(current_result_for_support.get("answer_id") or "")
+        if isinstance(current_result_for_support, dict)
+        else ""
+    )
+    if not defer_standard_feedback:
+        _record_learning_intervention(
+            course_id or flow.get("course_id") or st.session_state.current_course,
+            lesson,
+            flow,
+            "answer_feedback",
+            question=question,
+            event_suffix=support_answer_id,
+        )
+
     if defer_standard_feedback:
         st.info(
             "Your mistake is recorded. You can add an optional reflection now; "
@@ -2075,6 +2197,14 @@ def _render_feedback(
             marking,
         )
         if nudge:
+            _record_learning_intervention(
+                course_id or flow.get("course_id") or st.session_state.current_course,
+                lesson,
+                flow,
+                "targeted_repair",
+                question=question,
+                event_suffix=support_answer_id,
+            )
             st.info(
                 f"Learning Fingerprint noticed a repeated rubric snag: "
                 f"{nudge['criterion']} has been missed on "
