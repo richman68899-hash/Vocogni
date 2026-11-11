@@ -125,6 +125,69 @@ class MasteryReceiptTests(unittest.TestCase):
         self.assertEqual(skill["distinct_practice_questions"], 1)
         self.assertEqual(skill["status"], "Developing")
 
+    def test_cross_lesson_verified_practice_uses_canonical_source_lesson(self):
+        course_id = "cross_lesson_receipt_course"
+        skill_id = "math.number.fraction_representation"
+        source_question = _question("source-q", "Fraction representation")
+        attempt_question = _question("attempt-q", "Other lesson skill")
+        course = {
+            "id": course_id,
+            "title": "Cross-lesson receipt course",
+            "lessons": [
+                {
+                    "id": "practice_lesson",
+                    "title": "Practice lesson",
+                    "practice_questions": [attempt_question],
+                },
+                {
+                    "id": "source_lesson",
+                    "title": "Canonical source lesson",
+                    "practice_questions": [source_question],
+                },
+            ],
+        }
+        registry = [{
+            "course_id": course_id,
+            "lesson_id": "source_lesson",
+            "question_id": "source-q",
+            "verification_status": "verified",
+            "question": {
+                **source_question,
+                "skill_id": skill_id,
+                "skill_label": "Fraction representation",
+            },
+        }]
+        progress = {
+            course_id: {
+                "practice_attempts": {
+                    "practice_lesson": [{
+                        "attempt_number": 1,
+                        "completed_at": "2026-11-11T10:00:00+00:00",
+                        "results": [{
+                            "question_id": "source-q",
+                            "lesson_id": "source_lesson",
+                            "course_id": course_id,
+                            "skill_id": skill_id,
+                            "verification_status": "verified",
+                            "correct": True,
+                        }],
+                    }]
+                }
+            }
+        }
+
+        with (
+            patch.dict(data.COURSES, {course_id: course}),
+            patch.object(data, "COURSE_ORDER", list(data.COURSE_ORDER) + [course_id]),
+            patch.object(question_engine, "iter_question_records", return_value=registry),
+        ):
+            receipt = logic.mastery_receipt_for_course(progress, course_id)
+
+        skill = next(item for item in receipt["skills"] if item["skill_id"] == skill_id)
+        self.assertEqual(skill["practice_answers"], 1)
+        self.assertEqual(skill["distinct_practice_questions"], 1)
+        self.assertEqual(skill["practice_performance_percent"], 100)
+
     def test_diagnostic_failure_flags_unpractised_skill_for_review(self):
         course_id = "diagnostic_gap_course"
         diagnostic_questions = [
