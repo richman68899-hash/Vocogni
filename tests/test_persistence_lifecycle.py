@@ -313,5 +313,67 @@ class LogoutPersistenceTests(unittest.TestCase):
         logout.assert_not_called()
 
 
+class NoteAndFolderRestoreIdentityTests(unittest.TestCase):
+    def test_note_ids_are_unique_without_rewriting_valid_legacy_ids_or_content(self):
+        saved = [
+            {"id": 4, "title": "First", "content": "Keep A"},
+            {"id": 4, "title": "Duplicate", "content": "Keep B"},
+            {"id": "4", "title": "String collision", "content": "Keep C"},
+            {"id": "legacy-note", "title": "Legacy", "content": "Keep D"},
+            {"title": "Missing ID", "content": "Keep E"},
+            {"id": 7, "title": "Later valid ID", "content": "Keep F"},
+        ]
+
+        restored = state._sanitize_notes(saved)
+        ids = [note["id"] for note in restored]
+
+        self.assertEqual(ids, [4, 8, 9, "legacy-note", 10, 7])
+        self.assertEqual(len({str(note_id) for note_id in ids}), len(ids))
+        self.assertEqual(
+            [note["content"] for note in restored],
+            ["Keep A", "Keep B", "Keep C", "Keep D", "Keep E", "Keep F"],
+        )
+        self.assertNotIn("id", saved[4])
+        self.assertEqual(saved[1]["id"], 4)
+
+    def test_folder_ids_are_positive_unique_integers(self):
+        saved = [
+            {"id": 2, "name": "First", "color": "Blue"},
+            {"id": 2, "name": "Duplicate", "color": "Green"},
+            {"id": True, "name": "Boolean ID", "color": "Grey"},
+            {"id": 0, "name": "Zero ID", "color": "Orange"},
+            {"id": "5", "name": "String ID", "color": "Pink"},
+            {"id": 5, "name": "Later valid ID", "color": "Cyan"},
+        ]
+
+        restored = state._sanitize_note_folders(saved)
+        ids = [folder["id"] for folder in restored]
+
+        self.assertEqual(ids, [2, 6, 7, 8, 9, 5])
+        self.assertEqual(len(set(ids)), len(ids))
+        self.assertTrue(all(isinstance(value, int) and value > 0 for value in ids))
+        self.assertEqual([folder["name"] for folder in restored], [
+            "First", "Duplicate", "Boolean ID", "Zero ID", "String ID", "Later valid ID"
+        ])
+        self.assertEqual(saved[1]["id"], 2)
+
+    def test_invalid_folder_references_become_unfiled_without_bool_int_aliasing(self):
+        notes = [
+            {"id": 1, "folder_id": True},
+            {"id": 2, "folder_id": 1},
+            {"id": 3, "folder_id": 9},
+            {"id": 4, "folder_id": "1"},
+            {"id": 5, "folder_id": None},
+        ]
+        folders = [{"id": 1, "name": "Algebra"}]
+
+        state._normalize_note_folder_references(notes, folders)
+
+        self.assertEqual(
+            [note["folder_id"] for note in notes],
+            [None, 1, None, None, None],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
