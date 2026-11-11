@@ -301,6 +301,7 @@ def evaluate_diagnostic(
         "unlocked_pathways": unlocked_pathways_for_score({
             "score": correct_count,
             "prerequisite_correct": prerequisite_correct,
+            "placement_policy": "whole_screen_with_prerequisite_follow_up_v2",
         }),
         "outcome_label": placement["label"],
         "outcome_level": placement["level"],
