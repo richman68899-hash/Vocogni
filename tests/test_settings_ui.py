@@ -7,6 +7,7 @@ from pathlib import Path
 
 import logic
 import settings_model
+import state
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,6 +65,37 @@ class SettingsPageTests(unittest.TestCase):
         self.assertFalse(settings_model.DEFAULT_SETTINGS["sound"])
         self.assertFalse(settings_model.DEFAULT_SETTINGS["wrong_answer_sound"])
         self.assertFalse(settings_model.DEFAULT_SETTINGS["answer_shake"])
+
+    def test_state_defaults_match_the_canonical_settings_model(self):
+        self.assertEqual(state._default_settings(), settings_model.DEFAULT_SETTINGS)
+        self.assertFalse(state._default_settings()["sound"])
+        self.assertFalse(state._default_settings()["wrong_answer_sound"])
+        self.assertFalse(state._default_settings()["answer_shake"])
+
+    def test_restored_settings_normalize_known_values_and_preserve_unknown_keys(self):
+        restored = state._merge_settings({
+            "appearance": "Dark",
+            "sound": "false",
+            "wrong_answer_sound": "false",
+            "animations": "no",
+            "answer_shake": "maybe",
+            "custom_future_setting": {"enabled": True},
+        })
+
+        self.assertEqual(restored["appearance"], "Dark")
+        self.assertFalse(restored["sound"])
+        self.assertFalse(restored["wrong_answer_sound"])
+        self.assertFalse(restored["animations"])
+        self.assertFalse(restored["answer_shake"])
+        self.assertEqual(restored["custom_future_setting"], {"enabled": True})
+
+    def test_malformed_boolean_values_fall_back_to_the_setting_default(self):
+        self.assertTrue(settings_model.safe_value("animations", None))
+        self.assertTrue(settings_model.safe_value("animations", "unexpected"))
+        self.assertFalse(settings_model.safe_value("wrong_answer_sound", "unexpected"))
+        self.assertFalse(settings_model.safe_value("sound", ["not", "a", "boolean"]))
+        self.assertTrue(settings_model.safe_value("animations", 1))
+        self.assertFalse(settings_model.safe_value("animations", 0))
 
     def test_invalid_legacy_values_fall_back_safely(self):
         self.assertEqual(settings_model.safe_value("appearance", "Sepia"), "Light")
