@@ -6,7 +6,7 @@
 |---|---|---|---|
 | DG-01 | Validate the three current diagnostic schemas | Five distinct required stages, IDs, answers, and pathway question sets all validate | Not tested |
 | DG-02 | Submit all correct answers | Score 5/5; Project placement | Not tested |
-| DG-03 | Miss prerequisite item while getting all others right | Prerequisite review takes priority; prerequisite weakness is listed | Not tested |
+| DG-03 | Miss prerequisite item while getting all others right | Level 3 placement based on 4/5; prerequisite weakness and review follow-up are shown | Not tested |
 | DG-04 | Score 2/5 with prerequisite correct | Level 1 — Easy | Not tested |
 | DG-05 | Score 3/5 with prerequisite correct | Level 2 — Medium | Not tested |
 | DG-06 | Score 4/5 with prerequisite correct | Level 3 — Hard | Not tested |
@@ -43,7 +43,8 @@ Record tested commit SHA, test date, environment/deployment, result, evidence li
 
 - [ ] Confirm the diagnostic is the first assessment for each of the three configured lessons.
 - [ ] Confirm a saved diagnostic cannot be submitted a second time, including after refresh and re-login.
-- [ ] Confirm prerequisite failure unlocks Level 1 only.
+- [ ] Confirm a missed prerequisite is shown as a targeted follow-up and does not override the whole-screen score for new v2 diagnostics.
+- [ ] Confirm legacy saved diagnostics without the v2 placement-policy marker retain their original Level 1-only prerequisite gate.
 - [ ] Confirm score 1–2 with prerequisite correct unlocks Level 1 only.
 - [ ] Confirm score 3 unlocks Levels 1–2.
 - [ ] Confirm score 4 unlocks Levels 1–3.
