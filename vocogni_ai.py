@@ -216,7 +216,7 @@ def render_assistant(
                 "enable the server-side AI gate only after reviewing the provider, data "
                 "flow, safeguarding, and consent requirements."
             )
-        else:
+        elif missing_provider_settings:
             missing_text = ", ".join(missing_provider_settings)
             st.warning(
                 "AI provider is not ready. Local Study Guide commands still work. "
@@ -224,6 +224,12 @@ def render_assistant(
                 "Add the missing values under [llm] in Streamlit secrets, or set the "
                 "VOCogni_LLM_BASE_URL, VOCogni_LLM_MODEL, and VOCogni_LLM_API_KEY "
                 "environment variables. The API key value is never displayed here."
+            )
+        else:
+            st.warning(
+                "AI provider configuration is not valid. Remote providers must use "
+                "an HTTPS URL; plain HTTP is allowed only for localhost or a loopback "
+                "IP during local development. Local Study Guide commands still work."
             )
 
         st.caption(

@@ -3,7 +3,15 @@ import unittest
 from unittest.mock import patch
 
 from ai_prototype.engine import answer, analyze_learning_patterns
-from ai_prototype.llm import LLMError, is_configured, resolve_config
+from ai_prototype.llm import (
+    LLMError,
+    MAX_PROVIDER_RESPONSE_BYTES,
+    _RejectRedirectHandler,
+    _chat_completions_url,
+    chat_completion,
+    is_configured,
+    resolve_config,
+)
 from ai_prototype.patterns import detect_patterns
 from vocogni_ai import _external_ai_tutoring_enabled, _learner_context
 
@@ -47,6 +55,21 @@ class ProviderConfigTests(unittest.TestCase):
 
     def test_partial_provider_config_is_not_configured(self):
         self.assertFalse(is_configured({"base_url": "https://example.test/v1"}))
+
+    def test_provider_readiness_requires_a_supported_transport_url(self):
+        credentials = {"model": "example-model", "api_key": "test-key"}
+        self.assertFalse(is_configured({
+            **credentials,
+            "base_url": "http://provider.example/v1",
+        }))
+        self.assertTrue(is_configured({
+            **credentials,
+            "base_url": "https://provider.example/v1",
+        }))
+        self.assertTrue(is_configured({
+            **credentials,
+            "base_url": "http://localhost:8080/v1",
+        }))
 
 
 class EngineTests(unittest.TestCase):
@@ -188,6 +211,142 @@ class ChatHistoryPrivacyTests(unittest.TestCase):
             "An equation has two equal sides.",
         ])
         self.assertNotIn("Private profile details", str(history))
+
+
+class ProviderTransportHardeningTests(unittest.TestCase):
+    def test_remote_provider_requires_https(self):
+        for endpoint in (
+            "http://provider.example/v1",
+            "http://192.0.2.10/v1",
+            "http://example.test/v1",
+        ):
+            with self.subTest(endpoint=endpoint):
+                with self.assertRaisesRegex(LLMError, "loopback"):
+                    _chat_completions_url(endpoint)
+
+    def test_local_loopback_http_is_allowed_for_development(self):
+        self.assertEqual(
+            _chat_completions_url("http://localhost:8080/v1"),
+            "http://localhost:8080/v1/chat/completions",
+        )
+        self.assertEqual(
+            _chat_completions_url("http://127.0.0.1:8080/v1"),
+            "http://127.0.0.1:8080/v1/chat/completions",
+        )
+        self.assertEqual(
+            _chat_completions_url("http://[::1]:8080/v1"),
+            "http://[::1]:8080/v1/chat/completions",
+        )
+
+    def test_invalid_schemes_hosts_credentials_and_query_values_are_rejected(self):
+        endpoints = (
+            "file:///tmp/provider",
+            "https:///missing-host",
+            "https://user:password@provider.example/v1",
+            "https://provider.example/v1?api_key=secret",
+            "https://provider.example/v1#fragment",
+            "https://provider.example:invalid/v1",
+        )
+        for endpoint in endpoints:
+            with self.subTest(endpoint=endpoint):
+                with self.assertRaises(LLMError):
+                    _chat_completions_url(endpoint)
+
+    def test_completion_path_is_not_duplicated(self):
+        self.assertEqual(
+            _chat_completions_url("https://provider.example/v1/chat/completions"),
+            "https://provider.example/v1/chat/completions",
+        )
+
+    def test_redirect_handler_refuses_redirect_targets(self):
+        from urllib.request import Request
+
+        handler = _RejectRedirectHandler()
+        request = Request("https://provider.example/v1/chat/completions", method="POST")
+        redirected = handler.redirect_request(
+            request,
+            None,
+            307,
+            "Temporary Redirect",
+            {},
+            "https://other.example/collect",
+        )
+        self.assertIsNone(redirected)
+
+    def test_provider_response_is_read_with_a_hard_size_limit(self):
+        class FakeResponse:
+            def __init__(self):
+                self.read_limit = None
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self, limit):
+                self.read_limit = limit
+                return b"x" * limit
+
+        class FakeOpener:
+            def __init__(self, response):
+                self.response = response
+
+            def open(self, _request, timeout):
+                self.timeout = timeout
+                return self.response
+
+        response = FakeResponse()
+        opener = FakeOpener(response)
+        with patch("ai_prototype.llm.build_opener", return_value=opener):
+            with self.assertRaisesRegex(LLMError, "1 MB size limit"):
+                chat_completion(
+                    [{"role": "user", "content": "Explain fractions."}],
+                    config={
+                        "base_url": "https://provider.example/v1",
+                        "model": "test-model",
+                        "api_key": "test-key",
+                    },
+                )
+        self.assertEqual(response.read_limit, MAX_PROVIDER_RESPONSE_BYTES + 1)
+
+    def test_valid_provider_response_is_parsed_and_sent_to_configured_https_host(self):
+        import json
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self, _limit):
+                return json.dumps({
+                    "choices": [{"message": {"content": "  A fraction is part of a whole.  "}}]
+                }).encode("utf-8")
+
+        class FakeOpener:
+            def open(self, request, timeout):
+                self.request = request
+                self.timeout = timeout
+                return FakeResponse()
+
+        opener = FakeOpener()
+        with patch("ai_prototype.llm.build_opener", return_value=opener):
+            result = chat_completion(
+                [{"role": "user", "content": "Explain fractions."}],
+                timeout=12,
+                config={
+                    "base_url": "https://provider.example/v1",
+                    "model": "test-model",
+                    "api_key": "test-key",
+                },
+            )
+
+        self.assertEqual(result, "A fraction is part of a whole.")
+        self.assertEqual(opener.request.full_url, "https://provider.example/v1/chat/completions")
+        self.assertEqual(opener.request.get_header("Authorization"), "Bearer test-key")
+        self.assertEqual(opener.timeout, 12)
 
 
 if __name__ == "__main__":

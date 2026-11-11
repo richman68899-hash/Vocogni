@@ -1,15 +1,65 @@
 """OpenAI-compatible Chat Completions client using only the Python standard library."""
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, urlunsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 class LLMError(RuntimeError):
     """Raised when the optional model provider is unavailable or misconfigured."""
+
+
+MAX_PROVIDER_RESPONSE_BYTES = 1_000_000
+
+
+class _RejectRedirectHandler(HTTPRedirectHandler):
+    """Do not forward an authenticated learner request to a redirect target."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _chat_completions_url(endpoint: str) -> str:
+    """Validate the operator-configured endpoint and return its completion URL.
+
+    Remote providers must use HTTPS so the bearer token is not sent in cleartext.
+    Plain HTTP is reserved for local development on loopback addresses.
+    """
+    try:
+        parts = urlsplit(endpoint)
+        hostname = parts.hostname
+        # Accessing .port also validates malformed port declarations.
+        _ = parts.port
+    except ValueError as exc:
+        raise LLMError("The configured AI provider URL is invalid.") from exc
+
+    if parts.scheme not in {"https", "http"} or not hostname:
+        raise LLMError("The AI provider URL must use HTTPS and include a valid host.")
+    if parts.username is not None or parts.password is not None:
+        raise LLMError("The AI provider URL must not contain embedded credentials.")
+    if parts.query or parts.fragment:
+        raise LLMError("The AI provider URL must not contain a query string or fragment.")
+
+    if parts.scheme == "http":
+        normalized_host = hostname.casefold().rstrip(".")
+        is_loopback = normalized_host == "localhost"
+        if not is_loopback:
+            try:
+                is_loopback = ipaddress.ip_address(normalized_host).is_loopback
+            except ValueError:
+                is_loopback = False
+        if not is_loopback:
+            raise LLMError("Plain HTTP is allowed only for a local loopback AI provider.")
+
+    path = parts.path.rstrip("/")
+    if not path.endswith("/chat/completions"):
+        path += "/chat/completions"
+    return urlunsplit((parts.scheme, parts.netloc, path, "", ""))
 
 
 def resolve_config(config: dict[str, str] | None = None) -> dict[str, str]:
@@ -24,9 +74,15 @@ def resolve_config(config: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def is_configured(config: dict[str, str] | None = None) -> bool:
-    """Return whether all required provider settings are present."""
+    """Return whether required settings and a supported endpoint are present."""
     resolved = resolve_config(config)
-    return all(resolved.values())
+    if not all(resolved.values()):
+        return False
+    try:
+        _chat_completions_url(resolved["base_url"])
+    except LLMError:
+        return False
+    return True
 
 
 def chat_completion(
@@ -46,7 +102,7 @@ def chat_completion(
             "VOCogni_LLM_MODEL, and VOCogni_LLM_API_KEY."
         )
 
-    url = endpoint if endpoint.endswith("/chat/completions") else endpoint + "/chat/completions"
+    url = _chat_completions_url(endpoint)
     payload = json.dumps({
         "model": model,
         "messages": messages,
@@ -63,8 +119,14 @@ def chat_completion(
         method="POST",
     )
     try:
-        with urlopen(request, timeout=timeout) as response:
-            data: dict[str, Any] = json.loads(response.read().decode("utf-8"))
+        # Reject redirects: a configured endpoint must receive the request
+        # directly, rather than forwarding the Authorization header elsewhere.
+        opener = build_opener(_RejectRedirectHandler())
+        with opener.open(request, timeout=timeout) as response:
+            response_body = response.read(MAX_PROVIDER_RESPONSE_BYTES + 1)
+        if len(response_body) > MAX_PROVIDER_RESPONSE_BYTES:
+            raise LLMError("The AI provider response exceeded the 1 MB size limit.")
+        data: dict[str, Any] = json.loads(response_body.decode("utf-8"))
         content = data["choices"][0]["message"]["content"]
         if isinstance(content, list):
             content = "".join(
