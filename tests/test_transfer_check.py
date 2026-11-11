@@ -73,6 +73,49 @@ class IndependentTransferTests(unittest.TestCase):
             purpose="application", verified_only=True,
         )
 
+    def test_selector_skips_transfer_questions_already_used_in_prior_attempts(self):
+        practice = [{"id": "fractions_l2_q1"}]
+        candidates = [
+            {
+                "question_id": "already-used-transfer",
+                "lesson_id": "fractions_l1",
+                "question": {"type": "mc", "prompt": "Previously used"},
+            },
+            {
+                "question_id": "fresh-transfer",
+                "lesson_id": "fractions_l3",
+                "question": {"type": "mc", "prompt": "Fresh application"},
+            },
+        ]
+        with (
+            patch("transfer_check.question_engine.attempt_metadata", return_value={"skill_id": "math.number.fraction_operations"}),
+            patch("transfer_check.question_engine.select_questions", return_value=candidates),
+        ):
+            selected = transfer_check.select_transfer_question(
+                practice,
+                course_id="fractions",
+                lesson_id="fractions_l2",
+                exclude_question_ids={"already-used-transfer"},
+            )
+
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["id"], "fresh-transfer")
+        self.assertTrue(selected["_is_transfer_check"])
+
+    def test_append_passes_prior_transfer_ids_to_selection(self):
+        practice = [{"id": "fractions_l2_q1"}]
+        with patch("transfer_check.select_transfer_question", return_value=None) as select:
+            transfer_check.append_transfer_question(
+                practice,
+                course_id="fractions",
+                lesson_id="fractions_l2",
+                exclude_question_ids={"used-q1", "used-q2"},
+            )
+        self.assertEqual(
+            select.call_args.kwargs["exclude_question_ids"],
+            {"used-q1", "used-q2"},
+        )
+
     def test_append_is_idempotent_and_adds_at_most_one_item(self):
         practice = [{"id": "fractions_l2_q1"}]
         once = transfer_check.append_transfer_question(
