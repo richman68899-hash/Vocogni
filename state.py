@@ -368,21 +368,104 @@ def _merge_settings(
 def _sanitize_notes(
     saved_notes: Any,
 ) -> list[dict[str, Any]]:
-    """
-    Restore only valid note dictionaries.
-
-    Invalid database entries are ignored rather than crashing the learner
-    session.
-    """
-
+    """Restore note records with unique IDs while preserving note content."""
     if not isinstance(saved_notes, list):
         return []
 
-    return [
-        note
-        for note in saved_notes
-        if isinstance(note, dict)
+    notes = [dict(note) for note in saved_notes if isinstance(note, dict)]
+    reserved_ids: set[str] = set()
+    max_numeric_id = 0
+    for note in notes:
+        note_id = note.get("id")
+        valid_id = (
+            (isinstance(note_id, int) and not isinstance(note_id, bool))
+            or (isinstance(note_id, str) and bool(note_id.strip()) and len(note_id) <= 100)
+        )
+        if valid_id:
+            reserved_ids.add(str(note_id))
+            if isinstance(note_id, int) and not isinstance(note_id, bool):
+                max_numeric_id = max(max_numeric_id, note_id)
+
+    seen_ids: set[str] = set()
+    next_id = max_numeric_id + 1
+    for note in notes:
+        note_id = note.get("id")
+        valid_id = (
+            (isinstance(note_id, int) and not isinstance(note_id, bool))
+            or (isinstance(note_id, str) and bool(note_id.strip()) and len(note_id) <= 100)
+        )
+        identity = str(note_id) if valid_id else ""
+        if not valid_id or identity in seen_ids:
+            while str(next_id) in reserved_ids or str(next_id) in seen_ids:
+                next_id += 1
+            note_id = next_id
+            identity = str(note_id)
+            next_id += 1
+            note["id"] = note_id
+        seen_ids.add(identity)
+
+    return notes
+
+
+def _sanitize_note_folders(saved_folders: Any) -> list[dict[str, Any]]:
+    """Restore flat note folders with unique positive integer IDs."""
+    if not isinstance(saved_folders, list):
+        return []
+
+    folders = [
+        dict(folder)
+        for folder in saved_folders
+        if isinstance(folder, dict) and isinstance(folder.get("name"), str)
     ]
+    reserved_ids = {
+        folder_id
+        for folder in folders
+        if isinstance((folder_id := folder.get("id")), int)
+        and not isinstance(folder_id, bool)
+        and folder_id > 0
+    }
+    seen_ids: set[int] = set()
+    next_id = max(reserved_ids, default=0) + 1
+
+    for folder in folders:
+        folder_id = folder.get("id")
+        valid_id = (
+            isinstance(folder_id, int)
+            and not isinstance(folder_id, bool)
+            and folder_id > 0
+        )
+        if not valid_id or folder_id in seen_ids:
+            while next_id in reserved_ids or next_id in seen_ids:
+                next_id += 1
+            folder_id = next_id
+            next_id += 1
+            folder["id"] = folder_id
+        seen_ids.add(folder_id)
+
+    return folders
+
+
+def _normalize_note_folder_references(
+    notes: list[dict[str, Any]],
+    folders: list[dict[str, Any]],
+) -> None:
+    """Move invalid or ambiguous folder references to Unfiled."""
+    valid_folder_ids = {
+        folder.get("id")
+        for folder in folders
+        if isinstance(folder.get("id"), int)
+        and not isinstance(folder.get("id"), bool)
+    }
+    for note in notes:
+        folder_id = note.get("folder_id")
+        if folder_id is None:
+            continue
+        if (
+            isinstance(folder_id, bool)
+            or not isinstance(folder_id, int)
+            or folder_id not in valid_folder_ids
+        ):
+            note["folder_id"] = None
 
 
 def _derive_next_note_id(
@@ -760,13 +843,9 @@ def load_saved_learner_state() -> None:
 
         # Folder data was introduced after the original notes schema.
         # Missing or malformed fields safely default to an empty list.
-        restored_folders = saved.get("note_folders", [])
-        st.session_state.note_folders = [
-            folder for folder in restored_folders
-            if isinstance(folder, dict)
-            and isinstance(folder.get("id"), int)
-            and isinstance(folder.get("name"), str)
-        ] if isinstance(restored_folders, list) else []
+        st.session_state.note_folders = _sanitize_note_folders(
+            saved.get("note_folders", [])
+        )
 
         saved_next_folder_id = saved.get("next_note_folder_id", 1)
         max_folder_id = max(
@@ -798,13 +877,10 @@ def load_saved_learner_state() -> None:
         )
 
         # Notes referencing a deleted/unknown folder are returned to Unfiled.
-        valid_folder_ids = {
-            folder["id"] for folder in st.session_state.note_folders
-        }
-        for note in st.session_state.notes:
-            folder_id = note.get("folder_id")
-            if folder_id not in valid_folder_ids:
-                note["folder_id"] = None
+        _normalize_note_folder_references(
+            st.session_state.notes,
+            st.session_state.note_folders,
+        )
 
         # -----------------------------------------------------------
         # Settings
