@@ -336,6 +336,15 @@ class NoteAndFolderRestoreIdentityTests(unittest.TestCase):
         self.assertNotIn("id", saved[4])
         self.assertEqual(saved[1]["id"], 4)
 
+    def test_next_note_id_skips_numeric_strings_already_used_as_legacy_ids(self):
+        self.assertEqual(
+            state._derive_next_note_id([
+                {"id": 1, "title": "Numeric"},
+                {"id": "2", "title": "Legacy string"},
+            ]),
+            3,
+        )
+
     def test_folder_ids_are_positive_unique_integers(self):
         saved = [
             {"id": 2, "name": "First", "color": "Blue"},
