@@ -65,7 +65,10 @@ def unlocked_pathways_for_score(result: dict[str, Any]) -> list[str]:
     1-2/5 -> Level 1; 3/5 -> Levels 1-2; 4/5 -> Levels 1-3;
     5/5 -> Levels 1-3 and Project.
     """
-    if not result.get("prerequisite_correct", False):
+    if (
+        not result.get("prerequisite_correct", False)
+        and result.get("placement_policy") != "whole_screen_with_prerequisite_follow_up_v2"
+    ):
         return ["level_1"]
     score = int(result.get("score", 0))
     if score >= 5:
@@ -248,23 +251,26 @@ def evaluate_diagnostic(
 
     total = len(config["questions"])
     percent = round(correct_count / total * 100)
-    # Foundational prerequisite failure takes priority: advanced answers can
-    # otherwise mask a gap that prevents secure learning of the target concept.
-    if not prerequisite_correct:
-        outcome_key = "prerequisite"
-        placement_reason = "The prerequisite check was incorrect, so the system recommends reviewing the foundation first."
-    elif correct_count == 5:
+    # A single prerequisite item is useful evidence, but is not reliable enough
+    # to override four other responses. Use the whole five-item screen for the
+    # provisional route and preserve a missed prerequisite as a targeted follow-up.
+    if correct_count == 5:
         outcome_key = "project"
         placement_reason = "All five diagnostic items were correct, including the project-readiness item."
     elif correct_count == 4:
         outcome_key = "level_3"
-        placement_reason = "Four of five items were correct and the prerequisite check passed."
+        placement_reason = "Four of five diagnostic items were correct."
     elif correct_count == 3:
         outcome_key = "level_2"
-        placement_reason = "Three of five items were correct and the prerequisite check passed."
+        placement_reason = "Three of five diagnostic items were correct."
     else:
         outcome_key = "level_1"
-        placement_reason = "The prerequisite check passed, but the overall score suggests starting with supported core practice."
+        placement_reason = "The overall result suggests starting with supported core practice."
+    if not prerequisite_correct:
+        placement_reason += (
+            " The prerequisite item was missed, so review its specific explanation "
+            "before progressing; this single response is a follow-up signal, not a confirmed gap."
+        )
 
     weaknesses = []
     for item in review:
@@ -302,6 +308,13 @@ def evaluate_diagnostic(
         "next_action": placement["next_action"],
         "placement_reason": placement_reason,
         "prerequisite_correct": prerequisite_correct,
+        "prerequisite_follow_up": not prerequisite_correct,
+        "placement_policy": "whole_screen_with_prerequisite_follow_up_v2",
+        "diagnostic_limitations": (
+            "This five-item screen provides a provisional starting point, not a validated "
+            "assessment or confirmation of a misconception. Review missed skills and gather "
+            "more evidence during practice."
+        ),
         "weaknesses": weaknesses,
         "answer_review": review,
         "confidence_counts": confidence_counts,
@@ -346,7 +359,10 @@ def unlocked_pathways_for_score(result: dict[str, Any]) -> list[str]:
     score unlocks a cumulative set of routes: 1-2 -> L1; 3 -> L1-L2;
     4 -> L1-L3; 5 -> L1-L3 plus project.
     """
-    if not result.get("prerequisite_correct", False):
+    if (
+        not result.get("prerequisite_correct", False)
+        and result.get("placement_policy") != "whole_screen_with_prerequisite_follow_up_v2"
+    ):
         return ["level_1"]
     score = int(result.get("score", 0))
     if score >= 5:

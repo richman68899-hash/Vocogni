@@ -101,7 +101,7 @@ class DiagnosticEngineTests(unittest.TestCase):
         )
         self.assertIsNone(result["answer_review"][0]["confidence"])
 
-    def test_prerequisite_failure_overrides_high_total_score(self):
+    def test_single_prerequisite_miss_does_not_override_four_correct_items(self):
         for course, lesson in configured_lessons():
             config = lesson["diagnostic"]
             answers = {q["id"]: q["answer"] for q in config["questions"]}
@@ -112,10 +112,16 @@ class DiagnosticEngineTests(unittest.TestCase):
             result = diagnostics.evaluate_diagnostic(config, answers)
             with self.subTest(lesson=lesson["id"]):
                 self.assertEqual(result["score"], 4)
-                self.assertEqual(result["outcome_key"], "prerequisite")
+                self.assertEqual(result["outcome_key"], "level_3")
+                self.assertTrue(result["prerequisite_follow_up"])
+                self.assertIn("single response is a follow-up signal", result["placement_reason"])
                 self.assertIn(
                     prerequisite["skill_tag"],
                     [w["skill_tag"] for w in result["weaknesses"]],
+                )
+                self.assertEqual(
+                    result["unlocked_pathways"],
+                    ["level_1", "level_2", "level_3"],
                 )
 
     def test_score_thresholds_with_prerequisite_correct(self):
