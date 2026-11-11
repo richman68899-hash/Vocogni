@@ -52,6 +52,12 @@ class ChemistryGradingTests(unittest.TestCase):
         self.assertEqual(result["score"], 0)
         self.assertFalse(result["full_credit"])
 
+    def test_numeric_rubric_terms_do_not_match_inside_larger_values(self):
+        self.assertFalse(chemistry_grading._contains("12", "2"))
+        self.assertFalse(chemistry_grading._contains("2.5", "2"))
+        self.assertFalse(chemistry_grading._contains("SO2", "2"))
+        self.assertTrue(chemistry_grading._contains("SO2 + 2H2", "2"))
+
     def test_legacy_numeric_and_mc_answers_still_work(self):
         self.assertTrue(logic.check_answer(
             {"type": "mc", "answer": "A"}, "A"
