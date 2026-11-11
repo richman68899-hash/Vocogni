@@ -56,6 +56,21 @@ class ProviderConfigTests(unittest.TestCase):
     def test_partial_provider_config_is_not_configured(self):
         self.assertFalse(is_configured({"base_url": "https://example.test/v1"}))
 
+    def test_provider_readiness_requires_a_supported_transport_url(self):
+        credentials = {"model": "example-model", "api_key": "test-key"}
+        self.assertFalse(is_configured({
+            **credentials,
+            "base_url": "http://provider.example/v1",
+        }))
+        self.assertTrue(is_configured({
+            **credentials,
+            "base_url": "https://provider.example/v1",
+        }))
+        self.assertTrue(is_configured({
+            **credentials,
+            "base_url": "http://localhost:8080/v1",
+        }))
+
 
 class EngineTests(unittest.TestCase):
     def test_empty_question_returns_fallback(self):
