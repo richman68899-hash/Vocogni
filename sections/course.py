@@ -161,6 +161,21 @@ def _record_lesson_intervention(course_id, lesson, flow, intervention_type) -> N
         )
 
 
+def _previous_transfer_question_ids(progress, course_id) -> set[str]:
+    """Return transfer question IDs already completed in this course."""
+    course_progress = progress.get(course_id, {}) if isinstance(progress, dict) else {}
+    if not isinstance(course_progress, dict):
+        return set()
+    checks = course_progress.get("transfer_checks", [])
+    if not isinstance(checks, list):
+        return set()
+    return {
+        str(item.get("question_id"))
+        for item in checks
+        if isinstance(item, dict) and item.get("question_id")
+    }
+
+
 def _next_learning_lesson(progress, course_id):
     """Return the next lesson, skipping a completed course-entry diagnostic."""
     course = data.get_course(course_id)
@@ -849,7 +864,12 @@ def _initialize_structured_lesson_flow(lesson, course_id, flow, diagnostic_resul
         else:
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
             questions = transfer_check.append_transfer_question(
-                questions, course_id=course_id, lesson_id=lesson["id"]
+                questions,
+                course_id=course_id,
+                lesson_id=lesson["id"],
+                exclude_question_ids=_previous_transfer_question_ids(
+                    st.session_state.progress, course_id
+                ),
             )
             question_id = checkpoint.get("question_id")
             question_index = next(
@@ -1066,7 +1086,12 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
             )
             questions, route = _select_structured_questions(lesson, diagnostic_result, course_id=course_id)
             questions = transfer_check.append_transfer_question(
-                questions, course_id=course_id, lesson_id=lesson["id"]
+                questions,
+                course_id=course_id,
+                lesson_id=lesson["id"],
+                exclude_question_ids=_previous_transfer_question_ids(
+                    st.session_state.progress, course_id
+                ),
             )
             if not questions:
                 if question_engine.is_vqe_pilot_lesson(course_id, lesson["id"]):
@@ -1124,10 +1149,14 @@ def _render_three_screen_lesson(lesson, flow, diagnostic_result, course_id) -> N
 def _start_practice_attempt(lesson, flow, diagnostic_result, pathway) -> None:
     """Initialize a clean practice attempt without touching the diagnostic."""
     previous = int(flow.get("attempt_number", 0))
+    active_course_id = flow.get("course_id")
     questions = transfer_check.append_transfer_question(
         diagnostics.get_pathway_questions(lesson, pathway),
-        course_id=flow.get("course_id"),
+        course_id=active_course_id,
         lesson_id=lesson["id"],
+        exclude_question_ids=_previous_transfer_question_ids(
+            st.session_state.progress, active_course_id
+        ),
     )
     flow.update({
         "view": "practice", "stage": "intro", "q_index": 0, "results": [],

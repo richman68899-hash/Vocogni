@@ -16,6 +16,7 @@ def select_transfer_question(
     *,
     course_id: str | None,
     lesson_id: str,
+    exclude_question_ids: set[str] | None = None,
 ) -> dict[str, Any] | None:
     """Return one different-lesson, verified application item for a practiced skill."""
     if not course_id or not isinstance(practice_questions, list):
@@ -25,6 +26,7 @@ def select_transfer_question(
         str(item.get("id")) for item in practice_questions
         if isinstance(item, dict) and item.get("id")
     }
+    practiced_ids.update(str(item) for item in (exclude_question_ids or set()))
     practiced_skills: list[str] = []
     for item in practice_questions:
         if not isinstance(item, dict) or item.get("_is_transfer_check"):
@@ -63,13 +65,15 @@ def append_transfer_question(
     *,
     course_id: str | None,
     lesson_id: str,
+    exclude_question_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Copy a practice set and append at most one transfer item, idempotently."""
     questions = list(practice_questions or [])
     if any(isinstance(q, dict) and q.get("_is_transfer_check") for q in questions):
         return questions
     candidate = select_transfer_question(
-        questions, course_id=course_id, lesson_id=lesson_id
+        questions, course_id=course_id, lesson_id=lesson_id,
+        exclude_question_ids=exclude_question_ids,
     )
     if candidate is not None:
         questions.append(candidate)
