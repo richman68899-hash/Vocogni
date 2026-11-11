@@ -11,7 +11,7 @@
 
 Vocogni is an educational learning prototype. Depending on the current release, it may provide authored lessons, practice questions, rule-based diagnostics, answer feedback, course progress, learning notes, milestones, and recommendations based on recorded activity. Features can change as the prototype develops.
 
-The current Vocogni Study Guide is a **rule-based helper**, not a general-purpose generative AI chatbot. It matches supported requests to existing code and the learner data passed to it. In the current implementation it does not call an external generative AI model.
+The Vocogni Study Guide includes local rule-based commands and a separate optional external AI tutoring feature. Local commands use application logic. External AI tutoring is disabled by default at the operator level, requires a configured provider and session-only learner opt-in, and sends the current prompt, bounded prior AI-tutoring messages, and a limited learning-context summary to that provider when enabled. It may be unavailable in a deployment. The provider can produce incorrect or incomplete explanations; it is not the source of truth for answer keys, mastery, or official grades. The session opt-in does not verify or record parent/guardian consent.
 
 ## 2. Who may use the service
 

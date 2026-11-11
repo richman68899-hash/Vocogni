@@ -23,7 +23,9 @@ Internal release checklist. Do not treat the presence of legal-document drafts a
 
 - Authentication is handled through Auth0.
 - Learner state is persisted through Supabase/PostgreSQL.
-- The current Vocogni Assistant is rule-based and does not call an external generative AI model.
+- The Study Guide has local deterministic commands and optional external AI tutoring. External tutoring requires both server-side operator enablement and session-only learner opt-in; provider credentials alone do not enable it.
+- When external tutoring is enabled, the current message, up to eight prior AI-tutoring messages, and a limited learning-context summary may be sent to the configured provider. The code excludes name, email, account ID, saved notes, and milestones from that summary; users can still type personal information into messages.
+- The root Privacy Policy and Terms of Use previously described the assistant as exclusively rule-based. Keep these documents aligned with `vocogni_ai.py`, `docs/legal/privacy-notice.md`, and `docs/legal/ai-use-and-safety.md` whenever the AI integration changes.
 - The repository review did not confirm a complete self-service account deletion workflow, final data retention schedule, legal operator/contact details, or legal review.
 
 Recheck this list whenever the architecture or provider configuration changes.

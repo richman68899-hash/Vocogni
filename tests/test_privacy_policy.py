@@ -32,6 +32,26 @@ class PrivacyPolicyDraftTests(unittest.TestCase):
         self.assertIn("does not establish that it identifies child users", self.policy)
         self.assertIn("not parental consent", self.policy)
 
+    def test_policy_discloses_optional_external_ai_tutoring_accurately(self):
+        text = self.policy.casefold()
+        for phrase in (
+            "optional external ai tutoring",
+            "session-only learner opt-in",
+            "up to eight messages",
+            "limited learning-context summary",
+            "configured external provider",
+            "does not verify or record parent/guardian consent",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+        self.assertNotIn("does not currently call a third-party generative-ai model", text)
+
+    def test_launch_checklist_describes_the_operator_gate_for_external_ai(self):
+        readiness = (ROOT / "docs" / "legal" / "launch-readiness.md").read_text(encoding="utf-8").casefold()
+        self.assertIn("server-side operator enablement", readiness)
+        self.assertIn("session-only learner opt-in", readiness)
+        self.assertIn("limited learning-context summary", readiness)
+
     def test_unresolved_release_items_are_explicit(self):
         for marker in (
             "[INSERT FULL LEGAL NAME OR LEGAL ENTITY]",
