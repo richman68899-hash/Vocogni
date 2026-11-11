@@ -42,7 +42,7 @@ def _contains(answer: str, phrase: Any) -> bool:
     # inside a different value (2 must not match 12 or 2.5).
     if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", needle):
         return re.search(
-            rf"(?<![A-Za-z0-9.]){re.escape(needle)}(?![0-9.])",
+            rf"(?<![A-Za-z0-9.]){re.escape(needle)}(?![0-9]|\\.\\d)",
             answer,
         ) is not None
     return needle in answer
