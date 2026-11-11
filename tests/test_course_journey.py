@@ -26,6 +26,24 @@ def _configure_course(monkeypatch, lessons, next_lesson, diagnostic_id=None, dia
     )
 
 
+def test_previous_transfer_question_ids_only_reads_valid_course_history():
+    progress = {
+        "fractions": {
+            "transfer_checks": [
+                {"question_id": "used-1"},
+                {"question_id": "used-2"},
+                {"correct": True},
+                None,
+            ]
+        }
+    }
+
+    assert course_section._previous_transfer_question_ids(progress, "fractions") == {
+        "used-1", "used-2"
+    }
+    assert course_section._previous_transfer_question_ids(progress, "missing") == set()
+
+
 def test_next_learning_lesson_returns_first_incomplete_lesson(monkeypatch):
     first = {"id": "lesson_1", "title": "First lesson"}
     _configure_course(monkeypatch, [first], first)
