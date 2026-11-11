@@ -1,0 +1,998 @@
+"""
+state.py — Session + persistent learner state for Vocogni Version 1.2.0.
+
+Architecture:
+
+    Google
+        ↓
+    Auth0
+        ↓
+    Streamlit OIDC / st.user
+        ↓
+    state.py
+        ↓
+    persistence.py
+        ↓
+    Supabase PostgreSQL
+
+Version 1.2.0 upgrade:
+- Adds meaningful-change autosave coordination.
+- Tracks dirty/saving/saved/error states.
+- Keeps durable learner state separate from transient UI state.
+- Restores existing learner data safely.
+- Creates a new learner record automatically through the autosave
+  mechanism on first login.
+- Preserves the existing state shapes used by sections/*.py and logic.py.
+
+Durable learner state:
+- profile
+- progress (including lesson diagnostics and pre/post practice records)
+- notes
+- note_folders
+- next_note_folder_id
+- settings
+- next_note_id
+
+Session-only state:
+- nav
+- current_course
+- current_lesson
+- lesson_flow
+- editing_profile
+- browse_search
+- browse_status_filter
+- selected_note_id
+- note_editor_open
+- note_draft_title
+- play_sound_once
+
+Important design rule:
+
+    UI mutation
+        ↓
+    mark_persistent_dirty()
+        ↓
+    app continues / reruns
+        ↓
+    flush_persistent_save()
+        ↓
+    persistence.py
+        ↓
+    Supabase
+
+This module does NOT save on every Streamlit rerun unless there is
+actually a pending durable change.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from datetime import datetime, timezone
+from typing import Any
+
+import streamlit as st
+
+import data
+import milestones as milestone_logic
+import whiteboard_data
+import persistence
+from settings_model import DEFAULT_SETTINGS as SETTINGS_DEFAULTS, safe_value as safe_setting_value
+from streak_garden.models import default_garden_state, sanitize_garden_state
+
+
+# ===========================================================================
+# DEFAULT STATE FACTORIES
+# ===========================================================================
+
+def _default_profile() -> dict[str, Any]:
+    """
+    Return the default learner profile.
+    """
+
+    return {
+        "name": "",
+        "age": "",
+        "gender": data.GENDER_OPTIONS[2],
+        "grade": "Prefer not to say",
+        "country": "",
+        "timezone": "Prefer not to say",
+        "favorite_subjects": [],
+        "learning_goals": "",
+        "strong_subjects": [],
+        "weak_subjects": [],
+        "interests": "",
+        "career_interests": "",
+        "description": "",
+        "vocoins": 0,
+        "learning_style": "Prefer not to say",
+        "preferred_difficulty": "Adaptive",
+        "preferred_session_length": "Prefer not to say",
+        "preferred_feedback_style": "Prefer not to say",
+        "preferred_language": "Prefer not to say",
+        "saved": False,
+    }
+
+
+def _default_course_progress() -> dict[str, Any]:
+    """
+    Return the default progress structure for one course.
+    """
+
+    return {
+        "started": False,
+        "completed_lessons": [],
+        "questions_attempted": 0,
+        "correct_answers": 0,
+        "mistakes": {},
+        "mistake_reflections": [],
+        # Diagnostic attempts and lesson outcome comparisons are stored
+        # separately so pre-assessment scores do not inflate practice accuracy.
+        "diagnostics": {},
+        "lesson_assessments": {},
+        "practice_attempts": {},
+        "skill_confirmation_attempts": [],
+        "lesson_screen_progress": {},
+    }
+
+
+def _default_progress() -> dict[str, dict[str, Any]]:
+    """
+    Return the default progress structure for all known courses.
+    """
+
+    return {
+        course_id: _default_course_progress()
+        for course_id in data.COURSE_ORDER
+    }
+
+
+def _default_settings() -> dict[str, Any]:
+    """Return the canonical settings schema shared with the Settings page."""
+    return dict(SETTINGS_DEFAULTS)
+
+
+# ===========================================================================
+# SESSION STATE INITIALIZATION
+# ===========================================================================
+
+def init_session_state() -> None:
+    """
+    Populate st.session_state with defaults.
+
+    Existing values are never overwritten.
+
+    Streamlit reruns the application after widget interactions, so this
+    function must only initialize missing keys.
+    """
+
+    defaults = {
+        # ------------------------------------------------------------------
+        # Navigation
+        # ------------------------------------------------------------------
+        "nav": "Browse",
+
+        # ------------------------------------------------------------------
+        # Durable learner state
+        # ------------------------------------------------------------------
+        "profile": _default_profile(),
+        "progress": _default_progress(),
+        "notes": [],
+        "note_folders": [],
+        "whiteboards": [],
+        "next_note_folder_id": 1,
+        "milestones": [],
+        "next_milestone_id": 1,
+        "settings": _default_settings(),
+        "streak_garden": default_garden_state(),
+
+        # ------------------------------------------------------------------
+        # Current learning session
+        # ------------------------------------------------------------------
+        "current_course": None,
+        "current_lesson": None,
+        "lesson_flow": None,
+
+        # ------------------------------------------------------------------
+        # UI state
+        # ------------------------------------------------------------------
+        "editing_profile": False,
+        "browse_search": "",
+        "browse_status_filter": "All",
+        "selected_note_id": None,
+        "selected_note_folder_id": None,
+        "note_editor_open": False,
+        "note_draft_title": "",
+        "play_sound_once": False,
+        "next_note_id": 1,
+
+        # ------------------------------------------------------------------
+        # Persistence bookkeeping
+        # ------------------------------------------------------------------
+        "_persistent_state_loaded": False,
+        "_persistent_user_id": None,
+
+        # Has durable learner state changed since last successful save?
+        "_persistent_dirty": False,
+
+        # One of:
+        #   saved
+        #   pending
+        #   saving
+        #   error
+        "_persistent_save_status": "saved",
+
+        # Last persistence error message.
+        "_persistent_save_error": None,
+
+        # ISO timestamp of the most recent successful save.
+        "_persistent_last_saved_at": None,
+
+        # Number of successful saves in this Streamlit session.
+        # Useful for development/testing.
+        "_persistent_save_count": 0,
+    }
+
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+# ===========================================================================
+# LESSON FLOW
+# ===========================================================================
+
+def new_lesson_flow(
+    course_id: str,
+    lesson_id: str,
+) -> dict[str, Any]:
+    """
+    Return a fresh in-progress state for opening a lesson.
+
+    lesson_flow is deliberately session-only in v1.2.0.
+    """
+
+    return {
+        "course_id": course_id,
+        "lesson_id": lesson_id,
+        "stage": "intro",
+        "q_index": 0,
+        "last_correct": None,
+        "last_user_answer": None,
+        "results": [],
+    }
+
+
+def get_course_progress(
+    course_id: str,
+) -> dict[str, Any]:
+    """
+    Fetch and lazily create the progress record for a course.
+
+    Creating a new course record changes durable state, so it is marked
+    dirty and will be persisted by the autosave mechanism.
+    """
+
+    progress = st.session_state.progress
+
+    if course_id not in progress:
+        progress[course_id] = _default_course_progress()
+        mark_persistent_dirty()
+
+    return progress[course_id]
+
+
+# ===========================================================================
+# RESTORATION HELPERS
+# ===========================================================================
+
+def _merge_profile(
+    saved_profile: Any,
+) -> dict[str, Any]:
+    """
+    Merge saved profile data onto the latest default profile schema.
+
+    This protects older learner records when new profile fields are added.
+    """
+
+    profile = _default_profile()
+
+    if isinstance(saved_profile, dict):
+        profile.update(saved_profile)
+
+    return profile
+
+
+def _merge_progress(
+    saved_progress: Any,
+) -> dict[str, dict[str, Any]]:
+    """
+    Merge saved course progress onto the current course schema.
+
+    Existing courses receive all current default fields.
+
+    Unknown courses are preserved rather than deleted.
+    """
+
+    progress = _default_progress()
+
+    if not isinstance(saved_progress, dict):
+        return progress
+
+    for course_id, saved_course in saved_progress.items():
+
+        if not isinstance(saved_course, dict):
+            continue
+
+        course_progress = _default_course_progress()
+        course_progress.update(saved_course)
+
+        # Preserve compatibility with older or malformed progress records.
+        # The new v1.4 structures must always remain dictionaries.
+        if not isinstance(course_progress.get("diagnostics"), dict):
+            course_progress["diagnostics"] = {}
+        if not isinstance(course_progress.get("lesson_assessments"), dict):
+            course_progress["lesson_assessments"] = {}
+        if not isinstance(course_progress.get("practice_attempts"), dict):
+            course_progress["practice_attempts"] = {}
+        if not isinstance(course_progress.get("skill_confirmation_attempts"), list):
+            course_progress["skill_confirmation_attempts"] = []
+        if not isinstance(course_progress.get("lesson_screen_progress"), dict):
+            course_progress["lesson_screen_progress"] = {}
+
+        progress[course_id] = course_progress
+
+    return progress
+
+
+def _merge_settings(
+    saved_settings: Any,
+) -> dict[str, Any]:
+    """
+    Merge saved settings onto the current settings schema.
+    """
+
+    settings = _default_settings()
+
+    if isinstance(saved_settings, dict):
+        settings.update(saved_settings)
+
+    # Persisted records may contain older string booleans or malformed values.
+    # Normalize known fields before UI code consumes them, while preserving
+    # unknown keys for forward compatibility.
+    for key, default in SETTINGS_DEFAULTS.items():
+        settings[key] = safe_setting_value(key, settings.get(key, default))
+
+    return settings
+
+
+def _sanitize_notes(
+    saved_notes: Any,
+) -> list[dict[str, Any]]:
+    """
+    Restore only valid note dictionaries.
+
+    Invalid database entries are ignored rather than crashing the learner
+    session.
+    """
+
+    if not isinstance(saved_notes, list):
+        return []
+
+    return [
+        note
+        for note in saved_notes
+        if isinstance(note, dict)
+    ]
+
+
+def _derive_next_note_id(
+    notes: list[dict[str, Any]],
+) -> int:
+    """
+    Calculate the next safe numeric note ID.
+
+    This prevents duplicate IDs when restoring older data.
+    """
+
+    numeric_ids: list[int] = []
+
+    for note in notes:
+
+        note_id = note.get("id")
+
+        if (
+            isinstance(note_id, int)
+            and not isinstance(note_id, bool)
+        ):
+            numeric_ids.append(note_id)
+
+    if not numeric_ids:
+        return 1
+
+    return max(numeric_ids) + 1
+
+
+# ===========================================================================
+# PERSISTENT STATE SERIALIZATION
+# ===========================================================================
+
+def _build_persistent_state() -> dict[str, Any]:
+    """
+    Build the durable learner-state bundle sent to persistence.py.
+
+    Transient UI state and lesson-flow state are deliberately excluded.
+
+    deepcopy() prevents accidental mutation of the object being prepared
+    for persistence while the current Streamlit run continues.
+    """
+
+    return {
+        "profile": deepcopy(
+            st.session_state.profile
+        ),
+        "progress": deepcopy(
+            st.session_state.progress
+        ),
+        "notes": deepcopy(
+            st.session_state.notes
+        ),
+        "whiteboards": deepcopy(
+            st.session_state.whiteboards
+        ),
+        "note_folders": deepcopy(
+            st.session_state.note_folders
+        ),
+        "next_note_folder_id": int(
+            st.session_state.next_note_folder_id
+        ),
+        "milestones": deepcopy(
+            st.session_state.milestones
+        ),
+        "next_milestone_id": int(
+            st.session_state.next_milestone_id
+        ),
+        "settings": deepcopy(
+            st.session_state.settings
+        ),
+        "streak_garden": deepcopy(
+            st.session_state.streak_garden
+        ),
+        "next_note_id": int(
+            st.session_state.next_note_id
+        ),
+    }
+
+
+# ===========================================================================
+# DIRTY-STATE MANAGEMENT
+# ===========================================================================
+
+def mark_persistent_dirty() -> None:
+    """
+    Mark durable learner state as changed.
+
+    This function does NOT contact Supabase.
+
+    It simply tells the end-of-run autosave system that a database write
+    is required.
+
+    Typical callers:
+    - profile save
+    - settings change
+    - note create/edit/delete
+    - question progress update
+    - lesson completion
+    """
+
+    st.session_state["_persistent_dirty"] = True
+    st.session_state["_persistent_save_status"] = "pending"
+    st.session_state["_persistent_save_error"] = None
+
+
+def has_pending_persistence() -> bool:
+    """
+    Return True when durable learner state has not been successfully saved.
+    """
+
+    return bool(
+        st.session_state.get(
+            "_persistent_dirty",
+            False,
+        )
+    )
+
+
+# ===========================================================================
+# ACTUAL SAVE
+# ===========================================================================
+
+def persist_learner_state() -> None:
+    """
+    Save the current authenticated learner's durable state.
+
+    The authenticated user ID is derived internally by persistence.py from
+    the OIDC identity.
+
+    This function intentionally raises when persistence fails.
+
+    flush_persistent_save() is responsible for catching the failure and
+    preserving the dirty state for a later retry.
+    """
+
+    if not persistence._is_logged_in():
+        raise RuntimeError(
+            "Cannot persist learner state without authentication."
+        )
+
+    user_id = persistence.get_user_id()
+
+    known_user_id = st.session_state.get(
+        "_persistent_user_id"
+    )
+
+    if (
+        known_user_id is not None
+        and known_user_id != user_id
+    ):
+        raise RuntimeError(
+            "The authenticated user changed during the session. "
+            "Refusing to overwrite learner data."
+        )
+
+    persistent_state = _build_persistent_state()
+
+    persistence.save_progress(
+        persistent_state
+    )
+
+
+# ===========================================================================
+# AUTOSAVE FLUSH
+# ===========================================================================
+
+def flush_persistent_save() -> bool:
+    """
+    Save durable state when a meaningful change is pending.
+
+    This should be called once near the end of app.py's main() function.
+
+    Returns:
+        True  → no pending changes, or save succeeded.
+        False → save failed and changes remain marked dirty.
+    """
+
+    if not has_pending_persistence():
+        return True
+
+    st.session_state["_persistent_save_status"] = "saving"
+    st.session_state["_persistent_save_error"] = None
+
+    try:
+        persist_learner_state()
+
+    except Exception as exc:
+        # IMPORTANT:
+        # Dirty remains True so the session does not falsely claim that
+        # the learner's changes have been saved.
+        st.session_state["_persistent_dirty"] = True
+
+        st.session_state["_persistent_save_status"] = "error"
+
+        st.session_state["_persistent_save_error"] = str(
+            exc
+        )
+
+        return False
+
+    # ---------------------------------------------------------------
+    # Save succeeded
+    # ---------------------------------------------------------------
+
+    st.session_state["_persistent_dirty"] = False
+
+    st.session_state["_persistent_save_status"] = "saved"
+
+    st.session_state["_persistent_save_error"] = None
+
+    st.session_state["_persistent_last_saved_at"] = (
+        datetime.now(timezone.utc).isoformat()
+    )
+
+    st.session_state["_persistent_save_count"] = (
+        st.session_state.get(
+            "_persistent_save_count",
+            0,
+        ) + 1
+    )
+
+    return True
+
+
+# ===========================================================================
+# LOAD PERSISTENT STATE
+# ===========================================================================
+
+def load_saved_learner_state() -> None:
+    """
+    Load durable learner state from Supabase.
+
+    This function is safe to call on every Streamlit rerun because it
+    performs the actual database read only once per session.
+
+    For a first-time learner:
+        - defaults remain in session state
+        - the state is marked dirty
+        - the normal end-of-run autosave creates the database record
+
+    This prevents the loading stage from having to perform a separate
+    database write before the rest of the application renders.
+    """
+
+    # Resolve the authenticated identity before deciding whether the
+    # current session has already loaded learner data. Streamlit session
+    # state can outlive an authentication change within the same browser
+    # session, so the loaded flag alone is not a sufficient cache key.
+    user_id = persistence.get_user_id()
+
+    if st.session_state.get("_persistent_state_loaded", False):
+        loaded_user_id = st.session_state.get("_persistent_user_id")
+
+        if loaded_user_id == user_id:
+            return
+
+        # The OIDC subject changed while this Streamlit session still held
+        # another learner's state. Clear all app/widget state before loading
+        # the new account. Never display or save the previous learner's data
+        # under the newly authenticated identity.
+        st.session_state.clear()
+        init_session_state()
+
+    # ---------------------------------------------------------------
+    # Authentication
+    # ---------------------------------------------------------------
+
+    # ---------------------------------------------------------------
+    # Load database record
+    # ---------------------------------------------------------------
+
+    saved = persistence.load_progress()
+
+    if not isinstance(saved, dict):
+        raise RuntimeError(
+            "Persistent learner state has an invalid top-level format."
+        )
+
+    # ---------------------------------------------------------------
+    # First-time learner
+    # ---------------------------------------------------------------
+
+    if not saved:
+
+        st.session_state["_persistent_user_id"] = user_id
+
+        st.session_state["_persistent_state_loaded"] = True
+
+        # No row exists yet.
+        # Keep defaults and let the normal autosave flush create it.
+        mark_persistent_dirty()
+
+        return
+
+    # ---------------------------------------------------------------
+    # Backward compatibility
+    # ---------------------------------------------------------------
+    #
+    # Very old prototype records may contain only the course-progress
+    # dictionary directly inside the progress JSON column.
+    #
+    # A full v1.1/v1.2 record looks like:
+    #
+    # {
+    #     "profile": ...,
+    #     "progress": ...,
+    #     "notes": ...,
+    #     "settings": ...,
+    #     "next_note_id": ...
+    # }
+    #
+    # A legacy progress-only record may instead look like:
+    #
+    # {
+    #     "course_a": {...},
+    #     "course_b": {...}
+    # }
+    # ---------------------------------------------------------------
+
+    full_state_keys = {
+        "profile",
+        "progress",
+        "notes",
+        "whiteboards",
+        "settings",
+        "next_note_id",
+        "streak_garden",
+    }
+
+    looks_like_full_state = any(
+        key in saved
+        for key in full_state_keys
+    )
+
+    if not looks_like_full_state:
+
+        # Legacy progress-only record.
+        st.session_state.progress = _merge_progress(
+            saved
+        )
+
+    else:
+
+        # -----------------------------------------------------------
+        # Profile
+        # -----------------------------------------------------------
+
+        st.session_state.profile = _merge_profile(
+            saved.get("profile")
+        )
+
+        # -----------------------------------------------------------
+        # Course progress
+        # -----------------------------------------------------------
+
+        st.session_state.progress = _merge_progress(
+            saved.get("progress")
+        )
+
+        # -----------------------------------------------------------
+        # Notes
+        # -----------------------------------------------------------
+
+        restored_notes = _sanitize_notes(
+            saved.get("notes")
+        )
+
+        st.session_state.notes = restored_notes
+        # Whiteboards are validated before restoration because the canvas
+        # sends editable objects from the browser into the durable JSON bundle.
+        st.session_state.whiteboards = whiteboard_data.sanitize_boards(
+            saved.get("whiteboards", [])
+        )
+
+        # Folder data was introduced after the original notes schema.
+        # Missing or malformed fields safely default to an empty list.
+        restored_folders = saved.get("note_folders", [])
+        st.session_state.note_folders = [
+            folder for folder in restored_folders
+            if isinstance(folder, dict)
+            and isinstance(folder.get("id"), int)
+            and isinstance(folder.get("name"), str)
+        ] if isinstance(restored_folders, list) else []
+
+        saved_next_folder_id = saved.get("next_note_folder_id", 1)
+        max_folder_id = max(
+            [folder["id"] for folder in st.session_state.note_folders],
+            default=0,
+        )
+        st.session_state.next_note_folder_id = max(
+            saved_next_folder_id
+            if isinstance(saved_next_folder_id, int)
+            and not isinstance(saved_next_folder_id, bool)
+            and saved_next_folder_id >= 1
+            else 1,
+            max_folder_id + 1,
+        )
+
+        # Milestones are stored inside the existing learner JSON bundle.
+        # Missing values from older accounts safely migrate to an empty list.
+        st.session_state.milestones = milestone_logic.sanitize_milestones(
+            saved.get("milestones", [])
+        )
+        saved_next_milestone_id = saved.get("next_milestone_id", 1)
+        st.session_state.next_milestone_id = max(
+            saved_next_milestone_id
+            if isinstance(saved_next_milestone_id, int)
+            and not isinstance(saved_next_milestone_id, bool)
+            and saved_next_milestone_id >= 1
+            else 1,
+            milestone_logic.next_milestone_id(st.session_state.milestones),
+        )
+
+        # Notes referencing a deleted/unknown folder are returned to Unfiled.
+        valid_folder_ids = {
+            folder["id"] for folder in st.session_state.note_folders
+        }
+        for note in st.session_state.notes:
+            folder_id = note.get("folder_id")
+            if folder_id not in valid_folder_ids:
+                note["folder_id"] = None
+
+        # -----------------------------------------------------------
+        # Settings
+        # -----------------------------------------------------------
+
+        st.session_state.settings = _merge_settings(
+            saved.get("settings")
+        )
+
+        # Versioned Streak Garden data is additive; older accounts receive
+        # an empty garden without changing their existing learner progress.
+        st.session_state.streak_garden = sanitize_garden_state(
+            saved.get("streak_garden")
+        )
+
+        # -----------------------------------------------------------
+        # Note ID
+        # -----------------------------------------------------------
+
+        saved_next_note_id = saved.get(
+            "next_note_id"
+        )
+
+        derived_next_note_id = _derive_next_note_id(
+            restored_notes
+        )
+
+        if (
+            isinstance(
+                saved_next_note_id,
+                int,
+            )
+            and not isinstance(
+                saved_next_note_id,
+                bool,
+            )
+            and saved_next_note_id >= 1
+        ):
+            st.session_state.next_note_id = max(
+                saved_next_note_id,
+                derived_next_note_id,
+            )
+
+        else:
+            st.session_state.next_note_id = (
+                derived_next_note_id
+            )
+
+    # ---------------------------------------------------------------
+    # Identity bookkeeping
+    # ---------------------------------------------------------------
+
+    st.session_state["_persistent_user_id"] = user_id
+
+    st.session_state["_persistent_state_loaded"] = True
+
+    # The restored data already matches the database.
+    st.session_state["_persistent_dirty"] = False
+
+    st.session_state["_persistent_save_status"] = "saved"
+
+    st.session_state["_persistent_save_error"] = None
+
+
+# ===========================================================================
+# SAVE STATUS UI
+# ===========================================================================
+
+def render_save_status() -> None:
+    """
+    Display a compact learner-facing persistence status.
+
+    Intended for a sidebar or another unobtrusive application area.
+    """
+
+    status = st.session_state.get(
+        "_persistent_save_status",
+        "saved",
+    )
+
+    error = st.session_state.get(
+        "_persistent_save_error"
+    )
+
+    if status == "pending":
+
+        st.caption(
+            "Saving changes..."
+        )
+
+    elif status == "saving":
+
+        st.caption(
+            "Saving..."
+        )
+
+    elif status == "error":
+
+        st.error(
+            "Couldn't save your changes."
+        )
+
+        if error:
+            st.caption(
+                f"Save error: {error}"
+            )
+
+        if st.button(
+            "Retry save",
+            key="retry_persistent_save",
+        ):
+            flush_persistent_save()
+            st.rerun()
+
+    # Successful saves are confirmed with a temporary toast from app.py.
+    # Keep the sidebar reserved for pending, saving, and error states so a
+    # stale "Saved" label is not mistaken for a fresh confirmation.
+
+
+# ===========================================================================
+# DEVELOPMENT DIAGNOSTICS
+# ===========================================================================
+
+def get_persistence_debug_state() -> dict[str, Any]:
+    """
+    Return non-secret persistence diagnostics for development/testing.
+
+    This is safe to display in a developer-only diagnostics panel.
+
+    It deliberately does NOT return:
+    - OAuth tokens
+    - Supabase keys
+    - passwords
+    - full learner state
+    """
+
+    return {
+        "loaded": bool(
+            st.session_state.get(
+                "_persistent_state_loaded",
+                False,
+            )
+        ),
+        "user_id": st.session_state.get(
+            "_persistent_user_id"
+        ),
+        "dirty": bool(
+            st.session_state.get(
+                "_persistent_dirty",
+                False,
+            )
+        ),
+        "save_status": st.session_state.get(
+            "_persistent_save_status",
+            "saved",
+        ),
+        "save_error": st.session_state.get(
+            "_persistent_save_error"
+        ),
+        "last_saved_at": st.session_state.get(
+            "_persistent_last_saved_at"
+        ),
+        "save_count": st.session_state.get(
+            "_persistent_save_count",
+            0,
+        ),
+    }
+
+
+# ===========================================================================
+# TRANSIENT STATE RESET
+# ===========================================================================
+
+def reset_transient_learning_state() -> None:
+    """
+    Clear temporary lesson/UI state without deleting durable learner data.
+
+    Durable state such as profile, progress, notes, and settings remains
+    untouched.
+    """
+
+    st.session_state.current_course = None
+    st.session_state.current_lesson = None
+    st.session_state.lesson_flow = None
+
+    st.session_state.selected_note_id = None
+    st.session_state.selected_note_folder_id = None
+    st.session_state.note_editor_open = False
+    st.session_state.note_draft_title = ""
+
+    st.session_state.play_sound_once = False

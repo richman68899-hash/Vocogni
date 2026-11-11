@@ -1,0 +1,508 @@
+"""
+sections/profile.py — Learner profile.
+
+Profile fields are edited in place by opening a section. The single Save Profile
+button stays disabled and neutral grey until a field differs from its saved
+value; once changed, it becomes green. Saving updates the visible profile
+immediately and marks durable state dirty for app.py's end-of-run autosave.
+"""
+from __future__ import annotations
+
+import html
+import hashlib
+from typing import Any
+
+import streamlit as st
+
+import data
+from . import learning_rhythm
+import state
+from verified_account import is_current_account_verified, verified_badge_html
+from profile_presentation import (
+    display_profile_value as _display,
+    profile_icon_svg as _icon_svg,
+    profile_initials as _initials,
+    process_profile_avatar,
+)
+
+
+# Fields are defined once and shared by display/edit logic. Adding a profile
+# field here is sufficient to make it available in its section.
+_SECTIONS = [
+    {
+        "id": "about",
+        "icon": "user",
+        "title": "About you",
+        "subtitle": "Basic details you choose to share.",
+        "fields": [
+            ("name", "Name", "text", None),
+            ("age", "Age", "text", None),
+            ("gender", "Gender", "select", "GENDER_OPTIONS"),
+            ("grade", "Grade", "select", "GRADE_OPTIONS"),
+            ("country", "Country", "text", None),
+            ("timezone", "Timezone", "select", "TIMEZONE_OPTIONS"),
+            ("preferred_language", "Preferred language", "select", "LANGUAGE_OPTIONS"),
+        ],
+    },
+    {
+        "id": "learning",
+        "icon": "book",
+        "title": "How you learn",
+        "subtitle": "Preferences that help shape your learning experience.",
+        "fields": [
+            ("learning_style", "Learning style", "select", "LEARNING_STYLE_OPTIONS"),
+            ("preferred_difficulty", "Preferred difficulty", "select", "DIFFICULTY_OPTIONS"),
+            ("preferred_session_length", "Session length", "select", "SESSION_LENGTH_OPTIONS"),
+            ("preferred_feedback_style", "Feedback style", "select", "FEEDBACK_STYLE_OPTIONS"),
+        ],
+    },
+    {
+        "id": "goals",
+        "icon": "target",
+        "title": "Subjects & goals",
+        "subtitle": "Keep your priorities visible; you can change them at any time.",
+        "fields": [
+            ("favorite_subjects", "Favorite subjects", "multiselect", "SUBJECT_OPTIONS"),
+            ("strong_subjects", "Subjects you feel confident in", "multiselect", "SUBJECT_OPTIONS"),
+            ("weak_subjects", "Subjects to work on", "multiselect", "SUBJECT_OPTIONS"),
+            ("learning_goals", "Learning goals", "textarea", None),
+            ("interests", "Interests", "textarea", None),
+            ("career_interests", "Career interests", "textarea", None),
+        ],
+    },
+    {
+        "id": "description",
+        "icon": "user",
+        "title": "Description",
+        "subtitle": "Introduce yourself in your own words. Share only what you are comfortable sharing.",
+        "fields": [
+            ("description", "About me", "textarea", None),
+        ],
+    },
+]
+
+_WIDGET_PREFIX = "profile_inline_"
+_DEFAULTS = {
+    "name": "",
+    "age": "",
+    "gender": "Prefer not to say / others",
+    "grade": "Prefer not to say",
+    "country": "",
+    "timezone": "Prefer not to say",
+    "preferred_language": "Prefer not to say",
+    "learning_style": "Prefer not to say",
+    "preferred_difficulty": "Adaptive",
+    "preferred_session_length": "Prefer not to say",
+    "preferred_feedback_style": "Prefer not to say",
+    "favorite_subjects": [],
+    "strong_subjects": [],
+    "weak_subjects": [],
+    "learning_goals": "",
+    "interests": "",
+    "career_interests": "",
+    "description": "",
+}
+
+
+def _section_heading(icon: str, title: str, subtitle: str = "") -> None:
+    detail = (
+        f"<p class='vc-profile-section-subtitle'>{html.escape(subtitle)}</p>"
+        if subtitle else ""
+    )
+    st.markdown(
+        "<div class='vc-profile-section-heading'>"
+        f"<span class='vc-profile-section-icon'>{_icon_svg(icon)}</span>"
+        "<div class='vc-profile-section-copy'>"
+        f"<div class='vc-profile-section-title'>{html.escape(title)}</div>"
+        f"{detail}"
+        "</div></div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _clean_pref(value: Any) -> Any:
+    if value in (None, "", "Prefer not to say"):
+        return None
+    return value
+
+
+def _profile_value(profile: dict[str, Any], field: str) -> Any:
+    value = profile.get(field, _DEFAULTS.get(field))
+    if field in {"grade", "timezone", "preferred_language", "learning_style",
+                 "preferred_session_length", "preferred_feedback_style"}:
+        return _clean_pref(value)
+    return value
+
+
+def _widget_key(field: str) -> str:
+    return _WIDGET_PREFIX + field
+
+
+def _options_for(option_key: str) -> list:
+    options = getattr(data, option_key, [])
+    return list(options) if isinstance(options, (list, tuple)) else []
+
+
+def _valid_default(field: str, kind: str, option_key: str | None, profile: dict[str, Any]) -> Any:
+    value = profile.get(field, _DEFAULTS.get(field))
+    if kind == "multiselect":
+        options = _options_for(option_key or "")
+        return [item for item in (value or []) if item in options] if isinstance(value, list) else []
+    if kind == "select":
+        options = _options_for(option_key or "")
+        return value if value in options else (options[0] if options else "")
+    if value is None:
+        return ""
+    return value
+
+
+def _initialize_section_widgets(section: dict[str, Any], profile: dict[str, Any]) -> None:
+    for field, _label, kind, option_key in section["fields"]:
+        key = _widget_key(field)
+        st.session_state[key] = _valid_default(field, kind, option_key, profile)
+
+
+def _field_is_dirty(field: str, profile: dict[str, Any]) -> bool:
+    key = _widget_key(field)
+    if key not in st.session_state:
+        return False
+    current = st.session_state[key]
+    saved = _valid_default(
+        field,
+        next(
+            kind for section in _SECTIONS for name, _label, kind, _options in section["fields"]
+            if name == field
+        ),
+        next(
+            options for section in _SECTIONS for name, _label, _kind, options in section["fields"]
+            if name == field
+        ),
+        profile,
+    )
+    if isinstance(current, list):
+        current = list(current)
+        saved = list(saved or [])
+    return current != saved
+
+
+def _dirty_fields(profile: dict[str, Any]) -> list[str]:
+    return [
+        field
+        for section in _SECTIONS
+        for field, _label, _kind, _options in section["fields"]
+        if _field_is_dirty(field, profile)
+    ]
+
+
+def _start_section_edit(section_id: str, profile: dict[str, Any]) -> None:
+    section = next(item for item in _SECTIONS if item["id"] == section_id)
+    _initialize_section_widgets(section, profile)
+    st.session_state.profile_edit_section = section_id
+
+
+def _render_identity_card(profile: dict[str, Any]) -> None:
+    raw_name = str(profile.get("name", "") or "").strip() or "Learner"
+    name = html.escape(raw_name)
+    initials = html.escape(_initials(raw_name))
+    avatar_uri = profile.get("avatar_data_uri", "")
+    if not (
+        isinstance(avatar_uri, str)
+        and avatar_uri.startswith("data:image/webp;base64,")
+        and len(avatar_uri) <= 400_000
+    ):
+        avatar_uri = ""
+    avatar_label = " " if avatar_uri else initials
+    avatar_css = (
+        "<style>"
+        "div[class*='st-key-profile_avatar_trigger'] button {"
+        "width:76px!important;height:76px!important;min-height:76px!important;"
+        "border-radius:50%!important;padding:0!important;overflow:hidden!important;"
+        "font-size:1.25rem!important;font-weight:700!important;"
+        "border:2px solid var(--vc-border)!important;"
+        + (f"background-image:url('{avatar_uri}')!important;background-size:cover!important;"
+           "background-position:center!important;color:transparent!important;"
+           "background-repeat:no-repeat!important;" if avatar_uri else "")
+        + "}"
+        "div[class*='st-key-profile_avatar_trigger'] button:hover {"
+        "border-color:var(--vc-accent)!important;filter:brightness(.96);}"
+        "</style>"
+    )
+    st.markdown(avatar_css, unsafe_allow_html=True)
+
+    avatar_col, identity_col = st.columns([1, 6], vertical_alignment="center")
+    with avatar_col:
+        if st.button(
+            avatar_label,
+            key="profile_avatar_trigger",
+            help="Click to upload or change your profile picture.",
+        ):
+            st.session_state.profile_avatar_upload_open = not st.session_state.get(
+                "profile_avatar_upload_open", False
+            )
+    with identity_col:
+        status = (
+            "<span class='vc-profile-status'>" + _icon_svg("shield")
+            + "<span>Profile saved</span></span>"
+            if profile.get("saved")
+            else "<span class='vc-profile-status vc-profile-status--quiet'>Optional profile</span>"
+        )
+        st.markdown(
+            "<div class='vc-profile-identity-copy'>"
+            f"<div class='vc-profile-name'><span>{name}</span>{verified_badge_html(22) if is_current_account_verified() else ''}</div>"
+            "<div class='vc-profile-identity-subtitle'>Your preferences, interests and learning goals.</div>"
+            f"{status}</div>",
+            unsafe_allow_html=True,
+        )
+
+    if st.session_state.get("profile_avatar_upload_open", False):
+        st.caption("Upload a JPG, PNG, or WebP image. Vocogni center-crops it into a circular 256 × 256 avatar.")
+        uploaded = st.file_uploader(
+            "Choose profile picture",
+            type=["jpg", "jpeg", "png", "webp"],
+            key=f"profile_avatar_upload_{st.session_state.get('profile_avatar_upload_version', 0)}",
+            label_visibility="collapsed",
+            help="Maximum file size: 4 MB. The processed circular image is saved to your learner profile.",
+        )
+        if uploaded is not None:
+            raw_bytes = uploaded.getvalue()
+            upload_hash = hashlib.sha256(raw_bytes).hexdigest()
+            if upload_hash != st.session_state.get("profile_avatar_last_hash"):
+                try:
+                    profile["avatar_data_uri"] = process_profile_avatar(raw_bytes)
+                    profile["saved"] = True
+                    st.session_state.profile_avatar_last_hash = upload_hash
+                    state.mark_persistent_dirty()
+                    st.success("Profile picture updated. Saving your changes…")
+                except ValueError as exc:
+                    st.error(str(exc))
+        if profile.get("avatar_data_uri") and st.button(
+            "Remove profile picture", key="remove_profile_avatar"
+        ):
+            profile.pop("avatar_data_uri", None)
+            profile["saved"] = True
+            st.session_state.profile_avatar_upload_version = int(st.session_state.get("profile_avatar_upload_version", 0)) + 1
+            st.session_state.pop("profile_avatar_last_hash", None)
+            state.mark_persistent_dirty()
+            st.toast("Profile picture removed. Saving your changes…")
+        if st.button("Close photo uploader", key="close_profile_avatar_upload"):
+            st.session_state.profile_avatar_upload_open = False
+            st.rerun()
+
+
+def _render_field_value(label: str, value: Any) -> None:
+    empty = value is None or value == "" or value == []
+    if isinstance(value, list) and value:
+        rendered = (
+            "<div class='vc-profile-tags'>"
+            + "".join(
+                f"<span class='vc-profile-tag'>{html.escape(str(item))}</span>"
+                for item in value if str(item).strip()
+            )
+            + "</div>"
+        )
+    else:
+        rendered = _display(value)
+    value_class = " vc-profile-value--empty" if empty else ""
+    st.markdown(
+        "<div class='vc-profile-field'>"
+        f"<div class='vc-profile-field-label'>{html.escape(label)}</div>"
+        f"<div class='vc-profile-field-value{value_class}'>{rendered}</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_section_editor(section: dict[str, Any], profile: dict[str, Any]) -> None:
+    fields = section["fields"]
+    columns = st.columns(2, gap="large")
+    for index, (field, label, kind, option_key) in enumerate(fields):
+        with columns[index % 2]:
+            key = _widget_key(field)
+            if kind == "text":
+                st.text_input(label, key=key, placeholder="Optional")
+            elif kind == "textarea":
+                st.text_area(label, key=key, placeholder="Optional")
+            elif kind == "select":
+                options = _options_for(option_key or "")
+                if options:
+                    st.selectbox(label, options, key=key)
+                else:
+                    st.caption(f"{label}: no options are configured yet.")
+            elif kind == "multiselect":
+                options = _options_for(option_key or "")
+                st.multiselect(label, options, key=key)
+
+
+def _save_profile_changes(profile: dict[str, Any], dirty_fields: list[str]) -> None:
+    for field in dirty_fields:
+        value = st.session_state[_widget_key(field)]
+        profile[field] = value.strip() if isinstance(value, str) else value
+    profile["saved"] = True
+    state.mark_persistent_dirty()
+    st.session_state.profile_edit_section = None
+    for field, *_ in (field for section in _SECTIONS for field in section["fields"]):
+        st.session_state.pop(_widget_key(field), None)
+
+
+def _render_save_control(profile: dict[str, Any]) -> None:
+    dirty_fields = _dirty_fields(profile)
+    dirty = bool(dirty_fields)
+    st.markdown(
+        """
+        <style>
+        div[class*="st-key-save_profile"] button {
+            background: #e5e7eb !important;
+            color: #6b7280 !important;
+            border: 1px solid #d1d5db !important;
+            opacity: 1 !important;
+        }
+        div[class*="st-key-save_profile"] button[kind="primary"] {
+            background: #16803c !important;
+            color: #ffffff !important;
+            border-color: #16803c !important;
+        }
+        div[class*="st-key-save_profile"] button:disabled {
+            cursor: not-allowed !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button(
+        "Save Profile",
+        key="save_profile",
+        type="primary" if dirty else "secondary",
+        disabled=not dirty,
+        use_container_width=False,
+        help="Save becomes active when you change a profile field.",
+    ):
+        _save_profile_changes(profile, dirty_fields)
+        st.toast("Profile saved. Saving your changes…")
+        # Render the updated, non-editing profile in this same run. app.py
+        # still reaches its normal end-of-run persistence flush.
+        st.session_state.profile_edit_section = None
+
+
+def _render_profile_section(section: dict[str, Any], profile: dict[str, Any]) -> None:
+    section_id = section["id"]
+    editing = st.session_state.get("profile_edit_section") == section_id
+
+    with st.container(border=True):
+        header_col, action_col = st.columns([5, 1.35], vertical_alignment="center")
+        with header_col:
+            _section_heading(section["icon"], section["title"], section["subtitle"])
+        with action_col:
+            if editing:
+                if st.button("Cancel section", key=f"cancel_profile_section_{section_id}",
+                             use_container_width=True):
+                    for field, *_ in section["fields"]:
+                        st.session_state.pop(_widget_key(field), None)
+                    st.session_state.profile_edit_section = None
+                    st.rerun()
+            else:
+                if st.button("Edit section", key=f"edit_profile_section_{section_id}",
+                             use_container_width=True):
+                    _start_section_edit(section_id, profile)
+                    st.rerun()
+
+        if editing:
+            _render_section_editor(section, profile)
+        else:
+            fields = section["fields"]
+            for start in range(0, len(fields), 3):
+                cols = st.columns(3, gap="large")
+                for col, (field, label, _kind, _option_key) in zip(cols, fields[start:start + 3]):
+                    with col:
+                        _render_field_value(label, _profile_value(profile, field))
+
+
+def render() -> None:
+    """Render an inline-editable profile with a clear, stateful save action."""
+    heading_col, shop_col = st.columns([5, 1.45], vertical_alignment="center")
+    with heading_col:
+        st.markdown(
+            "<div class='vc-profile-page-heading'>"
+            "<div class='vc-eyebrow'>YOUR SPACE</div>"
+            "<h1>Your learning profile</h1>"
+            "<p class='vc-page-intro'>Click Edit section to change only the details you need. "
+            "Save Profile turns green when your changes are ready to save. Every field is optional.</p>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+    profile = st.session_state.profile
+    raw_vocoins = profile.get("vocoins", 0)
+    try:
+        vocoins = max(0, int(raw_vocoins))
+    except (TypeError, ValueError, OverflowError):
+        vocoins = 0
+
+    with shop_col:
+        if st.button("🛍️", key="profile_shop_button", help="Open the Vocoins shop", use_container_width=True):
+            st.session_state.profile_shop_open = not st.session_state.get("profile_shop_open", False)
+
+            st.markdown(
+                """
+                <style>
+                .vc-profile-vocoins {
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+                    gap: .28rem;
+                    width: max-content;
+                    max-width: 100%;
+                    margin-left: auto;
+                    white-space: nowrap;
+                    color: var(--vc-text);
+                    line-height: 1.2;
+                }
+                .vc-profile-vocoins svg {
+                    width: 12px;
+                    height: 12px;
+                    flex: 0 0 12px;
+                }
+                .vc-profile-vocoins strong {
+                    font-size: .82rem;
+                    font-weight: 700;
+                    font-variant-numeric: tabular-nums;
+                }
+                .vc-profile-vocoins span {
+                    margin-left: .16rem;
+                    font-size: .72rem;
+                    color: var(--vc-subtext);
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+        st.markdown(
+            "<div class='vc-profile-vocoins' title='Your Vocoins'>"
+            "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>"
+            "<circle cx='12' cy='12' r='9' fill='none' stroke='currentColor' stroke-width='1.7'/>"
+            "<path d='M7.2 7.1 12 17l4.8-9.9' fill='none' stroke='currentColor' "
+            "stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>"
+            "</svg>"
+            f"<strong>{vocoins:,}</strong><span>Vocoins</span></div>",
+            unsafe_allow_html=True,
+        )
+
+    if st.session_state.get("profile_shop_open", False):
+        with st.container(border=True):
+            st.subheader("Vocoins Shop")
+            st.caption("The shop is being prepared. Your Vocoins balance is displayed here; earning and spending will be enabled when the shop launches.")
+
+
+
+    # Handle the save action before drawing the identity card and sections,
+    # so the new name and values are visible in the very same run.
+    _render_identity_card(profile)
+
+    for section in _SECTIONS:
+        _render_profile_section(section, profile)
+
+    st.divider()
+    save_col, _spacer = st.columns([1.5, 5])
+    with save_col:
+        _render_save_control(profile)
+    st.caption("Save Profile is grey when there are no unsaved edits and green when a change is detected.")
+    learning_rhythm.render(st.session_state.progress, profile)

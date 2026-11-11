@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="whiteboard.css">
+  <title>Vocogni Whiteboard</title>
+</head>
+<body>
+  <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M5 3l14 10-7 1-3 7L5 3z"/><path d="M12 14l4 6"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V5a1.5 1.5 0 013 0v6-8a1.5 1.5 0 013 0v8-6a1.5 1.5 0 013 0v7-4a1.5 1.5 0 013 0v7c0 4-2 6-6 6h-2c-2 0-3-1-4-2l-4-5a1.8 1.8 0 013-2l2 2"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4.5-1 11-11a2.1 2.1 0 00-3-3l-11 11L4 20z"/><path d="M14.5 6.5l3 3"/></symbol>
+    <symbol id="i-marker" viewBox="0 0 24 24"><path d="M4 16L15 5l4 4-11 11H4v-4z"/><path d="M13 7l4 4M3 22h18"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M7 18L3.5 14.5a2 2 0 010-3L13 2l9 9-8 8H7z"/><path d="M12 21h9M10 5l9 9"/></symbol>
+    <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 6V4h16v2M12 4v16M8 20h8"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h4"/></symbol>
+    <symbol id="i-square" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/></symbol>
+    <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+    <symbol id="i-triangle" viewBox="0 0 24 24"><path d="M12 4L21 20H3L12 4z"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path d="M4 20L20 4"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17L17 7M7 7h10v10"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18h1a2 2 0 001-4h-1a1.5 1.5 0 010-3h3a5 5 0 005-5c0-3-4-6-9-6z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="8" r="1"/></symbol>
+    <symbol id="i-width" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-2"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h2"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3"/></symbol>
+    <symbol id="i-clear" viewBox="0 0 24 24"><path d="M4 5h16M7 5l1 16h8l1-16M10 9v8M14 9v8"/><path d="M9 3h6"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a5 5 0 010-10 6 6 0 0111-1 4.5 4.5 0 010 9h-1"/><path d="M12 12v9m-4-4l4 4 4-4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3L2.8 20h18.4L12 3z"/><path d="M12 9v5m0 3h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-files" viewBox="0 0 24 24"><path d="M8 7V3h12v15h-4M4 7h12v14H4z"/><path d="M7 11h6M7 15h6"/></symbol>
+    <symbol id="i-file-minus" viewBox="0 0 24 24"><path d="M13 3H6v18h12V8zM13 3v5h5"/><path d="M9 14h6"/></symbol>
+    <symbol id="i-blank" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="5" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="19" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="19" cy="19" r="1"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15a8 8 0 01-11-11 9 9 0 1011 11z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="M21 15l-5-5L5 20"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6zM14 3v5h5"/><path d="M8 17h2a1.5 1.5 0 000-3H8v5m5 0v-5h1a2.5 2.5 0 010 5h-1m4-5h3m-3 2h2"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM15 3v5h4"/><path d="M10 12l-2 2 2 2m4-4l2 2-2 2"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M16 16l5 5M8 10.5h5"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 2-2.5 2-2.5 4m0 3h.01"/></symbol>
+    <symbol id="i-mouse" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 2v6m0-6v6"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M8 15h8"/></symbol>
+  </svg>
+
+  <main id="app" aria-label="Vocogni whiteboard editor">
+    <header class="toolbar">
+      <div class="toolbar-row tool-row" role="toolbar" aria-label="Drawing tools">
+        <button data-tool="select" class="tool active" aria-pressed="true" aria-label="Select and move" title="Select and move"><svg><use href="#i-select"/></svg></button>
+        <button data-tool="hand" class="tool" aria-pressed="false" aria-label="Pan canvas" title="Pan canvas"><svg><use href="#i-hand"/></svg></button>
+        <button data-tool="pen" class="tool" aria-pressed="false" aria-label="Pen" title="Pen"><svg><use href="#i-pen"/></svg></button>
+        <button data-tool="highlighter" class="tool" aria-pressed="false" aria-label="Highlighter" title="Highlighter"><svg><use href="#i-marker"/></svg></button>
+        <button data-tool="eraser" class="tool" aria-pressed="false" aria-label="Eraser" title="Eraser"><svg><use href="#i-eraser"/></svg></button>
+        <button data-tool="text" class="tool" aria-pressed="false" aria-label="Text" title="Text"><svg><use href="#i-type"/></svg></button>
+        <button data-tool="sticky" class="tool" aria-pressed="false" aria-label="Sticky note" title="Sticky note"><svg><use href="#i-note"/></svg></button>
+        <button data-tool="rectangle" class="tool" aria-pressed="false" aria-label="Rectangle" title="Rectangle"><svg><use href="#i-square"/></svg></button>
+        <button data-tool="ellipse" class="tool" aria-pressed="false" aria-label="Ellipse" title="Ellipse"><svg><use href="#i-circle"/></svg></button>
+        <button data-tool="triangle" class="tool" aria-pressed="false" aria-label="Triangle" title="Triangle"><svg><use href="#i-triangle"/></svg></button>
+        <button data-tool="line" class="tool" aria-pressed="false" aria-label="Line" title="Line"><svg><use href="#i-line"/></svg></button>
+        <button data-tool="arrow" class="tool" aria-pressed="false" aria-label="Arrow" title="Arrow"><svg><use href="#i-arrow"/></svg></button>
+      </div>
+
+      <div class="toolbar-row control-row">
+        <div class="control-group" aria-label="Stroke settings">
+          <label class="color-control" title="Stroke colour" aria-label="Stroke colour">
+            <svg><use href="#i-palette"/></svg><input id="color" type="color" value="#273142" aria-label="Stroke colour">
+          </label>
+          <label class="range-control" title="Stroke width" aria-label="Stroke width">
+            <svg><use href="#i-width"/></svg><input id="width" type="range" min="1" max="18" value="4" aria-label="Stroke width">
+          </label>
+        </div>
+        <div class="control-group" aria-label="Edit actions">
+          <button id="undo" class="icon-button" type="button" aria-label="Undo" title="Undo"><svg><use href="#i-undo"/></svg></button>
+          <button id="redo" class="icon-button" type="button" aria-label="Redo" title="Redo"><svg><use href="#i-redo"/></svg></button>
+          <button id="duplicate" class="icon-button" type="button" aria-label="Duplicate selection" title="Duplicate selection"><svg><use href="#i-copy"/></svg></button>
+          <button id="delete-selected" class="icon-button danger" type="button" aria-label="Delete selection" title="Delete selection"><svg><use href="#i-trash"/></svg></button>
+          <button id="clear-page" class="icon-button danger" type="button" aria-label="Clear page" title="Clear page"><svg><use href="#i-clear"/></svg></button>
+          <button id="save-now" class="icon-button save-button" type="button" aria-label="Save now" title="Save now"><svg><use href="#i-cloud"/></svg></button>
+        </div>
+        <div class="control-group zoom-group" aria-label="Zoom controls">
+          <button id="zoom-out" class="icon-button" type="button" aria-label="Zoom out" title="Zoom out"><svg><use href="#i-minus"/></svg></button>
+          <button id="zoom-reset" class="zoom-level" type="button" aria-label="Reset zoom to 100 percent" title="Reset zoom"><span id="zoom-level">100%</span></button>
+          <button id="zoom-in" class="icon-button" type="button" aria-label="Zoom in" title="Zoom in"><svg><use href="#i-zoom"/></svg></button>
+        </div>
+      </div>
+
+      <div class="toolbar-row control-row">
+        <div class="control-group page-group" aria-label="Page controls">
+          <button id="previous-page" class="icon-button" type="button" aria-label="Previous page" title="Previous page"><svg><use href="#i-left"/></svg></button>
+          <span id="page-label" class="page-label" aria-live="polite" aria-label="Page 1 of 1">1 / 1</span>
+          <button id="next-page" class="icon-button" type="button" aria-label="Next page" title="Next page"><svg><use href="#i-right"/></svg></button>
+          <button id="new-page" class="icon-button" type="button" aria-label="New page" title="New page"><svg><use href="#i-plus"/></svg></button>
+          <button id="duplicate-page" class="icon-button" type="button" aria-label="Duplicate page" title="Duplicate page"><svg><use href="#i-files"/></svg></button>
+          <button id="delete-page" class="icon-button danger" type="button" aria-label="Delete page" title="Delete page"><svg><use href="#i-file-minus"/></svg></button>
+        </div>
+        <div class="control-group backgrounds" role="toolbar" aria-label="Canvas background">
+          <button class="icon-button active" data-background="grid" aria-pressed="true" type="button" aria-label="Graph grid background" title="Graph grid"><svg><use href="#i-grid"/></svg></button>
+          <button class="icon-button" data-background="plain" aria-pressed="false" type="button" aria-label="Plain background" title="Plain"><svg><use href="#i-blank"/></svg></button>
+          <button class="icon-button" data-background="dots" aria-pressed="false" type="button" aria-label="Dotted background" title="Dots"><svg><use href="#i-dots"/></svg></button>
+          <button class="icon-button" data-background="dark" aria-pressed="false" type="button" aria-label="Dark background" title="Dark"><svg><use href="#i-moon"/></svg></button>
+        </div>
+        <div class="control-group export-group" aria-label="Export">
+          <button id="export-png" class="icon-button" type="button" aria-label="Export PNG" title="Export PNG"><svg><use href="#i-image"/></svg></button>
+          <button id="export-pdf" class="icon-button" type="button" aria-label="Print or save PDF" title="Print / PDF"><svg><use href="#i-pdf"/></svg></button>
+          <button id="export-json" class="icon-button" type="button" aria-label="Export editable JSON" title="Export JSON"><svg><use href="#i-code"/></svg></button>
+        </div>
+      </div>
+    </header>
+
+    <div id="stage" tabindex="0" aria-label="Drawing canvas">
+      <canvas id="canvas" width="1200" height="800" aria-label="Whiteboard canvas"></canvas>
+    </div>
+    <footer>
+      <span id="status" role="status" aria-live="polite" title="Ready">
+        <svg id="status-icon" aria-hidden="true"><use href="#i-check"/></svg>
+        <span id="status-label" class="sr-only">Ready</span>
+      </span>
+      <div class="canvas-hints" aria-label="Help">
+        <span title="Use the mouse, touch, or stylus to draw"><svg><use href="#i-pen"/></svg></span>
+        <span title="Select an object, then drag to move it"><svg><use href="#i-select"/></svg></span>
+        <span title="Undo: Ctrl or Command + Z · Redo: Ctrl or Command + Shift + Z"><svg><use href="#i-keyboard"/></svg></span>
+        <span title="Save: Ctrl or Command + S"><svg><use href="#i-cloud"/></svg></span>
+        <span title="Zoom: Ctrl or Command + plus or minus · Reset: Ctrl or Command + 0"><svg><use href="#i-zoom"/></svg></span>
+        <span title="Touch and stylus input are supported"><svg><use href="#i-hand"/></svg></span>
+      </div>
+    </footer>
+  </main>
+  <script src="whiteboard.js"></script>
+</body>
+</html>

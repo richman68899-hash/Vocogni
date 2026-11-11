@@ -1,0 +1,175 @@
+"""Pure settings defaults and helpers, independent of Streamlit."""
+from __future__ import annotations
+
+from typing import Any
+import re
+
+
+DEFAULT_SETTINGS: dict[str, Any] = {
+    "appearance": "Light",
+    "text_size": "Medium",
+    "animations": True,
+    "sound": False,
+    "wrong_answer_sound": False,
+    "answer_shake": False,
+    "feedback_timing": "Immediate",
+    "difficulty": "Adaptive",
+    "reduced_motion": False,
+    "larger_text": False,
+    "high_readability": False,
+    # Decorative preferences are saved in the same backward-compatible bundle.
+    "font_family": "Inter",
+    "background_tone": "Neutral",
+    "corner_style": "Standard",
+    "use_custom_accent": False,
+    "custom_accent_color": "#176B5B",
+}
+
+
+# Preferences consumed by the deterministic, offline progress-summary engine.
+# Values are stored inside the existing learner settings bundle.
+AI_PREFERENCE_DEFAULTS = {
+    "ai_preview_teaching_style": "Adaptive",
+    "ai_preview_explanation_depth": "Balanced",
+    "ai_preview_hint_strategy": "On request",
+    "ai_preview_correction_style": "Explain the misconception",
+    "ai_preview_adaptive_mastery": True,
+    "ai_preview_remember_preferences": True,
+    "ai_preview_challenge_level": "Adaptive",
+    "ai_preview_transfer_questions": True,
+    "ai_preview_reasoning_steps": True,
+    "ai_preview_check_calculations": True,
+    "ai_preview_show_sources": True,
+    "ai_preview_flag_uncertainty": True,
+    "ai_preview_follow_up_questions": True,
+    "ai_preview_everyday_examples": True,
+    "ai_preview_response_language": "Match lesson language",
+    "ai_preview_answer_format": "Structured steps",
+    "ai_preview_model_preference": "Automatic (recommended)",
+    "ai_preview_speed_preference": "Balanced",
+    "ai_preview_web_research": False,
+    "ai_preview_image_input": True,
+    "ai_preview_age_appropriate": True,
+    "ai_preview_lesson_scope": False,
+    "ai_preview_context_permission": True,
+    "ai_preview_memory_review": True,
+}
+
+SETTING_WIDGET_KEYS = {
+    "appearance": "settings_appearance",
+    "text_size": "settings_text_size",
+    "feedback_timing": "settings_feedback_timing",
+    "difficulty": "settings_difficulty",
+    "animations": "settings_animations",
+    "sound": "settings_sound",
+    "wrong_answer_sound": "settings_wrong_answer_sound",
+    "answer_shake": "settings_answer_shake",
+    "larger_text": "settings_larger_text",
+    "high_readability": "settings_high_readability",
+    "font_family": "settings_font_family",
+    "background_tone": "settings_background_tone",
+    "corner_style": "settings_corner_style",
+    "use_custom_accent": "settings_use_custom_accent",
+    "custom_accent_color": "settings_custom_accent_color",
+}
+
+SETTING_OPTIONS = {
+    "appearance": ["Light", "Dark"],
+    "text_size": ["Small", "Medium", "Large"],
+    "feedback_timing": ["Immediate", "After submission"],
+    "difficulty": ["Adaptive", "Easy", "Hard"],
+    "font_family": ["Inter", "Manrope", "Atkinson Hyperlegible", "Source Serif 4"],
+    "background_tone": ["Neutral", "Warm", "Cool"],
+    "corner_style": ["Standard", "Rounded", "Square"],
+}
+
+PRESETS: dict[str, dict[str, Any]] = {
+    "Focused study": {
+        "animations": False,
+        "sound": False,
+        "wrong_answer_sound": False,
+        "answer_shake": False,
+        "reduced_motion": True,
+        "feedback_timing": "After submission",
+    },
+    "Reading comfort": {
+        "text_size": "Large",
+        "larger_text": True,
+        "high_readability": True,
+        "reduced_motion": True,
+        "animations": False,
+        "answer_shake": False,
+    },
+    "Gentle practice": {
+        "difficulty": "Easy",
+        "feedback_timing": "Immediate",
+        "sound": False,
+        "wrong_answer_sound": False,
+        "answer_shake": False,
+    },
+}
+
+
+def safe_value(key: str, value: Any) -> Any:
+    """Return a supported setting value without breaking older learner data."""
+    # Before the hint-assistance labels, Medium was an exposed preference but
+    # had no distinct behavior. Map it to the existing on-request behavior.
+    if key == "difficulty" and value == "Medium":
+        return "Adaptive"
+    if key == "custom_accent_color":
+        # Keep arbitrary persisted values from becoming CSS or HTML injection.
+        if isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", value.strip()):
+            return value.strip().upper()
+        return DEFAULT_SETTINGS[key]
+    if key in SETTING_OPTIONS:
+        return value if value in SETTING_OPTIONS[key] else DEFAULT_SETTINGS[key]
+    if key not in DEFAULT_SETTINGS:
+        return value
+
+    if isinstance(DEFAULT_SETTINGS[key], bool):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int) and value in (0, 1):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().casefold()
+            if normalized in {"true", "yes", "1", "on"}:
+                return True
+            if normalized in {"false", "no", "0", "off", ""}:
+                return False
+        # Unknown or malformed values must not become truthy by accident.
+        return DEFAULT_SETTINGS[key]
+
+    if isinstance(value, bool):
+        return DEFAULT_SETTINGS[key]
+    return DEFAULT_SETTINGS[key]
+
+
+def settings_changed(settings: dict[str, Any], new_values: dict[str, Any]) -> bool:
+    """Return True only when a durable preference changes."""
+    return any(settings.get(key) != value for key, value in new_values.items())
+
+
+def current_summary(settings: dict[str, Any]) -> str:
+    """Create a compact summary of the selected settings."""
+    theme = settings.get("appearance", "Light")
+    text = settings.get("text_size", "Medium")
+    feedback = settings.get("feedback_timing", "Immediate")
+    motion = (
+        "Motion reduced"
+        if settings.get("reduced_motion") or not settings.get("animations", True)
+        else "Motion enabled"
+    )
+    correct_sound = "Correct cue on" if settings.get("sound", False) else "Correct cue off"
+    wrong_sound = "Incorrect cue on" if settings.get("wrong_answer_sound", False) else "Incorrect cue off"
+    shake = "Wrong-answer shake on" if settings.get("answer_shake", False) else "Wrong-answer shake off"
+    font = settings.get("font_family", "Inter")
+    tone = settings.get("background_tone", "Neutral")
+    corners = settings.get("corner_style", "Standard")
+    accent = "custom accent" if settings.get("use_custom_accent", False) else "theme accent"
+    return (
+        f"{theme} theme  ·  {font} font  ·  {text} text  ·  "
+        f"{tone.lower()} background  ·  {corners.lower()} corners  ·  "
+        f"{feedback.lower()} feedback  ·  {motion}  ·  {correct_sound}  ·  "
+        f"{wrong_sound}  ·  {shake}  ·  {accent}"
+    )
