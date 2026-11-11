@@ -99,7 +99,16 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                     if result.get("verification_status") != "verified":
                         continue
                     qid = str(result.get("question_id") or "")
-                    metadata = question_map.get((course_id, lesson_id, qid))
+                    # Pathway and revision questions can be presented in a
+                    # different lesson from their canonical VQE source. New
+                    # records carry that source lesson in provenance; older
+                    # records safely fall back to the containing attempt.
+                    source_lesson_id = str(
+                        result.get("lesson_id")
+                        or result.get("source_lesson_id")
+                        or lesson_id
+                    )
+                    metadata = question_map.get((str(course_id), source_lesson_id, qid))
                     if not metadata:
                         continue
                     skill_id = metadata.get("skill_id")
@@ -110,7 +119,7 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                         continue
                     item = evidence[skill_id]
                     item["practice_question_ids"].add(
-                        (str(course_id), str(lesson_id), qid)
+                        (str(course_id), source_lesson_id, qid)
                     )
                     ratio = _result_ratio(result)
                     item["attempts"] += 1

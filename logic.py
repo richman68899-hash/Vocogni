@@ -387,22 +387,37 @@ def mastery_receipt_for_course(progress, course_id):
                         continue
                     question_id = result.get("question_id")
                     normalized_qid = str(question_id).strip() if question_id is not None else ""
-                    # Practice contributes to the receipt only when the saved
-                    # result and the current reviewed registry both confirm it.
+                    # A practice attempt can contain a VQE item authored in a
+                    # different lesson (for example, a diagnostic pathway).
+                    # New records identify the canonical source lesson. Legacy
+                    # records without provenance continue using the attempt key.
+                    source_lesson_id = str(
+                        result.get("lesson_id")
+                        or result.get("source_lesson_id")
+                        or lesson_id
+                    )
+                    # Practice contributes only when the saved result and the
+                    # current reviewed registry agree on its canonical source.
                     if (
                         result.get("verification_status") != "verified"
-                        or (str(lesson_id), normalized_qid) not in verified_vqe_by_id
+                        or (source_lesson_id, normalized_qid) not in verified_vqe_by_id
                     ):
                         continue
                     evidence_order += 1
-                    mapped_key = question_map.get(normalized_qid)
+                    source_question_map = question_skill_by_lesson.get(source_lesson_id, {})
+                    mapped_key = source_question_map.get(normalized_qid)
+                    source_lesson, _ = data.get_lesson(course_id, source_lesson_id)
+                    source_lesson_title = (
+                        source_lesson.get("title", source_lesson_id)
+                        if source_lesson else source_lesson_id
+                    )
                     recorded_skill_id = result.get("skill_id")
                     if isinstance(recorded_skill_id, str) and recorded_skill_id in math_taxonomy.SKILLS:
                         # New result records carry the stable VQE skill ID.
                         # This takes precedence over mutable human-readable tags.
                         skill = ensure_skill(
                             math_taxonomy.SKILLS[recorded_skill_id]["label"],
-                            lesson_title,
+                            source_lesson_title,
                             skill_id=recorded_skill_id,
                         )
                     elif mapped_key:
@@ -422,6 +437,7 @@ def mastery_receipt_for_course(progress, course_id):
                         "question_id": normalized_qid or None,
                         "completed_at": attempt.get("completed_at", ""),
                         "attempt_number": attempt.get("attempt_number"),
+                        "source_lesson_id": source_lesson_id,
                         "_order": evidence_order,
                     })
 
