@@ -36,7 +36,16 @@ def normalize_answer(value: Any) -> str:
 
 def _contains(answer: str, phrase: Any) -> bool:
     needle = normalize_answer(phrase)
-    return bool(needle) and needle in answer
+    if not needle:
+        return False
+    # Numeric rubric terms must match a complete number, not a substring
+    # inside a different value (2 must not match 12 or 2.5).
+    if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", needle):
+        return re.search(
+            rf"(?<![A-Za-z0-9.]){re.escape(needle)}(?![0-9]|\.\d)",
+            answer,
+        ) is not None
+    return needle in answer
 
 
 def _numeric_match(answer: str, targets: list[dict[str, Any]]) -> bool:
