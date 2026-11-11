@@ -125,15 +125,24 @@ def safe_value(key: str, value: Any) -> Any:
         return value if value in SETTING_OPTIONS[key] else DEFAULT_SETTINGS[key]
     if key not in DEFAULT_SETTINGS:
         return value
+
+    if isinstance(DEFAULT_SETTINGS[key], bool):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int) and value in (0, 1):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().casefold()
+            if normalized in {"true", "yes", "1", "on"}:
+                return True
+            if normalized in {"false", "no", "0", "off", ""}:
+                return False
+        # Unknown or malformed values must not become truthy by accident.
+        return DEFAULT_SETTINGS[key]
+
     if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        normalized = value.strip().casefold()
-        if normalized in {"true", "yes", "1", "on"}:
-            return True
-        if normalized in {"false", "no", "0", "off", ""}:
-            return False
-    return bool(value)
+        return DEFAULT_SETTINGS[key]
+    return DEFAULT_SETTINGS[key]
 
 
 def settings_changed(settings: dict[str, Any], new_values: dict[str, Any]) -> bool:
