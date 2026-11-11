@@ -373,6 +373,7 @@ class NoteAndFolderRestoreIdentityTests(unittest.TestCase):
             {"id": 3, "folder_id": 9},
             {"id": 4, "folder_id": "1"},
             {"id": 5, "folder_id": None},
+            {"id": 6},
         ]
         folders = [{"id": 1, "name": "Algebra"}]
 
@@ -380,8 +381,9 @@ class NoteAndFolderRestoreIdentityTests(unittest.TestCase):
 
         self.assertEqual(
             [note["folder_id"] for note in notes],
-            [None, 1, None, None, None],
+            [None, 1, None, None, None, None],
         )
+        self.assertIn("folder_id", notes[-1])
 
 
 if __name__ == "__main__":
