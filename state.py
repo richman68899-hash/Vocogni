@@ -458,13 +458,14 @@ def _normalize_note_folder_references(
     }
     for note in notes:
         folder_id = note.get("folder_id")
-        if folder_id is None:
-            continue
         if (
-            isinstance(folder_id, bool)
+            folder_id is None
+            or isinstance(folder_id, bool)
             or not isinstance(folder_id, int)
             or folder_id not in valid_folder_ids
         ):
+            # Keep the restored schema consistent for older notes that never
+            # stored a folder_id field.
             note["folder_id"] = None
 
 
