@@ -23,8 +23,10 @@ Lessons did not reliably establish a learner's starting point. Without a baselin
 - Versioned diagnostic configuration and acceptance tests for future lesson authors.
 
 ## Placement rule (explicit prototype heuristic)
-1. If the prerequisite item is incorrect, recommend prerequisite review regardless of total score.
-2. If the prerequisite item is correct: 1–2/5 routes to Level 1 (Easy); 3/5 routes to Level 2 (Medium); 4/5 routes to Level 3 (Hard); 5/5 routes to the real-life project.
+1. Use the whole five-item score for provisional placement: 0–2/5 routes to Level 1 (Easy); 3/5 routes to Level 2 (Medium); 4/5 routes to Level 3 (Hard); 5/5 routes to the real-life project.
+2. A missed prerequisite item is retained as a targeted follow-up and weakness signal. It does not override four other responses or lock the learner to Level 1.
+3. The learner should review the missed prerequisite explanation before progressing. A single item is not enough to confirm a misconception or secure mastery.
+4. These thresholds are unvalidated prototype heuristics and must be evaluated with real, appropriately consented pilot evidence before making effectiveness claims.
 3. Incorrect answers are mapped to their author-defined `skill_tag`. The engine lists those tags and the explanation/review action.
 4. This is transparent rule-based logic (“AI-style decision support”), **not** a trained AI model or a validated psychometric instrument. Thresholds are initial hypotheses to evaluate.
 
@@ -51,7 +53,8 @@ Diagnostic items are kept separate from ordinary practice question counts/accura
 - [ ] All configured diagnostics pass schema validation.
 - [ ] Each diagnostic requires all five answers and saves exactly one result.
 - [ ] Reopening a lesson never lets a learner retake the submitted diagnostic.
-- [ ] The prerequisite-failure override behaves as documented.
+- [ ] A missed prerequisite item is surfaced as a follow-up without overriding the whole-screen score.
+- [ ] Legacy saved diagnostic results retain their original pathway behavior; new results use the whole-screen v2 placement policy.
 - [ ] Scores 2/5, 3/5, 4/5, and 5/5 with prerequisite correct route to Levels 1, 2, 3, and Project respectively.
 - [ ] Each incorrect item adds the correct skill tag to the weakness report.
 - [ ] Optional confidence is stored per item and does not alter correctness, score, or placement.
