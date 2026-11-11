@@ -217,6 +217,41 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(action["diagnostic_items"], 1)
         self.assertEqual(action["confirmation_items"], 0)
 
+    def test_cross_lesson_verified_practice_uses_canonical_source_provenance(self):
+        skill_id = "math.time.clock_parts"
+        progress = {
+            "analog_clocks": {
+                "practice_attempts": {
+                    "clock_l1": [{
+                        "completed_at": "2026-11-11T10:00:00+00:00",
+                        "results": [{
+                            "question_id": "clock_l6_q7",
+                            "lesson_id": "clock_l6",
+                            "course_id": "analog_clocks",
+                            "skill_id": skill_id,
+                            "verification_status": "verified",
+                            "correct": True,
+                        }],
+                    }]
+                }
+            }
+        }
+        registry = [{
+            "course_id": "analog_clocks",
+            "lesson_id": "clock_l6",
+            "question_id": "clock_l6_q7",
+            "verification_status": "verified",
+            "question": {"skill_id": skill_id, "mistake_tag": "Clock hand roles"},
+        }]
+
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            evidence = adaptive_learning._collect_skill_evidence(progress)
+
+        item = evidence[skill_id]
+        self.assertEqual(item["attempts"], 1)
+        self.assertEqual(item["accuracy"], 1.0)
+        self.assertIn(("analog_clocks", "clock_l6", "clock_l6_q7"), item["practice_question_ids"])
+
     def test_plan_uses_existing_skill_taxonomy_and_does_not_mutate_progress(self):
         progress = {"fractions": {"practice_attempts": {}}}
         before = repr(progress)
