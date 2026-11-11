@@ -74,9 +74,15 @@ def resolve_config(config: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def is_configured(config: dict[str, str] | None = None) -> bool:
-    """Return whether all required provider settings are present."""
+    """Return whether required settings and a supported endpoint are present."""
     resolved = resolve_config(config)
-    return all(resolved.values())
+    if not all(resolved.values()):
+        return False
+    try:
+        _chat_completions_url(resolved["base_url"])
+    except LLMError:
+        return False
+    return True
 
 
 def chat_completion(
