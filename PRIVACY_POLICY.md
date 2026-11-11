@@ -1,7 +1,7 @@
 # Vocogni Privacy Policy
 
 **Effective date:** 28 October 2026  
-**Version:** Draft 0.1  
+**Version:** Draft 0.2  
 **Publication status:** **Draft for review — not approved for public release.**
 
 > **Before publication:** replace the marked controller/contact fields, confirm the actual hosting and data-transfer arrangements, set enforceable retention/deletion procedures, and implement the child-data safeguards in the release checklist. This document describes the current prototype; it does not certify legal compliance.
@@ -18,9 +18,9 @@ Do not publish this draft while these fields remain incomplete. “Vocogni” is
 
 ## 2. What this notice covers
 
-Vocogni provides course content, lessons, practice questions, learning-progress summaries, notes, folders, milestones, display preferences, and a rule-based learning assistant. This notice explains the personal data the current version may process, the purposes for using it, the service providers involved, and the choices or requests available to users.
+Vocogni provides course content, lessons, practice questions, learning-progress summaries, notes, folders, milestones, display preferences, and the Vocogni Study Guide. The Study Guide has two distinct modes: local, rule-based commands and optional external AI tutoring. This notice describes both modes and the data flows they use.
 
-The current assistant uses deterministic application logic. It does not currently call a third-party generative-AI model. If the product later introduces an external AI provider or another materially different data use, the notice and relevant choices must be updated before that processing begins.
+Local commands use application logic and saved Vocogni data; they do not require an external generative-AI request. Optional AI tutoring is a separate feature, disabled by default and available only when the operator has configured a compatible provider and the learner enables the session-only opt-in. When enabled, an open-ended tutoring request sends the current message, up to eight selected messages from prior AI-tutoring turns, and a limited learning-context summary to the configured provider. It is not used by answer checking, diagnostic scoring, or official mastery decisions. The actual provider and its handling of requests must be reviewed and identified by the operator before the feature is enabled for real learners.
 
 ## 3. What information may be processed?
 
@@ -48,7 +48,7 @@ Vocogni may save your theme, font and text-size preferences, background and acce
 
 ### Assistant conversation
 
-The current assistant keeps its conversation in the active Streamlit application session. The current implementation limits the session history to at most 20 message records and displays the latest eight messages in the panel. Assistant conversation history is not included in the durable learner-data bundle written to Supabase. It is not designed to be a permanent chat archive; precise session termination and infrastructure-log retention depend on the platform.
+The Study Guide conversation is held in the active Streamlit application session; the application retains at most 20 message records in that session and displays the latest eight in the panel. The conversation is not included in the durable learner-data bundle written to Supabase. When optional AI tutoring is enabled, the current message and up to eight selected prior messages from external-AI tutoring turns may be sent to the configured provider. Those prior messages are selected from AI-tutoring turns, not copied from local profile, notes, or progress-summary replies. Precise session termination and infrastructure-log retention also depend on the hosting platform.
 
 ### Technical and service information
 
@@ -63,7 +63,8 @@ Vocogni uses information only for purposes connected to operating and improving 
 - authenticating the user and associating the session with the correct learner record;
 - saving and restoring profile details, learning progress, notes, milestones, and settings;
 - presenting course continuity, practice feedback, progress summaries, and rule-based recommendations;
-- responding to supported assistant requests using information already available in the learner's current application state;
+- responding to supported local Study Guide commands using information already available in the learner's current application state;
+- providing optional open-ended AI tutoring only after the learner enables the session-only opt-in, and only when the operator has configured a provider;
 - protecting the service, diagnosing errors, maintaining system reliability, and handling support or data-rights requests; and
 - meeting applicable legal obligations.
 
@@ -71,16 +72,15 @@ Personal data must not be used for an unrelated purpose without a valid legal ba
 
 ## 5. The assistant, recommendations, and automated outputs
 
-The current Vocogni Assistant uses application rules to answer a limited set of supported requests. When you ask for a summary, recommendation, course list, or explanation of saved practice history, the code may read the relevant profile, progress, notes, milestones, settings, or course catalogue data held in the active application state.
+The Study Guide has two modes with different data flows.
 
-In the current version:
+**Local commands.** Supported requests such as listing courses, summarising recorded progress, showing saved mistakes, and navigating the application are handled by deterministic application code. They use relevant information in the active learner session and do not require an external generative-AI request.
 
-- the assistant does not send learner profile or progress information to an external generative-AI provider;
-- the assistant conversation is not written to the durable learner-data bundle;
-- requests are not intended to change saved learning records merely by asking a question; and
-- recommendations and diagnostic summaries are limited prototype outputs, not professional, clinical, or official academic judgements.
+**Optional AI tutoring.** Open-ended subject questions can be sent to an external AI provider only when the operator has configured a compatible provider and the learner has enabled the session-only “Enable external AI tutoring” control. The feature is off by default. When it is enabled, the provider receives the current tutoring message, up to eight selected messages from previous external-AI tutoring turns, and a limited learning-context summary. That summary may include grade level, preferred language/difficulty/feedback style, overall and course-level practice accuracy, and recent recorded mistake tags. The application does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. A learner can still type personal information into a message, so the interface warns against doing so.
 
-These statements describe the current implementation, not a guarantee about future versions. A future external-model integration must include a fresh data-flow review, appropriate disclosure, any required separate consent, and data minimisation before it is enabled.
+AI-generated text may be incomplete, incorrect, or misleading. The model does not mark answers, change verified answer keys, score diagnostics, write durable learner progress, or independently determine mastery. Provider retention, training use, subprocessors, and processing location depend on the provider and its configuration. The operator must identify and review the actual provider, terms, retention settings, training use, data location, and cross-border processing before enabling this feature for real learners. The Study Guide conversation is not written to the durable learner-data bundle; session and infrastructure-log retention remain subject to platform configuration.
+
+The assistant and its recommendations remain prototype features, not professional, clinical, official academic, or validated diagnostic judgements. These draft statements describe the reviewed source code; they do not establish that the deployed configuration, provider contract, or legal requirements have been independently verified.
 
 ## 6. Services that help operate Vocogni
 
@@ -91,6 +91,7 @@ The current architecture uses or may rely on the following providers:
 - **Supabase** for durable learner-data storage: [Supabase Privacy Policy](https://supabase.com/privacy).
 - **Streamlit** for application hosting and runtime: [Streamlit Privacy Policy](https://streamlit.io/privacy-policy).
 - **Google Fonts** to deliver interface font files: [Google Privacy Policy](https://policies.google.com/privacy).
+- **The optional AI tutoring provider**, but only in deployments where the operator has configured it and a learner has enabled the session-only AI-tutoring control. The provider's identity, contract, subprocessors, processing locations, retention, and training settings must be confirmed and disclosed by the operator before the feature is enabled for real learners.
 
 These providers process data as needed to provide their services and may separately process service, security, and operational information under their own terms and privacy notices. The operator must confirm the exact providers enabled in production, review applicable provider agreements and subprocessors, and record relevant data flows before release.
 
