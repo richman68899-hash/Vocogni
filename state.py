@@ -76,6 +76,7 @@ import data
 import milestones as milestone_logic
 import whiteboard_data
 import persistence
+from settings_model import DEFAULT_SETTINGS as SETTINGS_DEFAULTS, safe_value as safe_setting_value
 from streak_garden.models import default_garden_state, sanitize_garden_state
 
 
@@ -146,21 +147,8 @@ def _default_progress() -> dict[str, dict[str, Any]]:
 
 
 def _default_settings() -> dict[str, Any]:
-    """
-    Return the default learner settings.
-    """
-
-    return {
-        "appearance": "Light",
-        "text_size": "Medium",
-        "animations": True,
-        "sound": True,
-        "feedback_timing": "Immediate",
-        "difficulty": "Adaptive",
-        "reduced_motion": False,
-        "larger_text": False,
-        "high_readability": False,
-    }
+    """Return the canonical settings schema shared with the Settings page."""
+    return dict(SETTINGS_DEFAULTS)
 
 
 # ===========================================================================
@@ -367,6 +355,12 @@ def _merge_settings(
 
     if isinstance(saved_settings, dict):
         settings.update(saved_settings)
+
+    # Persisted records may contain older string booleans or malformed values.
+    # Normalize known fields before UI code consumes them, while preserving
+    # unknown keys for forward compatibility.
+    for key, default in SETTINGS_DEFAULTS.items():
+        settings[key] = safe_setting_value(key, settings.get(key, default))
 
     return settings
 
