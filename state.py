@@ -489,10 +489,15 @@ def _derive_next_note_id(
         ):
             numeric_ids.append(note_id)
 
-    if not numeric_ids:
-        return 1
-
-    return max(numeric_ids) + 1
+    used_ids = {
+        str(note.get("id"))
+        for note in notes
+        if note.get("id") is not None
+    }
+    next_id = max(numeric_ids, default=0) + 1
+    while str(next_id) in used_ids:
+        next_id += 1
+    return next_id
 
 
 # ===========================================================================
