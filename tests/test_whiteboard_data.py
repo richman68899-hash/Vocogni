@@ -124,5 +124,63 @@ class WhiteboardDataTests(unittest.TestCase):
         self.assertEqual(len(cleaned["objects"]), whiteboard_data.MAX_OBJECTS_PER_PAGE)
 
 
+    def test_duplicate_object_ids_are_repaired_within_a_page(self):
+        page = whiteboard_data.create_page("Duplicate IDs", "plain")
+        page["objects"] = [
+            {
+                "id": "duplicate-object",
+                "type": "text",
+                "x": 10,
+                "y": 20,
+                "text": "First object",
+                "color": "#112233",
+                "fontSize": 20,
+            },
+            {
+                "id": "duplicate-object",
+                "type": "shape",
+                "shape": "rect",
+                "x": 40,
+                "y": 50,
+                "w": 100,
+                "h": 60,
+                "color": "#445566",
+                "width": 2,
+            },
+            {
+                "id": "duplicate-object",
+                "type": "sticky",
+                "x": 150,
+                "y": 160,
+                "w": 200,
+                "h": 120,
+                "text": "Third object",
+            },
+        ]
+
+        cleaned = whiteboard_data.sanitize_page(page)
+        object_ids = [item["id"] for item in cleaned["objects"]]
+
+        self.assertEqual(len(object_ids), 3)
+        self.assertEqual(len(set(object_ids)), 3)
+        self.assertEqual(object_ids[0], "duplicate-object")
+
+    def test_duplicate_page_ids_are_repaired_within_a_board(self):
+        board = whiteboard_data.create_board(title="Duplicate page IDs")
+        first = whiteboard_data.create_page("First", "plain")
+        second = whiteboard_data.create_page("Second", "grid")
+        first["id"] = "duplicate-page"
+        second["id"] = "duplicate-page"
+        board["pages"] = [first, second]
+
+        cleaned = whiteboard_data.sanitize_boards([board])
+        page_ids = [page["id"] for page in cleaned[0]["pages"]]
+
+        self.assertEqual(len(page_ids), 2)
+        self.assertEqual(len(set(page_ids)), 2)
+        self.assertEqual(page_ids[0], "duplicate-page")
+        self.assertEqual(cleaned[0]["pages"][1]["title"], "Second")
+
+
 if __name__ == "__main__":
     unittest.main()
