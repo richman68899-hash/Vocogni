@@ -1131,12 +1131,47 @@ def _catalogue(
     course_id: str | None = None,
     lesson_id: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
-    occurrences = _find_occurrences(course_id, lesson_id)
+    # Question IDs are globally unique across the bank, not merely within
+    # the caller's filtered course/lesson. Build the collision set from the
+    # complete catalogue before returning a scoped view; otherwise a scoped
+    # provenance lookup can accidentally "verify" one half of a duplicate.
+    all_occurrences = _find_occurrences()
+    locations_by_id: dict[str, set[tuple[str, str]]] = {}
+    for row in all_occurrences:
+        question_id = str(row["question"].get("id"))
+        location = (str(row["course_id"]), str(row["lesson_id"]))
+        locations_by_id.setdefault(question_id, set()).add(location)
+    conflicted_ids = {
+        question_id
+        for question_id, locations in locations_by_id.items()
+        if len(locations) > 1
+    }
+
+    occurrences = [
+        row for row in all_occurrences
+        if (course_id is None or row["course_id"] == course_id)
+        and (lesson_id is None or row["lesson_id"] == lesson_id)
+    ]
+    scoped_ids = {str(row["question"].get("id")) for row in occurrences}
+    duplicate_issues: list[dict[str, Any]] = []
+    for question_id in sorted(conflicted_ids & scoped_ids):
+        locations = sorted(locations_by_id[question_id])
+        for duplicate_course_id, duplicate_lesson_id in locations:
+            if course_id is not None and duplicate_course_id != course_id:
+                continue
+            if lesson_id is not None and duplicate_lesson_id != lesson_id:
+                continue
+            duplicate_issues.append({
+                "question_id": question_id,
+                "severity": "error",
+                "code": "duplicate_global_id",
+                "message": "Question IDs must be globally unique across course/lesson locations.",
+                "course_id": duplicate_course_id,
+                "lesson_id": duplicate_lesson_id,
+            })
+
     records: list[dict[str, Any]] = []
     keyed: dict[tuple[str, str, str], dict[str, Any]] = {}
-    duplicate_issues: list[dict[str, Any]] = []
-    seen_global: dict[str, tuple[str, str, str]] = {}
-    conflicted_ids: set[str] = set()
 
     for row in occurrences:
         question = row["question"]
@@ -1160,19 +1195,6 @@ def _catalogue(
                 existing["source_fields"].append(row["source_field"])
             continue
 
-        if qid in seen_global and seen_global[qid] != key:
-            conflicted_ids.add(qid)
-            duplicate_issues.append({
-                "question_id": qid,
-                "severity": "error",
-                "code": "duplicate_global_id",
-                "message": "Question IDs must be globally unique across course/lesson locations.",
-                "course_id": row["course_id"],
-                "lesson_id": row["lesson_id"],
-            })
-        else:
-            seen_global[qid] = key
-
         record = {
             "question_id": qid,
             "course_id": row["course_id"],
@@ -1183,17 +1205,13 @@ def _catalogue(
             "source_fields": [row["source_field"]],
             "pathway": row["pathway"],
             "question": deepcopy(question),
-            "catalogue_conflict": False,
+            "catalogue_conflict": qid in conflicted_ids,
         }
         keyed[key] = record
         records.append(record)
 
     # A globally reused ID is ambiguous even when the duplicated question
-    # text is identical, so every occurrence is excluded from strict VQE use.
-    for record in records:
-        if record["question_id"] in conflicted_ids:
-            record["catalogue_conflict"] = True
-
+    # text is identical, so every scoped occurrence is excluded from strict use.
     return records, duplicate_issues, len(occurrences)
 
 
