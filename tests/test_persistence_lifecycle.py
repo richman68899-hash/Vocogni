@@ -29,6 +29,8 @@ class FakeQuery:
         self.selected = None
         self.limit_value = None
         self.upsert_payload = None
+        self.update_payload = None
+        self.insert_payload = None
         self.conflict_target = None
 
     def select(self, columns):
@@ -46,6 +48,18 @@ class FakeQuery:
     def upsert(self, payload, on_conflict=None):
         self.upsert_payload = payload
         self.conflict_target = on_conflict
+        return self
+
+    def update(self, payload):
+        self.update_payload = payload
+        return self
+
+    def insert(self, payload):
+        self.insert_payload = payload
+        return self
+
+    def is_(self, column, value):
+        self.filters.append((column, f"is:{value}"))
         return self
 
     def execute(self):
@@ -114,6 +128,17 @@ class SupabasePersistenceTests(unittest.TestCase):
         ):
             self.assertEqual(persistence.load_progress(), {})
 
+    def test_load_progress_record_reports_missing_row(self):
+        query = FakeQuery(rows=[])
+        with (
+            patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            patch.object(persistence, "get_supabase", return_value=FakeClient(query)),
+        ):
+            self.assertEqual(
+                persistence.load_progress_record(),
+                {"progress": {}, "updated_at": None, "exists": False},
+            )
+
     def test_load_rejects_non_object_progress(self):
         query = FakeQuery(rows=[{"progress": ["unexpected"]}])
         with (
@@ -123,8 +148,9 @@ class SupabasePersistenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "must be a JSON object"):
                 persistence.load_progress()
 
-    def test_save_upserts_and_verifies_the_authenticated_subject(self):
-        query = FakeQuery(rows=[{"user_id": "auth0|learner-a", "updated_at": "2026-11-09T00:00:00+00:00"}])
+    def test_save_updates_only_when_loaded_revision_matches(self):
+        revision = "2026-11-09T00:00:00+00:00"
+        query = FakeQuery(rows=[{"user_id": "auth0|learner-a", "updated_at": "2026-11-09T00:01:00+00:00"}])
         client = FakeClient(query)
         learner_state = {"profile": {"name": "Learner A"}}
 
@@ -132,14 +158,51 @@ class SupabasePersistenceTests(unittest.TestCase):
             patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
             patch.object(persistence, "get_supabase", return_value=client),
         ):
-            persistence.save_progress(learner_state)
+            new_revision = persistence.save_progress(
+                learner_state, expected_updated_at=revision, record_exists=True
+            )
 
         self.assertEqual(client.table_name, persistence.TABLE_NAME)
-        self.assertEqual(query.conflict_target, "user_id")
-        self.assertEqual(query.upsert_payload["user_id"], "auth0|learner-a")
-        self.assertEqual(query.upsert_payload["progress"], learner_state)
-        self.assertTrue(query.upsert_payload["updated_at"])
+        self.assertEqual(query.filters, [("user_id", "auth0|learner-a"), ("updated_at", revision)])
+        self.assertEqual(query.update_payload["user_id"], "auth0|learner-a")
+        self.assertEqual(query.update_payload["progress"], learner_state)
+        self.assertTrue(query.update_payload["updated_at"])
         self.assertEqual(query.selected, "user_id, updated_at")
+        self.assertEqual(new_revision, "2026-11-09T00:01:00+00:00")
+
+    def test_first_save_uses_insert_instead_of_upsert(self):
+        query = FakeQuery(rows=[{"user_id": "auth0|learner-a", "updated_at": "2026-11-09T00:01:00+00:00"}])
+        with (
+            patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            patch.object(persistence, "get_supabase", return_value=FakeClient(query)),
+        ):
+            persistence.save_progress({"profile": {}}, record_exists=False)
+        self.assertIsNotNone(query.insert_payload)
+        self.assertIsNone(query.upsert_payload)
+
+    def test_stale_conditional_update_is_reported_as_a_conflict(self):
+        query = FakeQuery(rows=[])
+        with (
+            patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            patch.object(persistence, "get_supabase", return_value=FakeClient(query)),
+        ):
+            with self.assertRaises(persistence.ConcurrentProgressUpdateError):
+                persistence.save_progress(
+                    {"profile": {}},
+                    expected_updated_at="stale-revision",
+                    record_exists=True,
+                )
+
+    def test_load_returns_progress_and_revision(self):
+        revision = "2026-11-09T00:00:00+00:00"
+        query = FakeQuery(rows=[{"progress": {"profile": {}}, "updated_at": revision}])
+        with (
+            patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            patch.object(persistence, "get_supabase", return_value=FakeClient(query)),
+        ):
+            record = persistence.load_progress_record()
+        self.assertEqual(record, {"progress": {"profile": {}}, "updated_at": revision, "exists": True})
+        self.assertEqual(query.selected, "progress, updated_at")
 
     def test_save_rejects_a_response_for_another_user(self):
         query = FakeQuery(rows=[{"user_id": "auth0|learner-b"}])
@@ -180,7 +243,7 @@ class SessionIdentityBoundaryTests(unittest.TestCase):
         with (
             patch.object(state.st, "session_state", session),
             patch.object(state.persistence, "get_user_id", return_value="auth0|learner-a"),
-            patch.object(state.persistence, "load_progress") as load_progress,
+            patch.object(state.persistence, "load_progress_record") as load_progress,
         ):
             state.load_saved_learner_state()
 
@@ -210,7 +273,9 @@ class SessionIdentityBoundaryTests(unittest.TestCase):
         with (
             patch.object(state.st, "session_state", session),
             patch.object(state.persistence, "get_user_id", return_value="auth0|learner-b"),
-            patch.object(state.persistence, "load_progress", return_value=learner_b_data) as load_progress,
+            patch.object(state.persistence, "load_progress_record", return_value={
+                "progress": learner_b_data, "updated_at": "2026-11-12T09:00:00+00:00", "exists": True,
+            }) as load_progress,
         ):
             state.load_saved_learner_state()
 

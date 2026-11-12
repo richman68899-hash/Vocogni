@@ -210,6 +210,9 @@ def init_session_state() -> None:
         # ------------------------------------------------------------------
         "_persistent_state_loaded": False,
         "_persistent_user_id": None,
+        "_persistent_updated_at": None,
+        "_persistent_row_exists": False,
+        "_persistent_conflict": False,
 
         # Has durable learner state changed since last successful save?
         "_persistent_dirty": False,
@@ -485,6 +488,9 @@ def mark_persistent_dirty() -> None:
     """
 
     st.session_state["_persistent_dirty"] = True
+    if st.session_state.get("_persistent_conflict", False):
+        st.session_state["_persistent_save_status"] = "conflict"
+        return
     st.session_state["_persistent_save_status"] = "pending"
     st.session_state["_persistent_save_error"] = None
 
@@ -541,9 +547,13 @@ def persist_learner_state() -> None:
 
     persistent_state = _build_persistent_state()
 
-    persistence.save_progress(
-        persistent_state
+    updated_at = persistence.save_progress(
+        persistent_state,
+        expected_updated_at=st.session_state.get("_persistent_updated_at"),
+        record_exists=bool(st.session_state.get("_persistent_row_exists", False)),
     )
+    st.session_state["_persistent_updated_at"] = updated_at
+    st.session_state["_persistent_row_exists"] = True
 
 
 # ===========================================================================
@@ -564,24 +574,29 @@ def flush_persistent_save() -> bool:
     if not has_pending_persistence():
         return True
 
+    if st.session_state.get("_persistent_conflict", False):
+        st.session_state["_persistent_save_status"] = "conflict"
+        return False
+
     st.session_state["_persistent_save_status"] = "saving"
     st.session_state["_persistent_save_error"] = None
 
     try:
         persist_learner_state()
 
+    except persistence.ConcurrentProgressUpdateError as exc:
+        st.session_state["_persistent_dirty"] = True
+        st.session_state["_persistent_conflict"] = True
+        st.session_state["_persistent_save_status"] = "conflict"
+        st.session_state["_persistent_save_error"] = str(exc)
+        return False
+
     except Exception as exc:
-        # IMPORTANT:
         # Dirty remains True so the session does not falsely claim that
         # the learner's changes have been saved.
         st.session_state["_persistent_dirty"] = True
-
         st.session_state["_persistent_save_status"] = "error"
-
-        st.session_state["_persistent_save_error"] = str(
-            exc
-        )
-
+        st.session_state["_persistent_save_error"] = str(exc)
         return False
 
     # ---------------------------------------------------------------
@@ -589,10 +604,11 @@ def flush_persistent_save() -> bool:
     # ---------------------------------------------------------------
 
     st.session_state["_persistent_dirty"] = False
+    st.session_state["_persistent_conflict"] = False
 
     st.session_state["_persistent_save_status"] = "saved"
-
     st.session_state["_persistent_save_error"] = None
+    st.session_state["_persistent_conflict"] = False
 
     st.session_state["_persistent_last_saved_at"] = (
         datetime.now(timezone.utc).isoformat()
@@ -612,7 +628,7 @@ def flush_persistent_save() -> bool:
 # LOAD PERSISTENT STATE
 # ===========================================================================
 
-def load_saved_learner_state() -> None:
+def load_saved_learner_state(*, force_reload: bool = False) -> None:
     """
     Load durable learner state from Supabase.
 
@@ -637,9 +653,12 @@ def load_saved_learner_state() -> None:
     if st.session_state.get("_persistent_state_loaded", False):
         loaded_user_id = st.session_state.get("_persistent_user_id")
 
-        if loaded_user_id == user_id:
+        if loaded_user_id == user_id and not force_reload:
             return
 
+        # The OIDC subject changed, or the learner explicitly chose to reload
+        # after a concurrent-save conflict. Clear all app/widget state before
+        # loading so stale local edits cannot be written over the newer row.
         # The OIDC subject changed while this Streamlit session still held
         # another learner's state. Clear all app/widget state before loading
         # the new account. Never display or save the previous learner's data
@@ -655,12 +674,17 @@ def load_saved_learner_state() -> None:
     # Load database record
     # ---------------------------------------------------------------
 
-    saved = persistence.load_progress()
+    saved_record = persistence.load_progress_record()
+    saved = saved_record.get("progress")
 
     if not isinstance(saved, dict):
         raise RuntimeError(
             "Persistent learner state has an invalid top-level format."
         )
+
+    # ---------------------------------------------------------------
+    st.session_state["_persistent_updated_at"] = saved_record.get("updated_at")
+    st.session_state["_persistent_row_exists"] = bool(saved_record.get("exists"))
 
     # ---------------------------------------------------------------
     # First-time learner
@@ -900,6 +924,27 @@ def render_save_status() -> None:
         st.caption(
             "Saving..."
         )
+
+    elif status == "conflict":
+        st.error("Your saved learner data changed in another session.")
+        st.caption(
+            "This session's unsaved changes have not been written. To protect the "
+            "newer saved data, reload it before continuing. Reloading discards the "
+            "unsaved changes in this session."
+        )
+        if st.button(
+            "Discard local changes and reload latest data",
+            key="reload_after_persistence_conflict",
+            type="primary",
+        ):
+            try:
+                load_saved_learner_state(force_reload=True)
+            except Exception as exc:
+                st.session_state["_persistent_save_status"] = "conflict"
+                st.session_state["_persistent_save_error"] = str(exc)
+                st.error("Could not reload the latest saved data. Your local session remains open.")
+            else:
+                st.rerun()
 
     elif status == "error":
 
