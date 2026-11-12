@@ -125,6 +125,74 @@ class LearningMemoryTests(unittest.TestCase):
         self.assertEqual(self.progress["maths"]["mistakes"], {"old": 2})
         self.assertIn("old_skill", self.progress["maths"]["learning_memory"]["skills"])
 
+    def test_malformed_saved_memory_is_safe_to_read_and_append(self):
+        self.progress = {
+            "maths": {
+                "learning_memory": {
+                    "attempts_recorded": "not-a-number",
+                    "skills": {
+                        "quadratic_inequalities": {
+                            "skill_key": "quadratic_inequalities",
+                            "label": "Quadratic inequalities",
+                            "attempts": "bad",
+                            "marks_awarded": None,
+                            "max_marks": float("nan"),
+                            "recent_scores": "not-a-list",
+                            "criterion_history": {
+                                "endpoints": None,
+                                "broken": {
+                                    "seen": "bad",
+                                    "misses": None,
+                                    "question_ids": [[1], {}],
+                                    "missed_question_ids": [{"unhashable": True}],
+                                },
+                            },
+                            "evidence": "not-a-list",
+                        }
+                    },
+                }
+            }
+        }
+
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        skill = profile["skills"][0]
+        self.assertEqual(profile["attempts_recorded"], 0)
+        self.assertEqual(skill["attempts"], 0)
+        self.assertEqual(skill["recent_scores"], [])
+        self.assertEqual(skill["repeat_snags"], [])
+
+        learning_memory.record_attempt(
+            self.progress,
+            "maths",
+            "lesson_1",
+            "Quadratic inequalities",
+            self.question,
+            True,
+            {
+                "score": "invalid",
+                "max_marks": float("inf"),
+                "marking_points": [
+                    {
+                        "id": "endpoints",
+                        "criteria": "Includes endpoints",
+                        "met": "false",
+                        "marks_awarded": "invalid",
+                        "marks_available": None,
+                    }
+                ],
+            },
+            source="practice",
+        )
+
+        saved = self.progress["maths"]["learning_memory"]
+        repaired = saved["skills"]["quadratic_inequalities"]
+        self.assertEqual(saved["attempts_recorded"], 1)
+        self.assertEqual(repaired["attempts"], 1)
+        self.assertEqual(repaired["max_marks"], 1)
+        self.assertEqual(repaired["marks_awarded"], 1)
+        self.assertEqual(repaired["criterion_history"]["endpoints"]["misses"], 1)
+        self.assertEqual(len(repaired["evidence"]), 1)
+
     def test_repair_rules_are_deterministic(self):
         self.assertIn("roots", learning_memory.repair_suggestion("Quadratic inequalities", "Endpoint inclusion").casefold())
         self.assertIn("equate", learning_memory.repair_suggestion("Simultaneous equations").casefold())
