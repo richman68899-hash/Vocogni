@@ -177,22 +177,46 @@ def evaluate_open_response(question: dict[str, Any], answer: Any) -> dict[str, A
 
 
 def validate_open_response_question(question: dict[str, Any]) -> list[str]:
-    """Validate a course author's open-response rubric before it reaches learners."""
+    """Validate an authored chemistry rubric without unsafe integer coercion."""
     errors = []
     if question.get("type") != "open_ended":
         return errors
+
     max_marks = question.get("max_marks")
-    points = question.get("marking_points")
-    if not isinstance(max_marks, int) or max_marks < 1:
+    valid_maximum = (
+        isinstance(max_marks, int)
+        and not isinstance(max_marks, bool)
+        and max_marks > 0
+    )
+    if not valid_maximum:
         errors.append("open_ended question needs a positive integer max_marks")
+
+    points = question.get("marking_points")
     if not isinstance(points, list) or not points:
         errors.append("open_ended question needs at least one marking_points item")
         return errors
-    if any(not isinstance(point, dict) or int(point.get("marks", 0)) < 1 for point in points):
-        errors.append("each marking point needs positive integer marks")
-    elif sum(int(point.get("marks", 0)) for point in points) != int(max_marks or 0):
-        errors.append("marking-point total must equal max_marks exactly")
+
+    valid_point_marks = True
+    total = 0
     for index, point in enumerate(points, start=1):
-        if not any(point.get(key) for key in ("match_all", "match_any", "match_groups", "regex_any", "numeric_targets")):
+        if not isinstance(point, dict):
+            errors.append(f"marking point {index} must be a dictionary")
+            valid_point_marks = False
+            continue
+
+        marks = point.get("marks")
+        if not isinstance(marks, int) or isinstance(marks, bool) or marks < 1:
+            errors.append(f"marking point {index} needs positive integer marks")
+            valid_point_marks = False
+        else:
+            total += marks
+
+        if not any(point.get(key) for key in (
+            "match_all", "match_any", "match_groups", "regex_any", "numeric_targets"
+        )):
             errors.append(f"marking point {index} has no matching rule")
+
+    if valid_maximum and valid_point_marks and total != max_marks:
+        errors.append("marking-point total must equal max_marks exactly")
+
     return errors
