@@ -236,6 +236,18 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
             )
             self.assertEqual(records, [])
 
+            # A lesson-scoped lookup must still notice the duplicate ID in
+            # the other lesson; filtering must not turn it back into "verified".
+            scoped = question_engine.iter_question_records(
+                course_id=course_id, lesson_id="one"
+            )
+            self.assertEqual(len(scoped), 1)
+            self.assertEqual(scoped[0]["verification_status"], "needs_review")
+            self.assertTrue(any(
+                "conflicting authored content" in issue
+                for issue in scoped[0]["verification_issues"]
+            ))
+
 
 if __name__ == "__main__":
     unittest.main()
