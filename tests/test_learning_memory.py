@@ -73,6 +73,42 @@ class LearningMemoryTests(unittest.TestCase):
         self.assertEqual(profile["skills"][0]["status"], "Consistent evidence")
         self.assertEqual(profile["reliable_count"], 1)
 
+    def test_latest_retake_moves_question_to_end_of_consistent_evidence_window(self):
+        for question_id in ("q1", "q2", "q3", "q4"):
+            question = {
+                "id": question_id,
+                "skill_tag": "Factoring",
+                "mistake_tag": "Factoring",
+            }
+            learning_memory.record_attempt(
+                self.progress,
+                "maths",
+                "lesson_1",
+                "Factoring",
+                question,
+                True,
+                {"score": 4, "max_marks": 4, "marking_points": []},
+                source="practice",
+            )
+
+        # Retaking the earliest question with a low score must make that
+        # low score part of the three most recent distinct-question results.
+        learning_memory.record_attempt(
+            self.progress,
+            "maths",
+            "lesson_1",
+            "Factoring",
+            {"id": "q1", "skill_tag": "Factoring", "mistake_tag": "Factoring"},
+            False,
+            {"score": 0, "max_marks": 4, "marking_points": []},
+            source="practice",
+        )
+
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        self.assertEqual(profile["skills"][0]["recent_scores"], [100, 100, 100, 100, 0])
+        self.assertEqual(profile["skills"][0]["status"], "Developing")
+        self.assertEqual(profile["reliable_count"], 0)
+
     def test_repeating_one_question_does_not_create_consistent_evidence(self):
         question = {"id": "q1", "skill_tag": "Factoring", "mistake_tag": "Factoring"}
         for _ in range(3):
