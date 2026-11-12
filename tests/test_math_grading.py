@@ -11,6 +11,12 @@ class MathGradingNumericTokenTests(unittest.TestCase):
         self.assertFalse(math_grading._contains("x2", "2"))
         self.assertTrue(math_grading._contains("x = 2", "2"))
         self.assertTrue(math_grading._contains("(2, 3)", "2"))
+        self.assertFalse(math_grading._contains("-2", "2"))
+        self.assertFalse(math_grading._contains("x = -2", "2"))
+        self.assertTrue(math_grading._contains("x = -2", "-2"))
+        self.assertTrue(math_grading._contains("10 - 2 = 8", "2"))
+        self.assertFalse(math_grading._contains("2e3", "2"))
+        self.assertFalse(math_grading._contains("x^2", "2"))
 
     def test_numeric_rubric_no_longer_awards_a_wrong_root_embedded_in_12(self):
         point = {

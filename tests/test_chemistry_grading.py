@@ -57,6 +57,12 @@ class ChemistryGradingTests(unittest.TestCase):
         self.assertFalse(chemistry_grading._contains("2.5", "2"))
         self.assertFalse(chemistry_grading._contains("SO2", "2"))
         self.assertTrue(chemistry_grading._contains("2 + SO2", "2"))
+        self.assertFalse(chemistry_grading._contains("-2", "2"))
+        self.assertFalse(chemistry_grading._contains("x = -2", "2"))
+        self.assertTrue(chemistry_grading._contains("x = -2", "-2"))
+        self.assertTrue(chemistry_grading._contains("10 - 2 = 8", "2"))
+        self.assertFalse(chemistry_grading._contains("2e3", "2"))
+        self.assertFalse(chemistry_grading._contains("x^2", "2"))
 
     def test_legacy_numeric_and_mc_answers_still_work(self):
         self.assertTrue(logic.check_answer(
