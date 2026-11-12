@@ -650,21 +650,21 @@ def load_saved_learner_state(*, force_reload: bool = False) -> None:
     # session, so the loaded flag alone is not a sufficient cache key.
     user_id = persistence.get_user_id()
 
+    reset_same_user_after_success = False
     if st.session_state.get("_persistent_state_loaded", False):
         loaded_user_id = st.session_state.get("_persistent_user_id")
 
-        if loaded_user_id == user_id and not force_reload:
-            return
-
-        # The OIDC subject changed, or the learner explicitly chose to reload
-        # after a concurrent-save conflict. Clear all app/widget state before
-        # loading so stale local edits cannot be written over the newer row.
-        # The OIDC subject changed while this Streamlit session still held
-        # another learner's state. Clear all app/widget state before loading
-        # the new account. Never display or save the previous learner's data
-        # under the newly authenticated identity.
-        st.session_state.clear()
-        init_session_state()
+        if loaded_user_id == user_id:
+            if not force_reload:
+                return
+            # Fetch and validate the latest row before discarding local edits.
+            # A network or data-format error must leave the current session intact.
+            reset_same_user_after_success = True
+        else:
+            # An authentication switch is different: never retain one learner's
+            # data in a session now authenticated as another learner.
+            st.session_state.clear()
+            init_session_state()
 
     # ---------------------------------------------------------------
     # Authentication
@@ -681,6 +681,10 @@ def load_saved_learner_state(*, force_reload: bool = False) -> None:
         raise RuntimeError(
             "Persistent learner state has an invalid top-level format."
         )
+
+    if reset_same_user_after_success:
+        st.session_state.clear()
+        init_session_state()
 
     # ---------------------------------------------------------------
     st.session_state["_persistent_updated_at"] = saved_record.get("updated_at")
@@ -889,8 +893,8 @@ def load_saved_learner_state(*, force_reload: bool = False) -> None:
     st.session_state["_persistent_dirty"] = False
 
     st.session_state["_persistent_save_status"] = "saved"
-
     st.session_state["_persistent_save_error"] = None
+    st.session_state["_persistent_conflict"] = False
 
 
 # ===========================================================================

@@ -291,6 +291,69 @@ class SessionIdentityBoundaryTests(unittest.TestCase):
         self.assertNotIn("A-only", repr(session))
 
 
+    def test_failed_conflict_reload_preserves_local_session(self):
+        session = FakeSessionState({
+            "_persistent_state_loaded": True,
+            "_persistent_user_id": "auth0|learner-a",
+            "_persistent_dirty": True,
+            "_persistent_conflict": True,
+            "profile": {"name": "Local unsaved edit"},
+            "notes": [{"id": 1, "title": "Unsaved note"}],
+        })
+        with (
+            patch.object(state.st, "session_state", session),
+            patch.object(state.persistence, "get_user_id", return_value="auth0|learner-a"),
+            patch.object(
+                state.persistence,
+                "load_progress_record",
+                side_effect=RuntimeError("temporary database outage"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "temporary database outage"):
+                state.load_saved_learner_state(force_reload=True)
+
+        self.assertEqual(session["profile"]["name"], "Local unsaved edit")
+        self.assertEqual(session["notes"], [{"id": 1, "title": "Unsaved note"}])
+        self.assertTrue(session["_persistent_dirty"])
+        self.assertTrue(session["_persistent_conflict"])
+
+    def test_successful_conflict_reload_replaces_local_state_and_clears_conflict(self):
+        session = FakeSessionState({
+            "_persistent_state_loaded": True,
+            "_persistent_user_id": "auth0|learner-a",
+            "_persistent_dirty": True,
+            "_persistent_conflict": True,
+            "profile": {"name": "Local unsaved edit"},
+            "notes": [{"id": 1, "title": "Unsaved note"}],
+        })
+        saved = {
+            "profile": {"name": "Latest saved profile"},
+            "progress": {},
+            "notes": [{"id": 2, "title": "Latest saved note"}],
+            "settings": {},
+        }
+        with (
+            patch.object(state.st, "session_state", session),
+            patch.object(state.persistence, "get_user_id", return_value="auth0|learner-a"),
+            patch.object(
+                state.persistence,
+                "load_progress_record",
+                return_value={
+                    "progress": saved,
+                    "updated_at": "2026-11-12T10:00:00+00:00",
+                    "exists": True,
+                },
+            ),
+        ):
+            state.load_saved_learner_state(force_reload=True)
+
+        self.assertEqual(session["profile"]["name"], "Latest saved profile")
+        self.assertEqual(session["notes"], [{"id": 2, "title": "Latest saved note", "folder_id": None}])
+        self.assertFalse(session["_persistent_dirty"])
+        self.assertFalse(session["_persistent_conflict"])
+        self.assertEqual(session["_persistent_updated_at"], "2026-11-12T10:00:00+00:00")
+
+
 class StartupLoadFailureTests(unittest.TestCase):
     def test_load_failure_stops_before_showing_or_saving_empty_workspace(self):
         with (
