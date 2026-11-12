@@ -28,15 +28,38 @@ def _contains(answer: str, phrase: Any) -> bool:
     needle = normalize_answer(phrase)
     if not needle:
         return False
-    # Numeric rubric terms must match a complete number, not a substring
-    # inside a different value (2 must not match 12 or 2.5).
-    if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", needle):
-        return re.search(
-            rf"(?<![A-Za-z0-9.]){re.escape(needle)}(?![0-9]|\.\d)",
-            answer,
-        ) is not None
-    return needle in answer
+    # Match complete signed numeric tokens. A positive "2" must not match
+    # "-2"; the positive operand in "10-2" must still be recognized.
+    numeric_needle = re.fullmatch(
+        r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?",
+        needle,
+        re.IGNORECASE,
+    )
+    if numeric_needle:
+        from decimal import Decimal, InvalidOperation
 
+        expected = Decimal(needle)
+        token_pattern = re.compile(
+            r"(?<![A-Za-z0-9_.^])(?P<number>\d+(?:\.\d*)?(?:e[+-]?\d+)?)(?![A-Za-z0-9_.])",
+            re.IGNORECASE,
+        )
+        for match in token_pattern.finditer(answer):
+            try:
+                value = Decimal(match.group("number"))
+            except InvalidOperation:
+                continue
+            before_number = answer[:match.start()]
+            if before_number.endswith(("-", "+")):
+                sign = before_number[-1]
+                before_sign = before_number[:-1]
+                previous = before_sign[-1:] if before_sign else ""
+                if not previous or previous in "=(:,[+*/^{":
+                    if sign == "-":
+                        value = -value
+            if value == expected:
+                return True
+        return False
+    return needle in answer
 
 def _numeric_match(answer: str, targets: list[dict[str, Any]]) -> bool:
     found = []
