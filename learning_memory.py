@@ -142,14 +142,27 @@ def _profile_skill(skill):
     elif attempts >= 2 and average < 60:
         status = "Needs review"
     else:
-        distinct_practice_scores = {}
-        for item in skill.get("evidence", []):
+        # A retake becomes the latest evidence for that question. A plain
+        # dict assignment preserves the key's first insertion position, which
+        # can incorrectly leave an old high score in the "latest three" window.
+        latest_practice_by_question = {}
+        for evidence_index, item in enumerate(skill.get("evidence", [])):
             if not isinstance(item, dict) or item.get("source") != "practice":
                 continue
             question_id = str(item.get("question_id") or "")
             if question_id:
-                distinct_practice_scores[question_id] = int(item.get("score_percent", 0))
-        recent_distinct_practice = list(distinct_practice_scores.values())[-3:]
+                latest_practice_by_question[question_id] = (
+                    evidence_index,
+                    int(item.get("score_percent", 0)),
+                )
+        chronological_scores = [
+            score
+            for _, score in sorted(
+                latest_practice_by_question.values(),
+                key=lambda entry: entry[0],
+            )
+        ]
+        recent_distinct_practice = chronological_scores[-3:]
         has_consistent_evidence = (
             len(recent_distinct_practice) == 3
             and all(value >= 80 for value in recent_distinct_practice)
