@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
 import intervention_tracking
+import question_engine
 
 
 class InterventionTrackingTests(unittest.TestCase):
@@ -86,6 +88,106 @@ class InterventionTrackingTests(unittest.TestCase):
         self.assertEqual(report["events_total"], 1)
         self.assertEqual(report["events"][0]["follow_up_answer_count"], 2)
         self.assertEqual(report["events"][0]["follow_up_accuracy_percent"], 50)
+
+    def test_report_uses_saved_source_lesson_for_cross_lesson_practice(self):
+        progress = {
+            "fractions": {
+                "intervention_events": [{
+                    "event_id": "support-1",
+                    "intervention_type": "worked_example",
+                    "skill_id": "math.number.fraction_representation",
+                    "lesson_id": "fractions_l1",
+                    "occurred_at": "2026-10-30T09:00:00+00:00",
+                }],
+                "practice_attempts": {
+                    # The attempt is stored under a later lesson, but this
+                    # selected revision item originally belongs to lesson 1.
+                    "fractions_l2": [{
+                        "results": [{
+                            "question_id": "fractions_l1_q1",
+                            "skill_id": "math.number.fraction_representation",
+                            "course_id": "fractions",
+                            "lesson_id": "fractions_l1",
+                            "verification_status": "verified",
+                            "correct": True,
+                            "answered_at": "2026-10-30T09:10:00+00:00",
+                        }]
+                    }]
+                },
+            }
+        }
+        with patch.object(
+            question_engine,
+            "attempt_metadata",
+            return_value={
+                "verification_status": "verified",
+                "skill_id": "math.number.fraction_representation",
+            },
+        ) as resolve:
+            report = intervention_tracking.build_intervention_report(progress)
+
+        resolve.assert_called_once_with(
+            "fractions_l1_q1",
+            course_id="fractions",
+            lesson_id="fractions_l1",
+        )
+        self.assertEqual(report["events"][0]["follow_up_answer_count"], 1)
+        self.assertEqual(report["events"][0]["follow_up_accuracy_percent"], 100)
+
+    def test_report_indexes_answer_history_once_for_multiple_events(self):
+        progress = {
+            "fractions": {
+                "intervention_events": [
+                    {
+                        "event_id": f"support-{index}",
+                        "intervention_type": "hint",
+                        "skill_id": "math.number.fraction_representation",
+                        "lesson_id": "fractions_l1",
+                        "occurred_at": f"2026-10-30T09:{index:02d}:00+00:00",
+                    }
+                    for index in range(10)
+                ],
+                "practice_attempts": {
+                    "fractions_l1": [{
+                        "results": [{
+                            "question_id": "fractions_l1_q1",
+                            "skill_id": "math.number.fraction_representation",
+                            "verification_status": "verified",
+                            "correct": True,
+                            "answered_at": "2026-10-30T10:00:00+00:00",
+                        }]
+                    }]
+                },
+            }
+        }
+        with patch.object(
+            question_engine,
+            "attempt_metadata",
+            return_value={
+                "verification_status": "verified",
+                "skill_id": "math.number.fraction_representation",
+            },
+        ) as resolve:
+            report = intervention_tracking.build_intervention_report(progress)
+        self.assertEqual(resolve.call_count, 1)
+        self.assertEqual(len(report["events"]), 10)
+        self.assertTrue(
+            all(event["follow_up_answer_count"] == 1 for event in report["events"])
+        )
+
+    def test_intervention_history_is_bounded(self):
+        progress = {}
+        for index in range(intervention_tracking.HISTORY_LIMIT + 20):
+            intervention_tracking.record_intervention(
+                progress,
+                course_id="fractions",
+                lesson_id="fractions_l1",
+                intervention_type="hint",
+                event_id=f"hint-{index}",
+            )
+        events = progress["fractions"]["intervention_events"]
+        self.assertEqual(len(events), intervention_tracking.HISTORY_LIMIT)
+        self.assertEqual(events[0]["event_id"], "hint-20")
 
     def test_report_does_not_mutate_legacy_progress(self):
         progress = {"fractions": {"practice_attempts": {}, "intervention_events": []}}

@@ -638,8 +638,8 @@ def _render_recommendations(progress):
     st.markdown("#### Teaching support and follow-up")
     support_report = intervention_tracking.build_intervention_report(progress, limit=8)
     st.caption(
-        "Records supports that learners actually opened or viewed. For each support, "
-        "the follow-up shows up to the next three verified answers for that skill. "
+        "Records when a teaching support is shown in the lesson flow. For each "
+        "support, the follow-up shows up to the next three verified answers for that skill. "
         "These observations are descriptive and do not prove that a support caused improvement."
     )
     if not support_report["events"]:
