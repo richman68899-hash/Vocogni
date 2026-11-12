@@ -35,6 +35,7 @@ def normalize_answer(value: Any) -> str:
 
 
 def _contains(answer: str, phrase: Any) -> bool:
+    answer = normalize_answer(answer)
     needle = normalize_answer(phrase)
     if not needle:
         return False
@@ -50,7 +51,7 @@ def _contains(answer: str, phrase: Any) -> bool:
 
         expected = Decimal(needle)
         token_pattern = re.compile(
-            r"(?<![A-Za-z0-9_.^])(?P<number>\d+(?:\.\d*)?(?:e[+-]?\d+)?)(?![A-Za-z0-9_.])",
+            r"(?<![A-Za-z0-9_.^])(?P<number>\d+(?:\.\d*)?(?:e[+-]?\d+)?)(?![0-9]|\.\d)",
             re.IGNORECASE,
         )
         for match in token_pattern.finditer(answer):
