@@ -6,7 +6,19 @@ ordinary practice accuracy or its denominator.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import math
 from typing import Any
+
+
+def _normalise_baseline_percent(value: Any) -> int:
+    """Return a finite whole-number percentage constrained to the 0–100 scale."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    if isinstance(value, int):
+        return min(100, max(0, value))
+    if not math.isfinite(value):
+        return 0
+    return min(100, max(0, int(value)))
 
 
 def build_post_lesson_checkpoint(
@@ -34,10 +46,7 @@ def build_post_lesson_checkpoint(
     if not ordinary:
         return None
 
-    baseline_percent = baseline.get("percent", 0)
-    if isinstance(baseline_percent, bool) or not isinstance(baseline_percent, (int, float)):
-        baseline_percent = 0
-    baseline_percent = int(baseline_percent)
+    baseline_percent = _normalise_baseline_percent(baseline.get("percent", 0))
 
     post_correct = sum(1 for result in ordinary if result["correct"])
     post_total = len(ordinary)

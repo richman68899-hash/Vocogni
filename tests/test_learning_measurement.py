@@ -39,6 +39,29 @@ class PostLessonCheckpointTests(unittest.TestCase):
         self.assertEqual(checkpoint["post_total"], 1)
         self.assertEqual(checkpoint["post_practice_percent"], 100)
 
+    def test_non_finite_baseline_percentages_fall_back_safely(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                checkpoint = learning_measurement.build_post_lesson_checkpoint(
+                    {"percent": value},
+                    [{"correct": True}],
+                )
+                self.assertEqual(checkpoint["baseline_percent"], 0)
+                self.assertEqual(checkpoint["percentage_point_difference"], 100)
+
+    def test_baseline_percentages_are_clamped_to_valid_range(self):
+        for value, expected in ((150, 100), (-25, 0), (75.9, 75)):
+            with self.subTest(value=value):
+                checkpoint = learning_measurement.build_post_lesson_checkpoint(
+                    {"percent": value},
+                    [{"correct": True}],
+                )
+                self.assertEqual(checkpoint["baseline_percent"], expected)
+                self.assertEqual(
+                    checkpoint["percentage_point_difference"],
+                    100 - expected,
+                )
+
     def test_missing_baseline_does_not_create_checkpoint(self):
         self.assertIsNone(
             learning_measurement.build_post_lesson_checkpoint(
