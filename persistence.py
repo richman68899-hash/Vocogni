@@ -367,18 +367,8 @@ def _format_database_error(
 # LOAD
 # ============================================================================
 
-def load_progress() -> dict[str, Any]:
-    """
-    Load durable learner state for the currently authenticated learner.
-
-    Returns:
-        {} if no learner record exists yet.
-        Otherwise, the JSON object stored in learner_progress.progress.
-
-    Identity is always derived internally from the authenticated OIDC
-    subject. The caller cannot supply an arbitrary learner ID.
-    """
-
+def load_progress_record() -> dict[str, Any]:
+    """Load a learner row and its revision for optimistic concurrency checks."""
     user_id = get_user_id()
     client = get_supabase()
 
@@ -386,120 +376,118 @@ def load_progress() -> dict[str, Any]:
         response = (
             client
             .table(TABLE_NAME)
-            .select("progress")
-            .eq(
-                "user_id",
-                user_id,
-            )
+            .select("progress, updated_at")
+            .eq("user_id", user_id)
             .limit(1)
             .execute()
         )
-
     except APIError as exc:
-        raise RuntimeError(
-            _format_database_error(exc)
-        ) from exc
-
+        raise RuntimeError(_format_database_error(exc)) from exc
     except Exception as exc:
-        raise RuntimeError(
-            f"VOCogNI could not contact Supabase: {exc}"
-        ) from exc
+        raise RuntimeError(f"VOCogNI could not contact Supabase: {exc}") from exc
 
     rows = _response_rows(response)
-
-    # No database record yet.
     if not rows:
-        return {}
+        return {"progress": {}, "updated_at": None, "exists": False}
 
-    progress = rows[0].get(
-        "progress",
-        {},
-    )
-
+    row = rows[0]
+    progress = row.get("progress", {})
     if progress is None:
-        return {}
-
+        progress = {}
     if not isinstance(progress, dict):
-        raise RuntimeError(
-            "Stored learner progress must be a JSON object."
-        )
+        raise RuntimeError("Stored learner progress must be a JSON object.")
 
-    return progress
+    return {
+        "progress": progress,
+        "updated_at": row.get("updated_at"),
+        "exists": True,
+    }
 
+
+def load_progress() -> dict[str, Any]:
+    """Backward-compatible progress-only loader."""
+    return load_progress_record()["progress"]
 
 # ============================================================================
 # SAVE
 # ============================================================================
 
+class ConcurrentProgressUpdateError(RuntimeError):
+    """Raised when another session changed the learner row after it was loaded."""
+
+
 def save_progress(
     progress: dict[str, Any],
-) -> None:
+    *,
+    expected_updated_at: str | None = None,
+    record_exists: bool = False,
+) -> str:
+    """Save only if the learner row still has the revision this session loaded.
+
+    Existing rows use an atomic conditional UPDATE. A first save uses INSERT;
+    a competing first save is reported as a concurrency conflict, not upserted
+    over the row that another session just created.
     """
-    Persist durable learner state for the currently authenticated learner.
-
-    Uses upsert() so:
-    - first save creates the learner record
-    - later saves update the same learner record
-
-    The resulting database row is explicitly selected after the upsert
-    so VOCogNI can verify that the write actually returned a record.
-
-    Supabase documents chaining .select() after upsert() to return the
-    resulting row. 
-    """
-
     if not isinstance(progress, dict):
-        raise TypeError(
-            "Learner progress must be a dictionary."
-        )
+        raise TypeError("Learner progress must be a dictionary.")
 
     user_id = get_user_id()
     client = get_supabase()
-
     payload = {
         "user_id": user_id,
         "progress": progress,
-        "updated_at": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
     try:
-        response = (
-            client
-            .table(TABLE_NAME)
-            .upsert(
-                payload,
-                on_conflict="user_id",
-            )
-            .select(
-                "user_id, updated_at"
-            )
-            .execute()
-        )
+        query = client.table(TABLE_NAME)
+        if record_exists:
+            query = query.update(payload).eq("user_id", user_id)
+            if expected_updated_at is None:
+                query = query.is_("updated_at", "null")
+            else:
+                query = query.eq("updated_at", expected_updated_at)
+        else:
+            query = query.insert(payload)
+
+        response = query.select("user_id, updated_at").execute()
 
     except APIError as exc:
-        raise RuntimeError(
-            _format_database_error(exc)
-        ) from exc
-
+        message = str(exc).casefold()
+        code = str(getattr(exc, "code", "") or "")
+        if not record_exists and (code == "23505" or "23505" in message
+                                  or "duplicate key" in message
+                                  or "unique constraint" in message):
+            raise ConcurrentProgressUpdateError(
+                "A learner record was created in another session after this session loaded. "
+                "Reload the latest saved data before continuing."
+            ) from exc
+        raise RuntimeError(_format_database_error(exc)) from exc
     except Exception as exc:
-        raise RuntimeError(
-            f"VOCogNI could not save learner data: {exc}"
-        ) from exc
+        raise RuntimeError(f"VOCogNI could not save learner data: {exc}") from exc
 
     rows = _response_rows(response)
-
     if not rows:
+        if record_exists:
+            raise ConcurrentProgressUpdateError(
+                "Learner data changed in another session after this session loaded. "
+                "Reload the latest saved data before continuing."
+            )
         raise RuntimeError(
-            "Supabase accepted the save request but returned "
-            "no learner record. The write could not be verified."
+            "Supabase accepted the save request but returned no learner record. "
+            "The write could not be verified."
         )
 
     returned_user_id = rows[0].get("user_id")
-
     if str(returned_user_id) != user_id:
         raise RuntimeError(
-            "Supabase returned a learner record belonging to a "
-            "different identity. Save verification failed."
+            "Supabase returned a learner record belonging to a different identity. "
+            "Save verification failed."
         )
+
+    updated_at = rows[0].get("updated_at")
+    if not isinstance(updated_at, str) or not updated_at:
+        raise RuntimeError(
+            "Supabase saved the learner record but did not return its revision timestamp."
+        )
+    return updated_at
