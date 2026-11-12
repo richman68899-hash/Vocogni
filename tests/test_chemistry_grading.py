@@ -64,6 +64,24 @@ class ChemistryGradingTests(unittest.TestCase):
         self.assertFalse(chemistry_grading._contains("2e3", "2"))
         self.assertFalse(chemistry_grading._contains("x^2", "2"))
 
+    def test_malformed_open_response_marks_are_reported_without_raising(self):
+        question = {
+            "id": "malformed_chemistry_rubric",
+            "type": "open_ended",
+            "prompt": "Explain the reaction.",
+            "answer": "A + B -> C",
+            "explanation": "A model explanation.",
+            "max_marks": False,
+            "marking_points": [
+                {"marks": "3 marks", "match_any": ["C"]},
+                None,
+            ],
+        }
+        errors = chemistry_grading.validate_open_response_question(question)
+        self.assertTrue(any("max_marks" in error for error in errors))
+        self.assertTrue(any("positive integer marks" in error for error in errors))
+        self.assertTrue(any("must be a dictionary" in error for error in errors))
+
     def test_legacy_numeric_and_mc_answers_still_work(self):
         self.assertTrue(logic.check_answer(
             {"type": "mc", "answer": "A"}, "A"
