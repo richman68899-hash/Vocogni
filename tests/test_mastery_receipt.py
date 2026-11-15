@@ -288,6 +288,58 @@ class MasteryReceiptTests(unittest.TestCase):
         self.assertEqual(skill["practice_performance_percent"], 33)
         self.assertEqual(skill["status"], "Needs review")
 
+    def test_mastery_ratio_rejects_non_finite_or_invalid_marked_scores(self):
+        invalid_results = (
+            {"correct": True, "score": float("nan"), "max_marks": 2},
+            {"correct": True, "score": float("inf"), "max_marks": 2},
+            {"correct": True, "score": 2, "max_marks": float("inf")},
+            {"correct": True, "score": 2, "max_marks": float("nan")},
+            {"correct": True, "score": True, "max_marks": 2},
+            {"correct": True, "score": 2, "max_marks": -1},
+            {"correct": True, "score": "not-a-number", "max_marks": 2},
+        )
+        for result in invalid_results:
+            with self.subTest(result=result):
+                self.assertEqual(logic._mastery_result_ratio(result), 0.0)
+
+    def test_mastery_ratio_preserves_valid_marked_and_legacy_binary_results(self):
+        self.assertAlmostEqual(
+            logic._mastery_result_ratio({
+                "correct": False,
+                "score": "1",
+                "max_marks": "4",
+            }),
+            0.25,
+        )
+        self.assertEqual(logic._mastery_result_ratio({"correct": True}), 1.0)
+        self.assertEqual(logic._mastery_result_ratio({"correct": False}), 0.0)
+
+    def test_malformed_marked_score_cannot_be_promoted_by_correct_flag(self):
+        course_id = "invalid_marked_score_course"
+        course = _course(course_id, [_question("marked-q", "Balancing equations")])
+        contexts = self._registered_course(course)
+        with contexts[0], contexts[1], contexts[2]:
+            progress = {
+                course_id: {
+                    "practice_attempts": {
+                        f"{course_id}_lesson": [{
+                            "results": [{
+                                "question_id": "marked-q",
+                                "verification_status": "verified",
+                                "correct": True,
+                                "score": float("inf"),
+                                "max_marks": 1,
+                            }]
+                        }]
+                    }
+                }
+            }
+            receipt = logic.mastery_receipt_for_course(progress, course_id)
+
+        skill = receipt["skills"][0]
+        self.assertEqual(skill["practice_performance_percent"], 0)
+        self.assertEqual(skill["status"], "Needs review")
+
     def test_every_currently_registered_course_gets_a_receipt_from_its_own_schema(self):
         self.assertTrue(data.all_courses_in_order())
         for course in data.all_courses_in_order():
