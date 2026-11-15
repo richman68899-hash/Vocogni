@@ -424,10 +424,9 @@ def mastery_receipt_for_course(progress, course_id):
                     # to a different skill after question metadata is reassigned.
                     recorded_skill_id = result.get("skill_id")
                     current_skill_id = canonical_question.get("skill_id")
-                    if (
-                        isinstance(recorded_skill_id, str)
-                        and recorded_skill_id in math_taxonomy.SKILLS
-                        and recorded_skill_id != current_skill_id
+                    if recorded_skill_id is not None and (
+                        not isinstance(recorded_skill_id, str)
+                        or recorded_skill_id != current_skill_id
                     ):
                         continue
 
