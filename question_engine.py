@@ -1215,6 +1215,68 @@ def _catalogue(
     return records, duplicate_issues, len(occurrences)
 
 
+def _review_metadata_issues(
+    question_id: str,
+    metadata: dict[str, Any],
+) -> list[str]:
+    """Validate review metadata types and policy fields without trusting its shapes."""
+    issues: list[str] = []
+
+    skill_id = metadata.get("skill_id")
+    if not isinstance(skill_id, str) or skill_id not in math_taxonomy.SKILLS:
+        issues.append(f"Unknown VQE skill_id '{skill_id}'.")
+
+    purpose = metadata.get("purpose")
+    if not isinstance(purpose, str) or purpose not in QUESTION_PURPOSES:
+        issues.append(f"{question_id}: unsupported purpose.")
+
+    difficulty = metadata.get("difficulty")
+    if type(difficulty) is not int or difficulty not in (1, 2, 3):
+        issues.append(f"{question_id}: difficulty must be 1, 2, or 3.")
+
+    version = metadata.get("version")
+    if type(version) is not int or version < 1:
+        issues.append(f"{question_id}: version must be a positive integer.")
+
+    reviewed_content = metadata.get("reviewed_content")
+    if not isinstance(reviewed_content, dict) or not reviewed_content:
+        issues.append(f"{question_id}: reviewed content snapshot is required.")
+
+    grade_bands = metadata.get("grade_bands")
+    allowed_grade_bands = set(range(3, 10))
+    if (
+        not isinstance(grade_bands, list)
+        or not grade_bands
+        or any(type(band) is not int or band not in allowed_grade_bands for band in grade_bands)
+        or len(grade_bands) != len(set(grade_bands))
+    ):
+        issues.append("Question needs valid Grade 3–9 planning-band metadata.")
+
+    review_checks = metadata.get("review_checks")
+    if not isinstance(review_checks, list) or any(
+        not isinstance(check, str) for check in review_checks
+    ):
+        issues.append("Review checks must be a list of strings.")
+    else:
+        missing_checks = _REQUIRED_REVIEW_CHECKS - set(review_checks)
+        if missing_checks:
+            issues.append(
+                "Missing verification checks: "
+                + ", ".join(sorted(missing_checks))
+                + "."
+            )
+
+    if metadata.get("verification_status") != "verified":
+        issues.append("Review record is not marked verified.")
+
+    if not isinstance(metadata.get("reviewer"), str) or not metadata["reviewer"].strip():
+        issues.append(f"{question_id}: reviewer identity is required.")
+    if not isinstance(metadata.get("reviewed_at"), str) or not metadata["reviewed_at"].strip():
+        issues.append(f"{question_id}: review date is required.")
+
+    return issues
+
+
 def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
     question = record["question"]
     qid = record["question_id"]
@@ -1234,26 +1296,15 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
             issues.append("No VQE review record exists for this question.")
             return "needs_review", issues
         return "legacy", ["No VQE review record exists for this question."]
+    if not isinstance(metadata, dict):
+        issues.append("VQE review record must be a dictionary.")
+        return "needs_review", issues
 
+    issues.extend(_review_metadata_issues(qid, metadata))
     if not _snapshot_matches(question, metadata):
         issues.append("Question content differs from the reviewed snapshot; review evidence is stale.")
     if not _metadata_snapshot_matches(metadata):
         issues.append("Question classification metadata differs from the reviewed snapshot; review evidence is stale.")
-    missing_checks = _REQUIRED_REVIEW_CHECKS - set(metadata.get("review_checks", []))
-    if missing_checks:
-        issues.append("Missing verification checks: " + ", ".join(sorted(missing_checks)) + ".")
-    skill_id = metadata.get("skill_id")
-    if skill_id not in math_taxonomy.SKILLS:
-        issues.append(f"Unknown VQE skill_id '{skill_id}'.")
-    grade_bands = metadata.get("grade_bands")
-    allowed_grade_bands = set(range(3, 10))
-    if (
-        not isinstance(grade_bands, list)
-        or not grade_bands
-        or len(grade_bands) != len(set(grade_bands))
-        or any(type(band) is not int or band not in allowed_grade_bands for band in grade_bands)
-    ):
-        issues.append("Question needs valid Grade 3–9 planning-band metadata.")
     if issues:
         return "needs_review", issues
     return "verified", []
@@ -1264,13 +1315,17 @@ def normalise_question(record: dict[str, Any]) -> dict[str, Any]:
     question = deepcopy(record["question"])
     qid = record["question_id"]
     metadata = VERIFICATION_REGISTRY.get(qid)
+    if not isinstance(metadata, dict):
+        metadata = None
     status, issues = _verification_status(record)
-    if metadata:
-        skill = math_taxonomy.SKILLS.get(metadata.get("skill_id"), {})
+    if metadata is not None:
+        skill_id = metadata.get("skill_id")
+        skill = math_taxonomy.SKILLS.get(skill_id, {}) if isinstance(skill_id, str) else {}
+        grade_bands = metadata.get("grade_bands")
         question.update({
-            "skill_id": metadata.get("skill_id"),
+            "skill_id": skill_id if isinstance(skill_id, str) else None,
             "skill_label": skill.get("label", record["lesson_title"]),
-            "grade_bands": list(metadata.get("grade_bands", [])),
+            "grade_bands": list(grade_bands) if isinstance(grade_bands, list) else [],
             "strand": metadata.get("strand"),
             "topic": metadata.get("topic"),
             "purpose": metadata.get("purpose"),
@@ -1559,22 +1614,13 @@ def attempt_metadata(
 
 
 def validate_registry() -> list[str]:
-    """Validate registry consistency without reading course content."""
+    """Validate review-record structure and policy completeness."""
     errors = []
     for question_id, metadata in VERIFICATION_REGISTRY.items():
         if not isinstance(metadata, dict):
             errors.append(f"{question_id}: registry entry must be a dictionary.")
             continue
-        if metadata.get("skill_id") not in math_taxonomy.SKILLS:
-            errors.append(f"{question_id}: unknown skill ID.")
-        if metadata.get("purpose") not in QUESTION_PURPOSES:
-            errors.append(f"{question_id}: unsupported purpose.")
-        if metadata.get("difficulty") not in (1, 2, 3):
-            errors.append(f"{question_id}: difficulty must be 1, 2, or 3.")
-        if not isinstance(metadata.get("version"), int) or metadata["version"] < 1:
-            errors.append(f"{question_id}: version must be a positive integer.")
-        if not isinstance(metadata.get("reviewed_content"), dict) or not metadata["reviewed_content"]:
-            errors.append(f"{question_id}: reviewed content snapshot is required.")
+        errors.extend(_review_metadata_issues(question_id, metadata))
         if not _metadata_snapshot_matches(metadata):
             errors.append(f"{question_id}: reviewed classification metadata snapshot is missing or stale.")
     return errors
