@@ -78,7 +78,7 @@ def check_answer(question, user_answer):
 
     difference = abs(user_val - expected)
     # Binary floating-point can represent decimal boundaries such as 1.01
-    # slightly above their mathematical value. Allow only a few ULPs of
+    # slightly above their mathematical value. Allow at most one ULP of
     # representation noise, not a broad relative tolerance.
     rounding_slack = max(
         math.ulp(user_val),
