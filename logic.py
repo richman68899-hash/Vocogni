@@ -76,7 +76,16 @@ def check_answer(question, user_answer):
     if tolerance < 0:
         return False
 
-    return abs(user_val - expected) <= tolerance
+    difference = abs(user_val - expected)
+    # Binary floating-point can represent decimal boundaries such as 1.01
+    # slightly above their mathematical value. Allow only a few ULPs of
+    # representation noise, not a broad relative tolerance.
+    rounding_slack = max(
+        math.ulp(user_val),
+        math.ulp(expected),
+        math.ulp(tolerance),
+    )
+    return difference <= tolerance + rounding_slack
 
 
 # ---------------------------------------------------------------------------
