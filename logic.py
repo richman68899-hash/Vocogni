@@ -187,17 +187,33 @@ def _mastery_question_skill(question, lesson):
 
 
 def _mastery_result_ratio(result):
-    """Return an item's earned fraction, handling marked and binary schemas."""
+    """Return an item's earned fraction, rejecting malformed marked evidence."""
     if not isinstance(result, dict):
         return 0.0
+
+    has_marked_pair = False
     for earned_field in ("score", "marks_awarded"):
-        try:
-            possible = float(result.get("max_marks"))
-            earned = float(result.get(earned_field))
-            if possible > 0:
-                return min(1.0, max(0.0, earned / possible))
-        except (TypeError, ValueError):
+        if earned_field not in result or "max_marks" not in result:
             continue
+        has_marked_pair = True
+        raw_earned = result.get(earned_field)
+        raw_possible = result.get("max_marks")
+        if isinstance(raw_earned, bool) or isinstance(raw_possible, bool):
+            continue
+        try:
+            possible = float(raw_possible)
+            earned = float(raw_earned)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if not math.isfinite(possible) or not math.isfinite(earned) or possible <= 0:
+            continue
+        return min(1.0, max(0.0, earned / possible))
+
+    # Once a result supplies a marked score and denominator, malformed marked
+    # evidence must not fall back to a potentially contradictory binary flag.
+    # Binary-only historical records remain backward-compatible.
+    if has_marked_pair:
+        return 0.0
     return 1.0 if bool(result.get("correct")) else 0.0
 
 
