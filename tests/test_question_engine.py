@@ -68,6 +68,54 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
 
         self.assertTrue(any("reviewed classification metadata snapshot" in error for error in errors))
 
+    def test_malformed_review_metadata_fails_closed_without_crashing(self):
+        original = question_engine.get_review_record("fractions_l1_q1")
+        malformed = copy.deepcopy(original)
+        malformed["review_checks"] = None
+        malformed["grade_bands"] = [{}]
+        malformed["skill_id"] = ["not-a-skill"]
+        malformed["verification_status"] = "retired"
+
+        with patch.dict(
+            question_engine.VERIFICATION_REGISTRY,
+            {"fractions_l1_q1": malformed},
+        ):
+            record = question_engine.get_question_record(
+                "fractions_l1_q1",
+                course_id="fractions",
+                lesson_id="fractions_l1",
+            )
+            errors = question_engine.validate_registry()
+
+        self.assertIsNotNone(record)
+        self.assertEqual(record["verification_status"], "needs_review")
+        self.assertTrue(any("Review checks must be a list" in item for item in record["verification_issues"]))
+        self.assertTrue(any("Grade 3–9" in item for item in record["verification_issues"]))
+        self.assertTrue(any("Unknown VQE skill_id" in item for item in record["verification_issues"]))
+        self.assertTrue(any("not marked verified" in item for item in record["verification_issues"]))
+        self.assertTrue(errors)
+
+    def test_review_registry_rejects_boolean_difficulty_and_version(self):
+        original = question_engine.get_review_record("fractions_l1_q1")
+        malformed = copy.deepcopy(original)
+        malformed["difficulty"] = True
+        malformed["version"] = True
+
+        with patch.dict(
+            question_engine.VERIFICATION_REGISTRY,
+            {"fractions_l1_q1": malformed},
+        ):
+            errors = question_engine.validate_registry()
+            record = question_engine.get_question_record(
+                "fractions_l1_q1",
+                course_id="fractions",
+                lesson_id="fractions_l1",
+            )
+
+        self.assertTrue(any("difficulty must be 1, 2, or 3" in item for item in errors))
+        self.assertTrue(any("version must be a positive integer" in item for item in errors))
+        self.assertEqual(record["verification_status"], "needs_review")
+
     def test_shared_validator_rejects_ambiguous_or_malformed_questions(self):
         invalid_mc = {
             "id": "invalid_mc",
