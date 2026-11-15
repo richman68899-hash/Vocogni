@@ -19,9 +19,11 @@ class NumericAnswerValidationTests(unittest.TestCase):
         self.assertTrue(logic.check_answer(self.question, 1.009))
         self.assertTrue(logic.check_answer(self.question, 1.01))
 
-    def test_rejects_boolean_answers(self):
-        self.assertFalse(logic.check_answer(self.question, True))
-        self.assertFalse(logic.check_answer(self.question, False))
+    def test_rejects_boolean_answers_even_when_their_numeric_value_matches(self):
+        for expected, answer in ((1, True), (0, False)):
+            with self.subTest(expected=expected, answer=answer):
+                question = {**self.question, "answer": expected}
+                self.assertFalse(logic.check_answer(question, answer))
 
     def test_rejects_non_finite_user_answers(self):
         for answer in (float("nan"), float("inf"), float("-inf"), "nan", "inf"):
