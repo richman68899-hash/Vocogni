@@ -53,13 +53,39 @@ def check_answer(question, user_answer):
     if question_type != "numeric":
         return False
 
-    try:
-        user_val = float(user_answer)
-        expected = float(question["answer"])
-    except (TypeError, ValueError, KeyError):
+    # bool is a subclass of int in Python, so float(True) == 1.0.
+    # A boolean must never satisfy a learner-facing numeric question.
+    if isinstance(user_answer, bool):
         return False
-    tolerance = question.get("tolerance", 0.01)
-    return abs(user_val - expected) <= tolerance
+
+    try:
+        expected_raw = question["answer"]
+        tolerance_raw = question.get("tolerance", 0.01)
+        if isinstance(expected_raw, bool) or isinstance(tolerance_raw, bool):
+            return False
+        user_val = float(user_answer)
+        expected = float(expected_raw)
+        tolerance = float(tolerance_raw)
+    except (TypeError, ValueError, OverflowError, KeyError):
+        return False
+
+    # Reject NaN/infinity and invalid tolerances explicitly. Otherwise malformed
+    # course data or unusual input can produce unreliable comparison behavior.
+    if not all(math.isfinite(value) for value in (user_val, expected, tolerance)):
+        return False
+    if tolerance < 0:
+        return False
+
+    difference = abs(user_val - expected)
+    # Binary floating-point can represent decimal boundaries such as 1.01
+    # slightly above their mathematical value. Allow at most one ULP of
+    # representation noise, not a broad relative tolerance.
+    rounding_slack = max(
+        math.ulp(user_val),
+        math.ulp(expected),
+        math.ulp(tolerance),
+    )
+    return difference <= tolerance + rounding_slack
 
 
 # ---------------------------------------------------------------------------
