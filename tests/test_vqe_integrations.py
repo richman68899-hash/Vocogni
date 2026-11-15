@@ -163,6 +163,30 @@ class VQEIntegrationTests(unittest.TestCase):
         self.assertEqual(skill["distinct_practice_questions"], 2)
         self.assertEqual(skill["status"], "Developing")
 
+    def test_mastery_receipt_excludes_unknown_recorded_skill_id(self):
+        progress = {"fractions": logic.blank_course_progress()}
+        progress["fractions"]["practice_attempts"] = {
+            "fractions_l1": [{
+                "attempt_number": 1,
+                "completed_at": "2026-11-14T10:00:00+00:00",
+                "results": [{
+                    "question_id": "fractions_l1_q1",
+                    "correct": True,
+                    "skill_id": "not-a-taxonomy-skill",
+                    "question_version": 1,
+                    "verification_status": "verified",
+                }],
+            }]
+        }
+
+        receipt = logic.mastery_receipt_for_course(progress, "fractions")
+        current_skill = next(
+            item for item in receipt["skills"]
+            if item.get("skill_id") == "math.number.fraction_representation"
+        )
+        self.assertEqual(current_skill["practice_answers"], 0)
+        self.assertEqual(current_skill["status"], "Not tested")
+
     def test_mastery_receipt_excludes_changed_skill_provenance(self):
         progress = {"fractions": logic.blank_course_progress()}
         progress["fractions"]["practice_attempts"] = {
