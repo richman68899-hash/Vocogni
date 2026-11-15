@@ -17,6 +17,7 @@ class NumericAnswerValidationTests(unittest.TestCase):
         self.assertTrue(logic.check_answer(self.question, 1))
         self.assertTrue(logic.check_answer(self.question, "1.005"))
         self.assertTrue(logic.check_answer(self.question, 1.009))
+        self.assertTrue(logic.check_answer(self.question, 1.01))
 
     def test_rejects_boolean_answers(self):
         self.assertFalse(logic.check_answer(self.question, True))
