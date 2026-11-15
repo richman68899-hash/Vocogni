@@ -403,6 +403,34 @@ def mastery_receipt_for_course(progress, course_id):
                         or (source_lesson_id, normalized_qid) not in verified_vqe_by_id
                     ):
                         continue
+
+                    # A saved answer is evidence for the exact reviewed question
+                    # version it came from, not for every later revision sharing
+                    # the same stable ID. Legacy records without a version remain
+                    # readable; explicit stale or malformed versions are excluded.
+                    canonical_question = verified_vqe_by_id[
+                        (source_lesson_id, normalized_qid)
+                    ]
+                    recorded_version = result.get("question_version")
+                    current_version = canonical_question.get("question_version", 1)
+                    if recorded_version is not None and (
+                        type(recorded_version) is not int
+                        or recorded_version != current_version
+                    ):
+                        continue
+
+                    # Stable skill provenance must also agree with the current
+                    # reviewed mapping. Otherwise old evidence could be credited
+                    # to a different skill after question metadata is reassigned.
+                    recorded_skill_id = result.get("skill_id")
+                    current_skill_id = canonical_question.get("skill_id")
+                    if (
+                        isinstance(recorded_skill_id, str)
+                        and recorded_skill_id in math_taxonomy.SKILLS
+                        and recorded_skill_id != current_skill_id
+                    ):
+                        continue
+
                     evidence_order += 1
                     source_question_map = question_skill_by_lesson.get(source_lesson_id, {})
                     mapped_key = source_question_map.get(normalized_qid)

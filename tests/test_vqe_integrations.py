@@ -128,6 +128,85 @@ class VQEIntegrationTests(unittest.TestCase):
         self.assertEqual(skills[0]["practice_performance_percent"], 50)
         self.assertEqual(skills[0]["status"], "Needs review")
 
+    def test_mastery_receipt_excludes_outdated_question_versions(self):
+        progress = {"fractions": logic.blank_course_progress()}
+        question_ids = (
+            "fractions_l1_q1",
+            "fractions_l1_q2",
+            "fractions_l1_screen3",
+        )
+        progress["fractions"]["practice_attempts"] = {
+            "fractions_l1": [{
+                "attempt_number": 1,
+                "completed_at": "2026-11-14T10:00:00+00:00",
+                "results": [
+                    {
+                        "question_id": question_id,
+                        "correct": True,
+                        "skill_id": "math.number.fraction_representation",
+                        "question_version": 9 if index == 0 else 1,
+                        "verification_status": "verified",
+                    }
+                    for index, question_id in enumerate(question_ids)
+                ],
+            }]
+        }
+
+        receipt = logic.mastery_receipt_for_course(progress, "fractions")
+        skill = next(
+            item for item in receipt["skills"]
+            if item.get("skill_id") == "math.number.fraction_representation"
+        )
+        # The stale-version answer must not help the skill cross the
+        # three-distinct-question threshold for "Promising evidence".
+        self.assertEqual(skill["practice_answers"], 2)
+        self.assertEqual(skill["distinct_practice_questions"], 2)
+        self.assertEqual(skill["status"], "Developing")
+
+    def test_mastery_receipt_excludes_changed_skill_provenance(self):
+        progress = {"fractions": logic.blank_course_progress()}
+        progress["fractions"]["practice_attempts"] = {
+            "fractions_l1": [{
+                "attempt_number": 1,
+                "completed_at": "2026-11-14T10:00:00+00:00",
+                "results": [
+                    {
+                        "question_id": "fractions_l1_q1",
+                        "correct": True,
+                        "skill_id": "math.number.fraction_operations",
+                        "question_version": 1,
+                        "verification_status": "verified",
+                    },
+                    {
+                        "question_id": "fractions_l1_q2",
+                        "correct": True,
+                        "skill_id": "math.number.fraction_representation",
+                        "question_version": 1,
+                        "verification_status": "verified",
+                    },
+                    {
+                        "question_id": "fractions_l1_screen3",
+                        "correct": True,
+                        "skill_id": "math.number.fraction_representation",
+                        "question_version": 1,
+                        "verification_status": "verified",
+                    },
+                ],
+            }]
+        }
+
+        receipt = logic.mastery_receipt_for_course(progress, "fractions")
+        current_skill = next(
+            item for item in receipt["skills"]
+            if item.get("skill_id") == "math.number.fraction_representation"
+        )
+        reassigned_skill = next(
+            item for item in receipt["skills"]
+            if item.get("skill_id") == "math.number.fraction_operations"
+        )
+        self.assertEqual(current_skill["practice_answers"], 2)
+        self.assertEqual(reassigned_skill["practice_answers"], 0)
+
     def test_attempt_metadata_has_backward_compatible_legacy_fallback(self):
         metadata = question_engine.attempt_metadata(
             "old_unregistered_question",
