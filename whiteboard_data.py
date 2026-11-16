@@ -130,6 +130,7 @@ def sanitize_page(
     point_budget = max(0, min(MAX_POINTS_PER_PAGE, int(max_points)))
     text_budget = max(0, min(MAX_TEXT_CHARS_PER_PAGE, int(max_text_chars)))
     objects = []
+    seen_object_ids: set[str] = set()
     remaining_points = point_budget
     remaining_text = text_budget
     source_objects = value.get("objects", [])
@@ -138,7 +139,18 @@ def sanitize_page(
             if not isinstance(raw, dict) or raw.get("type") not in OBJECT_TYPES:
                 continue
             kind = raw["type"]
-            item = {"id": str(raw.get("id") or new_id())[:100], "type": kind}
+            raw_object_id = raw.get("id")
+            object_id = (
+                raw_object_id.strip()
+                if isinstance(raw_object_id, str) and raw_object_id.strip()
+                and len(raw_object_id) <= 100
+                else new_id()
+            )
+            if object_id in seen_object_ids:
+                object_id = new_id()
+                while object_id in seen_object_ids:
+                    object_id = new_id()
+            item = {"id": object_id, "type": kind}
             if kind == "stroke":
                 points_raw = raw.get("points", [])
                 points = []
@@ -185,6 +197,7 @@ def sanitize_page(
                         "color": _color(raw.get("color"), "#F8E7A1"),
                     })
             objects.append(item)
+            seen_object_ids.add(object_id)
     return {
         "id": page_id,
         "title": str(value.get("title", "Page"))[:80] or "Page",
@@ -213,6 +226,7 @@ def sanitize_boards(value: Any) -> list[dict[str, Any]]:
         seen.add(board_id)
         raw_pages = raw.get("pages", [])
         pages = []
+        seen_page_ids: set[str] = set()
         remaining_objects = min(MAX_OBJECTS_PER_BOARD, learner_objects)
         remaining_points = min(MAX_POINTS_PER_BOARD, learner_points)
         remaining_text = min(MAX_TEXT_CHARS_PER_BOARD, learner_text)
@@ -226,6 +240,11 @@ def sanitize_boards(value: Any) -> list[dict[str, Any]]:
                 )
                 if page is None:
                     continue
+                if page["id"] in seen_page_ids:
+                    page["id"] = new_id()
+                    while page["id"] in seen_page_ids:
+                        page["id"] = new_id()
+                seen_page_ids.add(page["id"])
                 pages.append(page)
                 remaining_objects -= len(page["objects"])
                 for obj in page["objects"]:
