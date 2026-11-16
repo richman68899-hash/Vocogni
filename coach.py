@@ -55,6 +55,7 @@ def _lesson_candidates(course_id, lesson_id=None):
             return []
 
     questions = []
+    catalogue_records = None
     for lesson in lessons:
         current_lesson_id = lesson.get("id")
         if question_engine.is_vqe_pilot_lesson(course_id, current_lesson_id):
@@ -65,16 +66,18 @@ def _lesson_candidates(course_id, lesson_id=None):
                 include_pathways=True,
             )
         else:
-            # Use the shared catalogue so legacy lessons also expose
-            # practice_questions and interactive_question, not only questions.
-            # Malformed VQE records are excluded even outside pilot lessons.
+            # Load the course catalogue once: course-wide Coach fallback can
+            # visit many lessons, and re-scanning it for every lesson is wasteful.
+            # The shared catalogue includes practice_questions and interactive_question.
+            if catalogue_records is None:
+                catalogue_records = question_engine.iter_question_records(
+                    course_id=course_id
+                )
             records = [
                 record
-                for record in question_engine.iter_question_records(
-                    course_id=course_id,
-                    lesson_id=current_lesson_id,
-                )
-                if record.get("verification_status") in ("legacy", "verified")
+                for record in catalogue_records
+                if record.get("lesson_id") == current_lesson_id
+                and record.get("verification_status") in ("legacy", "verified")
             ]
 
         for record in records:
