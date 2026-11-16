@@ -22,6 +22,13 @@ def _now() -> str:
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
+def _clean_note_title(value: Any) -> str:
+    """Return a non-empty note title without changing saved data."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("Enter a note title.")
+    return value.strip()
+
+
 def _find_note(note_id: Any) -> dict[str, Any] | None:
     return next(
         (n for n in st.session_state.notes
@@ -572,23 +579,28 @@ def _render_editor() -> None:
         delete_clicked = st.form_submit_button("Delete note", disabled=existing is None)
 
     if save_clicked:
-        now = _now()
-        chosen_folder_id = folder_ids[folder_labels.index(folder_label)]
-        if existing:
-            existing.update({"title": title.strip(), "content": content, "folder_id": chosen_folder_id, "updated_at": now})
+        try:
+            clean_title = _clean_note_title(title)
+        except ValueError as exc:
+            st.warning(str(exc))
         else:
-            new_id = st.session_state.next_note_id
-            st.session_state.next_note_id += 1
-            st.session_state.notes.append({
-                "id": new_id, "title": title.strip(), "content": content,
-                "folder_id": chosen_folder_id, "created_at": now, "updated_at": now,
-            })
-        _mark_changed()
-        st.session_state.note_editor_open = False
-        st.session_state.selected_note_id = None
-        st.session_state.note_draft_folder_id = None
-        st.success("Note saved. Syncing changes…")
-        st.rerun()
+            now = _now()
+            chosen_folder_id = folder_ids[folder_labels.index(folder_label)]
+            if existing:
+                existing.update({"title": clean_title, "content": content, "folder_id": chosen_folder_id, "updated_at": now})
+            else:
+                new_id = st.session_state.next_note_id
+                st.session_state.next_note_id += 1
+                st.session_state.notes.append({
+                    "id": new_id, "title": clean_title, "content": content,
+                    "folder_id": chosen_folder_id, "created_at": now, "updated_at": now,
+                })
+            _mark_changed()
+            st.session_state.note_editor_open = False
+            st.session_state.selected_note_id = None
+            st.session_state.note_draft_folder_id = None
+            st.success("Note saved. Syncing changes…")
+            st.rerun()
 
     if delete_clicked and existing:
         _request_asset_deletion("note", [existing.get("id")])
