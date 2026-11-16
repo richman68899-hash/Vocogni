@@ -22,6 +22,32 @@ def function_source(name: str) -> str:
     return "\n".join(lines[node.lineno - 1:node.end_lineno])
 
 
+def test_note_title_validation_rejects_blank_and_non_text_values():
+    node = next(
+        item for item in TREE.body
+        if isinstance(item, ast.FunctionDef) and item.name == "_clean_note_title"
+    )
+    isolated = ast.Module(body=[node], type_ignores=[])
+    namespace = {}
+    exec(compile(isolated, str(SOURCE_PATH), "exec"), namespace)
+    clean = namespace["_clean_note_title"]
+    assert clean("  Algebra notes  ") == "Algebra notes"
+    for invalid in ("", "   ", None, 12):
+        try:
+            clean(invalid)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Invalid note title was accepted: " + repr(invalid))
+
+
+def test_editor_validates_note_title_before_mutating_saved_notes():
+    editor = function_source("_render_editor")
+    assert editor.index("_clean_note_title(title)") < editor.index("existing.update(")
+    assert editor.index("_clean_note_title(title)") < editor.index("st.session_state.notes.append(")
+    assert "st.warning(str(exc))" in editor
+
+
 def test_notes_folders_and_milestones_have_three_dot_menus():
     assert 'st.popover("⋯"' in function_source("_render_note_overflow_menu")
     assert 'st.popover("⋯"' in function_source("_render_folder_overflow_menu")
