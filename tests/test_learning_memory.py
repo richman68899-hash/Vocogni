@@ -19,13 +19,13 @@ class LearningMemoryTests(unittest.TestCase):
             ],
         }
 
-    def record(self, qid="q1", marking=None, skill=None):
+    def record(self, qid="q1", marking=None, skill=None, source="practice"):
         question = dict(self.question, id=qid)
         if skill:
             question["skill_tag"] = skill
         return learning_memory.record_attempt(
             self.progress, "maths", "lesson_1", "Quadratic inequalities",
-            question, False, marking or self.marking, source="practice",
+            question, False, marking or self.marking, source=source,
         )
 
     def test_records_score_and_rubric_evidence_without_raw_answer(self):
@@ -192,6 +192,58 @@ class LearningMemoryTests(unittest.TestCase):
         self.assertEqual(repaired["marks_awarded"], 1)
         self.assertEqual(repaired["criterion_history"]["endpoints"]["misses"], 1)
         self.assertEqual(len(repaired["evidence"]), 1)
+
+    def test_diagnostic_misses_do_not_create_practice_repeat_snags(self):
+        self.record("diagnostic_q1", source="diagnostic")
+        self.record("diagnostic_q2", source="diagnostic")
+
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        skill = profile["skills"][0]
+        self.assertEqual(skill["attempts"], 0)
+        self.assertEqual(skill["status"], "Gathering evidence")
+        self.assertEqual(profile["repeat_snags"], [])
+
+        self.record("practice_q1")
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        self.assertEqual(profile["repeat_snags"], [])
+
+        self.record("practice_q2")
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        self.assertEqual(profile["repeat_snags"][0]["id"], "endpoints")
+        self.assertEqual(profile["repeat_snags"][0]["misses"], 2)
+
+    def test_diagnostic_results_do_not_dilute_practice_average_or_evict_evidence(self):
+        for question_id in ("p1", "p2", "p3"):
+            self.record(question_id, marking={
+                "score": 4, "max_marks": 4, "marking_points": [],
+            })
+        for index in range(10):
+            self.record(f"diagnostic_{index}", source="diagnostic")
+
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        skill = profile["skills"][0]
+        self.assertEqual(skill["attempts"], 3)
+        self.assertEqual(skill["average_percent"], 100)
+        self.assertEqual(skill["recent_scores"], [100, 100, 100])
+        self.assertEqual(skill["status"], "Consistent evidence")
+        saved_skill = self.progress["maths"]["learning_memory"]["skills"]["quadratic_inequalities"]
+        self.assertEqual(len(saved_skill["practice_evidence"]), 3)
+        self.assertEqual(len(saved_skill["evidence"]), 8)
+
+    def test_legacy_combined_evidence_is_migrated_by_source(self):
+        skill = {
+            "skill_key": "quadratic_inequalities",
+            "label": "Quadratic inequalities",
+            "evidence": [
+                {"source": "diagnostic", "question_id": "d1", "score_percent": 0, "marks_awarded": 0, "max_marks": 2, "missed_criteria": [{"id": "endpoints", "label": "Endpoints"}]},
+                {"source": "practice", "question_id": "p1", "score_percent": 100, "marks_awarded": 2, "max_marks": 2, "missed_criteria": []},
+            ],
+        }
+        self.progress = {"maths": {"learning_memory": {"skills": {"quadratic_inequalities": skill}}}}
+        profile = learning_memory.course_fingerprint(self.progress, "maths")
+        self.assertEqual(profile["skills"][0]["attempts"], 1)
+        self.assertEqual(profile["skills"][0]["average_percent"], 100)
+        self.assertEqual(profile["repeat_snags"], [])
 
     def test_repair_rules_are_deterministic(self):
         self.assertIn("roots", learning_memory.repair_suggestion("Quadratic inequalities", "Endpoint inclusion").casefold())

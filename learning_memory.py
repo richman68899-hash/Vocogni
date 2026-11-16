@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import re
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 RECENT_WINDOW = 8
 
 
@@ -41,6 +41,24 @@ def _safe_ids(value):
     ]
 
 
+def _practice_evidence(skill):
+    """Return the bounded practice-only evidence window for a skill.
+
+    Older records are migrated lazily from the source-tagged combined evidence
+    list. Unlabelled or diagnostic records are deliberately not treated as
+    practice evidence.
+    """
+    if not isinstance(skill, dict):
+        return []
+    saved = skill.get("practice_evidence")
+    if not isinstance(saved, list):
+        saved = _safe_list(skill.get("evidence"))
+    return [
+        item for item in saved
+        if isinstance(item, dict) and item.get("source") == "practice"
+    ][-RECENT_WINDOW:]
+
+
 def _slug(value):
     text = str(value or "").strip().casefold()
     text = re.sub(r"[^a-z0-9]+", "_", text)
@@ -61,6 +79,7 @@ def record_attempt(progress, course_id, lesson_id, lesson_title, question,
         raise TypeError("Learner progress must be a dictionary.")
     question = question if isinstance(question, dict) else {}
     marking_result = marking_result if isinstance(marking_result, dict) else {}
+    source = str(source or "practice")
 
     course_progress = progress.setdefault(course_id, {})
     if not isinstance(course_progress, dict):
@@ -70,7 +89,7 @@ def record_attempt(progress, course_id, lesson_id, lesson_title, question,
     if not isinstance(memory, dict):
         memory = {"schema_version": SCHEMA_VERSION, "skills": {}, "attempts_recorded": 0}
         course_progress["learning_memory"] = memory
-    memory.setdefault("schema_version", SCHEMA_VERSION)
+    memory["schema_version"] = SCHEMA_VERSION
     skills = memory.get("skills")
     if not isinstance(skills, dict):
         skills = {}
@@ -139,19 +158,26 @@ def record_attempt(progress, course_id, lesson_id, lesson_title, question,
 
     seen_at = _now()
     evidence = [item for item in _safe_list(skill.get("evidence")) if isinstance(item, dict)]
-    evidence.append({
+    practice_evidence = _practice_evidence(skill)
+    evidence_entry = {
         "lesson_id": str(lesson_id),
         "lesson_title": str(lesson_title or lesson_id),
         "question_id": question_id,
-        "source": str(source),
+        "source": source,
         "score_percent": percent,
         "marks_awarded": awarded,
         "max_marks": maximum,
         "full_credit": awarded == maximum,
         "missed_criteria": missed,
         "seen_at": seen_at,
-    })
+    }
+    evidence.append(evidence_entry)
     skill["evidence"] = evidence[-RECENT_WINDOW:]
+    if source == "practice":
+        practice_evidence.append(evidence_entry)
+    # Keep a separate window so diagnostic activity cannot evict practice
+    # evidence or affect the learner-facing practice profile.
+    skill["practice_evidence"] = practice_evidence[-RECENT_WINDOW:]
     skill["last_seen_at"] = seen_at
     skill["last_lesson_id"] = str(lesson_id)
     skill["last_lesson_title"] = str(lesson_title or lesson_id)
@@ -160,44 +186,60 @@ def record_attempt(progress, course_id, lesson_id, lesson_title, question,
 
 
 def _profile_skill(skill):
-    """Build a learner-facing summary from valid portions of a saved skill record."""
+    """Build a learner-facing summary from recent practice evidence only."""
     skill = skill if isinstance(skill, dict) else {}
-    attempts = _safe_int(skill.get("attempts", 0))
-    maximum = _safe_int(skill.get("max_marks", 0))
-    marks = _safe_int(skill.get("marks_awarded", 0))
+    evidence = _practice_evidence(skill)
+    attempts = len(evidence)
+    marks = sum(_safe_int(item.get("marks_awarded", 0)) for item in evidence)
+    maximum = sum(_safe_int(item.get("max_marks", 0)) for item in evidence)
     average = min(100, round(100 * marks / maximum)) if maximum else 0
-    recent = [_safe_percent(value) for value in _safe_list(skill.get("recent_scores"))]
+    recent = [_safe_percent(item.get("score_percent", 0)) for item in evidence]
 
-    history = skill.get("criterion_history")
-    if not isinstance(history, dict):
-        history = {}
-    criteria = []
-    for cid, value in history.items():
-        if not isinstance(value, dict):
+    # Group missed criteria by stable criterion and question ID. Diagnostics
+    # never enter this window, so they cannot create practice "repeat snag" signals.
+    criteria_by_id = {}
+    for item in evidence:
+        question_id = str(item.get("question_id") or "").strip()
+        if not question_id:
             continue
-        criteria.append({
-            "id": str(cid),
-            "label": str(value.get("label") or cid),
-            "seen": _safe_int(value.get("seen", 0)),
-            "misses": _safe_int(value.get("misses", 0)),
-            "distinct_questions": len(set(_safe_ids(value.get("question_ids")))),
-            "distinct_missed_questions": len(set(_safe_ids(value.get("missed_question_ids")))),
-        })
+        for missed in _safe_list(item.get("missed_criteria")):
+            if not isinstance(missed, dict):
+                continue
+            criterion_id = str(missed.get("id") or "").strip()
+            if not criterion_id:
+                continue
+            criterion = criteria_by_id.setdefault(criterion_id, {
+                "id": criterion_id,
+                "label": str(missed.get("label") or criterion_id),
+                "misses": 0,
+                "question_ids": [],
+            })
+            criterion["label"] = str(missed.get("label") or criterion["label"])
+            criterion["misses"] += 1
+            if question_id not in criterion["question_ids"]:
+                criterion["question_ids"].append(question_id)
 
-    repeats = [
-        item for item in criteria
-        if item["distinct_missed_questions"] >= 2 and item["distinct_questions"] >= 2
+    criteria = [
+        {
+            "id": item["id"],
+            "label": item["label"],
+            "seen": len(item["question_ids"]),
+            "misses": item["misses"],
+            "distinct_questions": len(item["question_ids"]),
+            "distinct_missed_questions": len(item["question_ids"]),
+        }
+        for item in criteria_by_id.values()
     ]
+    repeats = [item for item in criteria if item["distinct_missed_questions"] >= 2]
     repeats.sort(key=lambda item: (-item["misses"], -item["seen"], item["label"].casefold()))
+
     if repeats:
         status = "Repeat snag"
     elif attempts >= 2 and average < 60:
         status = "Needs review"
     else:
         latest_practice_by_question = {}
-        for evidence_index, item in enumerate(_safe_list(skill.get("evidence"))):
-            if not isinstance(item, dict) or item.get("source") != "practice":
-                continue
+        for evidence_index, item in enumerate(evidence):
             question_id = str(item.get("question_id") or "")
             if question_id:
                 latest_practice_by_question[question_id] = (
@@ -227,14 +269,21 @@ def _profile_skill(skill):
     if len(recent) >= 2:
         change = recent[-1] - recent[-2]
         trend = "improving" if change >= 10 else ("slipping" if change <= -10 else "roughly steady")
+    latest = evidence[-1] if evidence else {}
     return {
         "skill_key": str(skill.get("skill_key") or ""),
         "label": str(skill.get("label") or "Unclassified skill"),
-        "attempts": attempts, "marks_awarded": marks, "max_marks": maximum,
-        "average_percent": average, "recent_scores": recent, "trend": trend,
-        "status": status, "repeat_snags": repeats,
-        "last_lesson_id": skill.get("last_lesson_id"),
-        "last_lesson_title": skill.get("last_lesson_title"),
+        "attempts": attempts,
+        "marks_awarded": marks,
+        "max_marks": maximum,
+        "average_percent": average,
+        "recent_scores": recent,
+        "trend": trend,
+        "status": status,
+        "repeat_snags": repeats,
+        "last_lesson_id": latest.get("lesson_id"),
+        "last_lesson_title": latest.get("lesson_title"),
+        "evidence_scope": "recent_practice",
     }
 
 
