@@ -43,6 +43,34 @@ class CoachProvenanceTests(unittest.TestCase):
             ["practice_q", "interactive_q"],
         )
 
+    def test_course_wide_legacy_catalogue_is_scanned_once_for_multiple_lessons(self):
+        course = {
+            "lessons": [
+                {"id": "lesson_a", "title": "Lesson A"},
+                {"id": "lesson_b", "title": "Lesson B"},
+            ],
+        }
+        records = [
+            {
+                "lesson_id": lesson_id,
+                "verification_status": "legacy",
+                "question": {"id": f"{lesson_id}_q", "type": "numeric", "prompt": "Calculate 3 + 4."},
+            }
+            for lesson_id in ("lesson_a", "lesson_b")
+        ]
+        with (
+            patch.object(coach.data, "get_course", return_value=course),
+            patch.object(coach.question_engine, "is_vqe_pilot_lesson", return_value=False),
+            patch.object(coach.question_engine, "iter_question_records", return_value=records) as catalogue,
+        ):
+            candidates = coach._lesson_candidates("course")
+
+        catalogue.assert_called_once_with(course_id="course")
+        self.assertEqual(
+            [question["id"] for _, question in candidates],
+            ["lesson_a_q", "lesson_b_q"],
+        )
+
     def test_course_wide_fallback_keeps_actual_source_lesson(self):
         source_lesson = {"id": "source_lesson", "title": "Actual source"}
         source_question = {
