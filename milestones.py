@@ -139,10 +139,12 @@ def sanitize_milestones(saved: Any) -> list[dict[str, Any]]:
                 seen_item_ids.add(item_id)
                 next_item_id = max(next_item_id, item_id + 1)
 
+                raw_done = raw_item.get("done", False)
                 checklist.append({
                     "id": item_id,
                     "text": text.strip(),
-                    "done": bool(raw_item.get("done", False)),
+                    # Only a real boolean is trusted from persisted data.
+                    "done": raw_done if isinstance(raw_done, bool) else False,
                 })
 
         cleaned.append({
@@ -268,7 +270,9 @@ def set_checklist_item_done(
     )
     if item is None:
         raise KeyError("Checklist item was not found.")
-    item["done"] = bool(done)
+    if not isinstance(done, bool):
+        raise ValueError("Checklist completion must be a boolean.")
+    item["done"] = done
 
 
 def delete_checklist_item(milestone: dict[str, Any], item_id: int) -> bool:
