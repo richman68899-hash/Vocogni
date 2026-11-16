@@ -64,16 +64,27 @@ def _lesson_candidates(course_id, lesson_id=None):
                 verified_only=True,
                 include_pathways=True,
             )
-            for record in records:
-                question = record["question"]
-                if question.get("type") in ("mc", "numeric") and question.get("prompt"):
-                    questions.append((lesson, question))
-            continue
+        else:
+            # Use the shared catalogue so legacy lessons also expose
+            # practice_questions and interactive_question, not only questions.
+            # Malformed VQE records are excluded even outside pilot lessons.
+            records = [
+                record
+                for record in question_engine.iter_question_records(
+                    course_id=course_id,
+                    lesson_id=current_lesson_id,
+                )
+                if record.get("verification_status") in ("legacy", "verified")
+            ]
 
-        # Non-pilot lessons retain their existing authored-question behaviour
-        # until their content has been reviewed and opted into VQE.
-        for question in lesson.get("questions", []):
-            if question.get("type") in ("mc", "numeric") and question.get("prompt"):
+        for record in records:
+            question = record.get("question")
+            if (
+                isinstance(question, dict)
+                and question.get("type") in ("mc", "numeric")
+                and isinstance(question.get("prompt"), str)
+                and question.get("prompt").strip()
+            ):
                 questions.append((lesson, question))
     return questions
 
@@ -93,6 +104,12 @@ def _randomized_question(course_id, lesson_id, index):
     question["options"] = list(original.get("options", []))
     question["_vqe_source_question_id"] = original.get(
         "_vqe_source_question_id", original.get("id")
+    )
+    question["_coach_source_course_id"] = (
+        original.get("source_course_id") or course_id
+    )
+    question["_coach_source_lesson_id"] = (
+        original.get("source_lesson_id") or lesson.get("id")
     )
     prompt = str(question.get("prompt", ""))
 
@@ -124,6 +141,41 @@ def _randomized_question(course_id, lesson_id, index):
         question["_coach_generated_variant"] = False
     question["coach_source_lesson"] = lesson.get("title", "Lesson practice")
     return question
+
+
+def _attempt_provenance(question, selected_course_id, selected_lesson_id):
+    """Attribute Coach answers to the authored question's actual source lesson."""
+    source_question_id = str(
+        question.get("_vqe_source_question_id") or question.get("id") or ""
+    )
+    source_course_id = str(
+        question.get("_coach_source_course_id")
+        or question.get("source_course_id")
+        or selected_course_id
+    )
+    source_lesson_id = str(
+        question.get("_coach_source_lesson_id")
+        or question.get("source_lesson_id")
+        or selected_lesson_id
+    )
+    provenance = question_engine.attempt_metadata(
+        source_question_id,
+        course_id=source_course_id,
+        lesson_id=source_lesson_id,
+    )
+    generated_variant = bool(question.get("_coach_generated_variant"))
+    question_origin = (
+        "generated_template"
+        if generated_variant
+        else "authored_option_shuffle" if question.get("type") == "mc"
+        else "authored_reuse"
+    )
+    return learning_contracts.add_presentation_context(
+        provenance,
+        presented_question_id=str(question.get("id", "")),
+        question_origin=question_origin,
+        content_modified=generated_variant,
+    )
 
 
 def _error_band(attempted, mistakes):
@@ -216,26 +268,8 @@ def render(progress, show_heading=True):
                 "total_mistakes": 0,
             })
             coach_data["questions_attempted"] = int(coach_data.get("questions_attempted", 0)) + 1
-            source_question_id = str(
-                question.get("_vqe_source_question_id", question.get("id", ""))
-            )
-            provenance = question_engine.attempt_metadata(
-                source_question_id,
-                course_id=course_id,
-                lesson_id=lesson_id,
-            )
-            generated_variant = bool(question.get("_coach_generated_variant"))
-            question_origin = (
-                "generated_template"
-                if generated_variant
-                else "authored_option_shuffle" if question.get("type") == "mc"
-                else "authored_reuse"
-            )
-            attempt_provenance = learning_contracts.add_presentation_context(
-                provenance,
-                presented_question_id=str(question.get("id", "")),
-                question_origin=question_origin,
-                content_modified=generated_variant,
+            attempt_provenance = _attempt_provenance(
+                question, course_id, lesson_id
             )
             coach_data.setdefault("attempts", []).append({
                 **attempt_provenance,
