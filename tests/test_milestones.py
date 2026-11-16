@@ -126,6 +126,35 @@ class MilestoneDataTests(unittest.TestCase):
         self.assertEqual(cleaned[1]["checklist"][0]["id"], 1)
         self.assertEqual(milestones.next_milestone_id(cleaned), 3)
 
+    def test_sanitize_treats_only_boolean_true_as_completed(self):
+        saved = [{
+            "id": 1,
+            "title": "Strict completion",
+            "end_date": date.today().isoformat(),
+            "checklist": [
+                {"id": 1, "text": "True boolean", "done": True},
+                {"id": 2, "text": "False boolean", "done": False},
+                {"id": 3, "text": "String false", "done": "false"},
+                {"id": 4, "text": "String true", "done": "true"},
+                {"id": 5, "text": "Integer one", "done": 1},
+                {"id": 6, "text": "Null", "done": None},
+            ],
+        }]
+
+        cleaned = milestones.sanitize_milestones(saved)
+        done_values = [item["done"] for item in cleaned[0]["checklist"]]
+        self.assertEqual(done_values, [True, False, False, False, False, False])
+
+    def test_set_checklist_item_done_rejects_non_boolean_values(self):
+        milestone = milestones.create_milestone(1, "Goal", date.today())
+        item = milestones.add_checklist_item(milestone, "Step")
+        for invalid in ("false", "true", 0, 1, None):
+            with self.assertRaises(ValueError):
+                milestones.set_checklist_item_done(milestone, item["id"], invalid)
+        self.assertFalse(item["done"])
+        milestones.set_checklist_item_done(milestone, item["id"], True)
+        self.assertTrue(item["done"])
+
     def test_sanitize_handles_missing_or_non_list_data(self):
         self.assertEqual(milestones.sanitize_milestones(None), [])
         self.assertEqual(milestones.sanitize_milestones({"bad": "shape"}), [])
