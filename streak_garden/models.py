@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
-from .enums import GrowthStage, TreeStatus
+from .enums import GrowthStage, TreeStatus, WalletReason
 
 SCHEMA_VERSION = 1
 DEFAULT_TARGET_DAYS = 5
@@ -95,10 +95,9 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         return result
 
-    try:
-        version = int(value.get("schema_version", SCHEMA_VERSION))
-    except (TypeError, ValueError):
-        version = SCHEMA_VERSION
+    version = value.get("schema_version", SCHEMA_VERSION)
+    if isinstance(version, bool) or not isinstance(version, int):
+        return result
     if version != SCHEMA_VERSION:
         return result
 
@@ -116,11 +115,18 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
             anchor = _as_date(raw_forest.get("anchor_date"))
             if anchor is None:
                 continue
-            try:
-                target = int(raw_forest.get("target_days", DEFAULT_TARGET_DAYS))
-                capacity = int(raw_forest.get("tree_capacity", DEFAULT_TREE_CAPACITY))
-            except (TypeError, ValueError):
-                target, capacity = DEFAULT_TARGET_DAYS, DEFAULT_TREE_CAPACITY
+            raw_target = raw_forest.get("target_days", DEFAULT_TARGET_DAYS)
+            raw_capacity = raw_forest.get("tree_capacity", DEFAULT_TREE_CAPACITY)
+            target = (
+                raw_target
+                if isinstance(raw_target, int) and not isinstance(raw_target, bool)
+                else DEFAULT_TARGET_DAYS
+            )
+            capacity = (
+                raw_capacity
+                if isinstance(raw_capacity, int) and not isinstance(raw_capacity, bool)
+                else DEFAULT_TREE_CAPACITY
+            )
             if not 1 <= target <= DEFAULT_CYCLE_DAYS:
                 target = DEFAULT_TARGET_DAYS
             if capacity not in (5, 10):
@@ -145,9 +151,12 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
             forest_id = _safe_text(raw_tree.get("forest_id"), "", 100)
             cycle_start = _as_date(raw_tree.get("cycle_start"))
             planted_on = _as_date(raw_tree.get("planted_on"))
+            raw_stage = raw_tree.get("growth_stage", 1)
+            if isinstance(raw_stage, bool) or not isinstance(raw_stage, int):
+                continue
             try:
-                stage = GrowthStage(int(raw_tree.get("growth_stage", 1)))
-            except (TypeError, ValueError):
+                stage = GrowthStage(raw_stage)
+            except ValueError:
                 continue
             status = raw_tree.get("status", TreeStatus.ACTIVE.value)
             if status not in (TreeStatus.ACTIVE.value, TreeStatus.SOLD.value):
@@ -161,6 +170,10 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
             if cycle_identity in seen_tree_cycles:
                 continue
             sold_on = _as_date(raw_tree.get("sold_on"))
+            if status == TreeStatus.SOLD.value and sold_on is None:
+                continue
+            if status == TreeStatus.ACTIVE.value:
+                sold_on = None
             seen_tree_ids.add(tree_id)
             seen_tree_cycles.add(cycle_identity)
             result["trees"].append({
@@ -182,13 +195,15 @@ def sanitize_garden_state(value: Any) -> dict[str, Any]:
             source_key = _safe_text(raw_transaction.get("source_key"), "", 220)
             transaction_date = _as_date(raw_transaction.get("created_on"))
             reason = _safe_text(raw_transaction.get("reason"), "", 40)
-            try:
-                amount = int(raw_transaction.get("amount"))
-            except (TypeError, ValueError):
+            raw_amount = raw_transaction.get("amount")
+            if isinstance(raw_amount, bool) or not isinstance(raw_amount, int):
                 continue
+            amount = raw_amount
             if (
                 not source_key or source_key in seen_sources
-                or transaction_date is None or not reason or amount == 0
+                or transaction_date is None
+                or reason not in {item.value for item in WalletReason}
+                or amount == 0
             ):
                 continue
             seen_sources.add(source_key)
