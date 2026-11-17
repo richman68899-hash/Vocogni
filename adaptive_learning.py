@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timezone
+import math
 from typing import Any
 
 import data
@@ -17,24 +18,132 @@ import question_engine
 ENGINE_VERSION = "learning-intelligence-2"
 
 
-def _number(value: Any, default: float = 0.0) -> float:
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return default
-    return result if result >= 0 else default
-
-
 def _result_ratio(result: dict[str, Any]) -> float:
-    # Binary VQE records usually store only "correct"; marked responses store
-    # score/max_marks. Do not interpret a missing score as zero for correct items.
-    if "score" not in result and "marks_awarded" not in result:
-        return 1.0 if result.get("correct") else 0.0
-    maximum = _number(result.get("max_marks"), 1.0)
-    earned = _number(result.get("score", result.get("marks_awarded")), 0.0)
-    if maximum > 0:
-        return min(1.0, max(0.0, earned / maximum))
-    return 1.0 if result.get("correct") else 0.0
+    """Normalize saved marks without promoting malformed values to full credit.
+
+    This deliberately mirrors the Mastery Receipt evidence contract:
+    finite marked scores take precedence, malformed marked pairs fail closed,
+    and binary-only historical records remain backward-compatible.
+    """
+    if not isinstance(result, dict):
+        return 0.0
+
+    has_marked_pair = False
+    for earned_field in ("score", "marks_awarded"):
+        if earned_field not in result or "max_marks" not in result:
+            continue
+        has_marked_pair = True
+        raw_earned = result.get(earned_field)
+        raw_possible = result.get("max_marks")
+        if isinstance(raw_earned, bool) or isinstance(raw_possible, bool):
+            continue
+        try:
+            possible = float(raw_possible)
+            earned = float(raw_earned)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if not math.isfinite(possible) or not math.isfinite(earned) or possible <= 0:
+            continue
+        return min(1.0, max(0.0, earned / possible))
+
+    if has_marked_pair:
+        return 0.0
+    return 1.0 if bool(result.get("correct")) else 0.0
+
+
+def _verified_question_catalogue() -> dict[tuple[str, str, str], dict[str, Any]]:
+    """Index current verified VQE items once for evidence consumers.
+
+    The index is built from the current registry, not learner-supplied metadata.
+    A question is eligible only when its current skill and version are valid.
+    """
+    catalogue: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for record in question_engine.iter_question_records():
+        if not isinstance(record, dict) or record.get("verification_status") != "verified":
+            continue
+        question = record.get("question")
+        if not isinstance(question, dict):
+            continue
+
+        course_id = record.get("course_id")
+        lesson_id = record.get("lesson_id")
+        question_id = record.get("question_id")
+        skill_id = question.get("skill_id")
+        version = question.get("question_version", 1)
+        if not all(isinstance(value, str) and value.strip() for value in (
+            course_id, lesson_id, question_id
+        )):
+            continue
+        if not isinstance(skill_id, str) or skill_id not in math_taxonomy.SKILLS:
+            continue
+        if type(version) is not int or version < 1:
+            continue
+
+        catalogue[(course_id, lesson_id, question_id)] = {
+            "skill_id": skill_id,
+            "question_version": version,
+            "question_purpose": question.get("purpose"),
+            "mistake_tag": question.get("mistake_tag"),
+        }
+    return catalogue
+
+
+def _resolve_verified_result(
+    result: dict[str, Any],
+    catalogue: dict[tuple[str, str, str], dict[str, Any]],
+    *,
+    course_id: str,
+    default_lesson_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Resolve saved evidence against the current VQE source and classification.
+
+    Missing version/skill fields remain readable for legacy records. Explicit
+    malformed or stale provenance is rejected instead of being guessed.
+    """
+    if not isinstance(result, dict) or result.get("verification_status") != "verified":
+        return None
+
+    question_id = str(result.get("question_id") or "").strip()
+    source_lesson_id = str(
+        result.get("lesson_id")
+        or result.get("source_lesson_id")
+        or default_lesson_id
+        or ""
+    ).strip()
+    if not question_id or not source_lesson_id:
+        return None
+
+    recorded_course_id = result.get("course_id")
+    if recorded_course_id is not None and (
+        not isinstance(recorded_course_id, str)
+        or recorded_course_id != str(course_id)
+    ):
+        return None
+
+    metadata = catalogue.get((str(course_id), source_lesson_id, question_id))
+    if metadata is None:
+        return None
+
+    recorded_version = result.get("question_version")
+    if recorded_version is not None and (
+        type(recorded_version) is not int
+        or recorded_version != metadata["question_version"]
+    ):
+        return None
+
+    recorded_skill_id = result.get("skill_id")
+    if recorded_skill_id is not None and (
+        not isinstance(recorded_skill_id, str)
+        or recorded_skill_id != metadata["skill_id"]
+    ):
+        return None
+
+    return {
+        **metadata,
+        "course_id": str(course_id),
+        "lesson_id": source_lesson_id,
+        "question_id": question_id,
+    }
 
 
 def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -57,23 +166,11 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             "locations": set(),
         }
 
-    # The question registry is the source of truth for stable question-to-skill
-    # mapping. Unverified/legacy questions are not assigned invented skill IDs.
-    question_map = {}
-    for record in question_engine.iter_question_records():
-        # Only the reviewed registry is authoritative for practice evidence.
-        # Legacy, generated, and needs-review questions must not create skill
-        # accuracy or trajectory signals.
-        if record.get("verification_status") != "verified":
-            continue
-        question = record.get("question", {})
-        skill_id = question.get("skill_id")
-        if skill_id in evidence:
-            question_map[(record.get("course_id"), record.get("lesson_id"), record.get("question_id"))] = {
-                "skill_id": skill_id,
-                "mistake_tag": question.get("mistake_tag"),
-            }
-            evidence[skill_id]["locations"].add((record.get("course_id"), record.get("lesson_id")))
+    # Current VQE state is authoritative for source, version and skill mapping.
+    # One catalogue build serves every saved evidence item in this operation.
+    question_catalogue = _verified_question_catalogue()
+    for (course_id, lesson_id, _question_id), metadata in question_catalogue.items():
+        evidence[metadata["skill_id"]]["locations"].add((course_id, lesson_id))
 
     for course_id, course_progress in (progress or {}).items():
         if not isinstance(course_progress, dict):
@@ -93,30 +190,22 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 for result in results:
                     if not isinstance(result, dict):
                         continue
-                    # Fail closed: a saved result is evidence only when
-                    # both the attempt and the current registry identify it as
-                    # verified. A client-supplied skill_id alone is not proof.
-                    if result.get("verification_status") != "verified":
-                        continue
-                    qid = str(result.get("question_id") or "")
-                    # Pathway and revision questions can be presented in a
-                    # different lesson from their canonical VQE source. New
-                    # records carry that source lesson in provenance; older
-                    # records safely fall back to the containing attempt.
-                    source_lesson_id = str(
-                        result.get("lesson_id")
-                        or result.get("source_lesson_id")
-                        or lesson_id
+                    # Resolve source identity and classification against the
+                    # current registry. Stale versions cannot feed recommendations
+                    # or skill trajectories after a question is revised.
+                    metadata = _resolve_verified_result(
+                        result,
+                        question_catalogue,
+                        course_id=str(course_id),
+                        default_lesson_id=str(lesson_id),
                     )
-                    metadata = question_map.get((str(course_id), source_lesson_id, qid))
-                    if not metadata:
+                    if metadata is None:
                         continue
-                    skill_id = metadata.get("skill_id")
-                    recorded_skill_id = result.get("skill_id")
-                    if recorded_skill_id and recorded_skill_id != skill_id:
-                        continue
+                    skill_id = metadata["skill_id"]
                     if skill_id not in evidence:
                         continue
+                    source_lesson_id = metadata["lesson_id"]
+                    qid = metadata["question_id"]
                     item = evidence[skill_id]
                     item["practice_question_ids"].add(
                         (str(course_id), source_lesson_id, qid)
@@ -179,18 +268,19 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
             if not isinstance(results, list):
                 continue
             for result in results:
-                if not isinstance(result, dict) or result.get("verification_status") != "verified":
+                metadata = _resolve_verified_result(
+                    result,
+                    question_catalogue,
+                    course_id=str(course_id),
+                    default_lesson_id=attempt_lesson_id,
+                )
+                if metadata is None:
                     continue
-                qid = str(result.get("question_id") or "")
-                source_lesson_id = str(result.get("lesson_id") or attempt_lesson_id)
-                metadata = question_map.get((str(course_id), source_lesson_id, qid))
-                if not metadata:
-                    continue
-                skill_id = metadata.get("skill_id")
-                if result.get("skill_id") and result.get("skill_id") != skill_id:
-                    continue
+                skill_id = metadata["skill_id"]
                 if skill_id not in evidence:
                     continue
+                source_lesson_id = metadata["lesson_id"]
+                qid = metadata["question_id"]
                 evidence_id = (str(course_id), source_lesson_id, qid)
                 item = evidence[skill_id]
                 if evidence_id in item["diagnostic_question_ids"] or evidence_id in item["practice_question_ids"]:
@@ -387,6 +477,7 @@ def build_intervention_timeline(
         progress = {}
 
     events: list[dict[str, Any]] = []
+    question_catalogue = _verified_question_catalogue()
 
     for raw_course_id, course_progress in progress.items():
         course_id = str(raw_course_id)
@@ -459,13 +550,15 @@ def build_intervention_timeline(
                     for result in results:
                         if not isinstance(result, dict):
                             continue
-                        skill_id = result.get("skill_id")
-                        if (
-                            result.get("verification_status") != "verified"
-                            or not isinstance(skill_id, str)
-                            or skill_id not in math_taxonomy.SKILLS
-                        ):
+                        metadata = _resolve_verified_result(
+                            result,
+                            question_catalogue,
+                            course_id=course_id,
+                            default_lesson_id=str(lesson_id),
+                        )
+                        if metadata is None:
                             continue
+                        skill_id = metadata["skill_id"]
                         grouped[skill_id].append(_event_ratio(result))
 
                     pathway = str(attempt.get("pathway_label") or "").strip()
@@ -522,20 +615,18 @@ def build_intervention_timeline(
                 )
                 if not question_id or not source_lesson_id or not practice_lesson_id or completed is None:
                     continue
-                metadata = question_engine.attempt_metadata(
-                    question_id,
+                metadata = _resolve_verified_result(
+                    result,
+                    question_catalogue,
                     course_id=course_id,
-                    lesson_id=source_lesson_id,
+                    default_lesson_id=source_lesson_id,
                 )
-                skill_id = metadata.get("skill_id")
+                if metadata is None:
+                    continue
+                skill_id = metadata["skill_id"]
                 if (
-                    metadata.get("verification_status") != "verified"
-                    or metadata.get("question_purpose") != "application"
-                    or not isinstance(skill_id, str)
-                    or skill_id not in math_taxonomy.SKILLS
-                    or result.get("verification_status") != "verified"
+                    metadata.get("question_purpose") != "application"
                     or result.get("source_skill_id") != skill_id
-                    or (result.get("skill_id") and result.get("skill_id") != skill_id)
                 ):
                     continue
                 practice_title = _course_lesson_labels(course_id, practice_lesson_id)[1]
@@ -575,16 +666,16 @@ def build_intervention_timeline(
             for result in coach_attempts:
                 if not isinstance(result, dict):
                     continue
-                skill_id = result.get("skill_id")
+                metadata = _resolve_verified_result(
+                    result,
+                    question_catalogue,
+                    course_id=course_id,
+                )
                 completed = _parse_event_timestamp(result.get("completed_at"))
-                if (
-                    result.get("verification_status") != "verified"
-                    or not isinstance(skill_id, str)
-                    or skill_id not in math_taxonomy.SKILLS
-                    or completed is None
-                ):
+                if metadata is None or completed is None:
                     continue
-                lesson_id = str(result.get("lesson_id") or "")
+                skill_id = metadata["skill_id"]
+                lesson_id = metadata["lesson_id"]
                 day = completed.date().isoformat()
                 coach_groups[(lesson_id, skill_id, day)].append(
                     (completed, 1.0 if result.get("correct") else 0.0)
