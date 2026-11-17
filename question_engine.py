@@ -1293,7 +1293,11 @@ def _review_metadata_issues(
         "authored_prompt", "expected_answer", "explanation",
         "question_structure", "skill_and_difficulty_classification",
     }
-    if not isinstance(review_scope, list) or not required_scope.issubset(set(review_scope)):
+    if (
+        not isinstance(review_scope, list)
+        or any(not isinstance(item, str) for item in review_scope)
+        or not required_scope.issubset(set(review_scope))
+    ):
         issues.append(f"{question_id}: review scope must cover prompt, answer, explanation, structure and classification.")
     if metadata.get("review_independence") not in (
         "independently_audited", "not_independently_audited"
