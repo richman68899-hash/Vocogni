@@ -54,8 +54,39 @@ def _local_date(timestamp, tz):
 
 
 def _valid_results(record):
+    """Return answer rows with explicit, usable correctness or mark evidence."""
     results = record.get("results", []) if isinstance(record, dict) else []
-    return results if isinstance(results, list) and results else []
+    if not isinstance(results, list):
+        return []
+
+    valid = []
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        has_mark_fields = any(
+            field in result for field in ("score", "marks_awarded", "max_marks")
+        )
+        if has_mark_fields:
+            raw_maximum = result.get("max_marks")
+            if isinstance(raw_maximum, bool) or not isinstance(raw_maximum, (int, float)):
+                continue
+            maximum = float(raw_maximum)
+            if not math.isfinite(maximum) or maximum <= 0:
+                continue
+            valid_marks = False
+            for field in ("score", "marks_awarded"):
+                raw_earned = result.get(field)
+                if isinstance(raw_earned, bool) or not isinstance(raw_earned, (int, float)):
+                    continue
+                if math.isfinite(float(raw_earned)):
+                    valid_marks = True
+                    break
+            if valid_marks:
+                valid.append(result)
+            continue
+        if isinstance(result.get("correct"), bool):
+            valid.append(result)
+    return valid
 
 
 def _iter_course_progress(progress):
@@ -127,8 +158,8 @@ def _completed_attempt_events(course_progress, tz):
             if not isinstance(checkpoint, dict):
                 continue
             if not (
-                checkpoint.get("completed")
-                and checkpoint.get("screen_3_submitted")
+                checkpoint.get("completed") is True
+                and checkpoint.get("screen_3_submitted") is True
                 and _valid_results(checkpoint)
             ):
                 continue
@@ -169,9 +200,9 @@ def activity_dates_by_course(progress, timezone_label="Prefer not to say"):
             for checkpoint in checkpoints.values():
                 if not isinstance(checkpoint, dict):
                     continue
-                completed_lesson = bool(checkpoint.get("completed"))
+                completed_lesson = checkpoint.get("completed") is True
                 submitted_answer = (
-                    bool(checkpoint.get("screen_3_submitted"))
+                    checkpoint.get("screen_3_submitted") is True
                     and bool(_valid_results(checkpoint))
                 )
                 if not (completed_lesson or submitted_answer):
