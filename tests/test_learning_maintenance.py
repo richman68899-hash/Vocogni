@@ -385,6 +385,66 @@ class LearningMaintenanceTests(unittest.TestCase):
         self.assertEqual(summary["total_due_reviews"], 1)
         self.assertEqual(summary["due_reviews"][0]["latest_percent"], 100)
 
+    def test_checkpoint_flags_require_explicit_true_booleans(self):
+        progress = _progress(checkpoints={
+            "fractions_l1": {
+                "updated_at": "2026-10-23T12:00:00+00:00",
+                "completed": "false",
+                "screen_3_submitted": "false",
+                "results": [{"question_id": "q1", "correct": True}],
+            },
+            "fractions_l2": {
+                "updated_at": "2026-10-23T13:00:00+00:00",
+                "completed": False,
+                "screen_3_submitted": "true",
+                "results": [{"question_id": "q2", "correct": True}],
+            },
+        })
+        self.assertEqual(maintenance.activity_dates(progress, "UTC+0"), set())
+
+    def test_submitted_answer_requires_valid_feedback_evidence(self):
+        progress = _progress(checkpoints={
+            "fractions_l1": {
+                "updated_at": "2026-10-23T12:00:00+00:00",
+                "completed": False,
+                "screen_3_submitted": True,
+                "results": [{}, {"correct": "false"}, None],
+            },
+        })
+        self.assertEqual(maintenance.activity_dates(progress, "UTC+0"), set())
+
+    def test_completed_lesson_requires_boolean_true_but_not_question_results(self):
+        progress = _progress(checkpoints={
+            "fractions_l1": {
+                "updated_at": "2026-10-23T12:00:00+00:00",
+                "completed": True,
+                "screen_3_submitted": False,
+                "results": [],
+            },
+            "fractions_l2": {
+                "updated_at": "2026-10-23T13:00:00+00:00",
+                "completed": "true",
+                "screen_3_submitted": False,
+                "results": [],
+            },
+        })
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 23)},
+        )
+
+    def test_extremely_large_numeric_evidence_is_ignored_without_crashing(self):
+        huge_integer = 10 ** 10000
+        self.assertIsNone(maintenance._attempt_percent({
+            "results": [{"score": huge_integer, "max_marks": 1}]
+        }))
+        self.assertEqual(
+            maintenance._valid_results({
+                "results": [{"score": huge_integer, "max_marks": 1}]
+            }),
+            [],
+        )
+
     def test_attempt_percent_requires_boolean_binary_correctness(self):
         self.assertEqual(
             maintenance._attempt_percent({"results": [{"correct": True}]}),
