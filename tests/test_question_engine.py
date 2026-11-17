@@ -298,6 +298,31 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
 
 
 
+    def test_difficulty_preference_softly_orders_without_filtering(self):
+        questions = [
+            {"id": "medium", "difficulty": 2},
+            {"id": "easy", "difficulty": 1},
+            {"id": "hard", "difficulty": 3},
+            {"id": "unknown"},
+        ]
+        self.assertEqual(
+            [item["id"] for item in question_engine.order_questions_for_preference(questions, "Easy")],
+            ["easy", "medium", "hard", "unknown"],
+        )
+        self.assertEqual(
+            [item["id"] for item in question_engine.order_questions_for_preference(questions, "Hard")],
+            ["hard", "medium", "easy", "unknown"],
+        )
+        self.assertEqual(
+            [item["id"] for item in question_engine.order_questions_for_preference(questions, "Medium")],
+            ["medium", "easy", "hard", "unknown"],
+        )
+        self.assertEqual(
+            question_engine.order_questions_for_preference(questions, "Adaptive"),
+            questions,
+        )
+        self.assertEqual(len(question_engine.order_questions_for_preference(questions, "Hard")), 4)
+
     def test_review_registry_records_explicit_provenance_and_scope(self):
         metadata = question_engine.get_review_record("fractions_l1_q1")
         self.assertEqual(metadata["reviewer_kind"], "internal_team")
@@ -341,7 +366,6 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
             {"not_independently_audited": report["verified_count"]},
         )
         self.assertTrue(report["review_provenance"]["limitations"])
-
 
 if __name__ == "__main__":
     unittest.main()

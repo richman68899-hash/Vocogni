@@ -1540,6 +1540,35 @@ def select_questions(
     return output
 
 
+def order_questions_for_preference(
+    questions: list[dict[str, Any]],
+    preferred_difficulty: str | None,
+) -> list[dict[str, Any]]:
+    """Stable soft ordering by preference; never changes pathway eligibility.
+
+    Only explicitly supported preferences affect ordering. Questions without a
+    valid difficulty remain at the end, preserving their relative order.
+    """
+    items = list(questions) if isinstance(questions, list) else []
+    direction = str(preferred_difficulty or "Adaptive").strip().casefold()
+    if direction not in {"easy", "medium", "hard"}:
+        return items
+
+    indexed = list(enumerate(items))
+    def sort_key(entry: tuple[int, dict[str, Any]]) -> tuple[int, int, int]:
+        original_index, question = entry
+        difficulty = question.get("difficulty") if isinstance(question, dict) else None
+        if type(difficulty) is not int or difficulty not in (1, 2, 3):
+            return (1, 0, original_index)
+        if direction == "easy":
+            return (0, difficulty, original_index)
+        if direction == "hard":
+            return (0, -difficulty, original_index)
+        return (0, abs(difficulty - 2), original_index)
+
+    return [question for _, question in sorted(indexed, key=sort_key)]
+
+
 def audit_question_bank(
     *,
     course_id: str | None = None,

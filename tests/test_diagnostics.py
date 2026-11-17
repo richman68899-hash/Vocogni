@@ -193,5 +193,81 @@ class DiagnosticEngineTests(unittest.TestCase):
                     )
 
 
+
+    def test_saved_pathway_result_fails_closed_on_malformed_scores(self):
+        malformed = [
+            {"score": True, "prerequisite_correct": True},
+            {"score": 6, "prerequisite_correct": True},
+            {"score": -1, "prerequisite_correct": True},
+            {"score": "5", "prerequisite_correct": True},
+            {"score": "not-a-score", "prerequisite_correct": True},
+            {"score": 5.0, "prerequisite_correct": True},
+            {"score": 5, "prerequisite_correct": "false",
+             "placement_policy": "whole_screen_with_prerequisite_follow_up_v2"},
+            None,
+        ]
+        for result in malformed:
+            with self.subTest(result=result):
+                self.assertEqual(
+                    diagnostics.unlocked_pathways_for_score(result),
+                    ["level_1"],
+                )
+
+    def test_valid_saved_pathway_scores_keep_existing_thresholds(self):
+        expected = {
+            0: ["level_1"],
+            1: ["level_1"],
+            2: ["level_1"],
+            3: ["level_1", "level_2"],
+            4: ["level_1", "level_2", "level_3"],
+            5: ["level_1", "level_2", "level_3", "project"],
+        }
+        for score, pathways in expected.items():
+            with self.subTest(score=score):
+                self.assertEqual(
+                    diagnostics.unlocked_pathways_for_score({
+                        "score": score,
+                        "prerequisite_correct": True,
+                    }),
+                    pathways,
+                )
+
+    def test_legacy_missed_prerequisite_still_gates_pathways(self):
+        self.assertEqual(
+            diagnostics.unlocked_pathways_for_score({
+                "score": 5,
+                "prerequisite_correct": False,
+            }),
+            ["level_1"],
+        )
+
+    def test_current_policy_keeps_prerequisite_as_follow_up(self):
+        self.assertEqual(
+            diagnostics.unlocked_pathways_for_score({
+                "score": 4,
+                "prerequisite_correct": False,
+                "placement_policy": "whole_screen_with_prerequisite_follow_up_v2",
+            }),
+            ["level_1", "level_2", "level_3"],
+        )
+
+    def test_evaluate_diagnostic_rejects_non_dictionary_answers(self):
+        course, lesson = configured_lessons()[0]
+        with self.assertRaisesRegex(ValueError, "answers must be a dictionary"):
+            diagnostics.evaluate_diagnostic(lesson["diagnostic"], [])
+
+    def test_non_string_confidence_values_are_ignored(self):
+        course, lesson = configured_lessons()[0]
+        question_id = lesson["diagnostic"]["questions"][0]["id"]
+        answers = {
+            question["id"]: question["answer"]
+            for question in lesson["diagnostic"]["questions"]
+        }
+        result = diagnostics.evaluate_diagnostic(
+            lesson["diagnostic"], answers, confidence={question_id: {"very_sure": True}}
+        )
+        self.assertIsNone(result["answer_review"][0]["confidence"])
+
+
 if __name__ == "__main__":
     unittest.main()
