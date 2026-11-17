@@ -348,6 +348,43 @@ class LearningMaintenanceTests(unittest.TestCase):
             maintenance.activity_days_in_period({TODAY}, "year", TODAY)
 
 
+    def test_malformed_practice_results_do_not_count_as_learning_or_reviews(self):
+        progress = _progress(
+            attempts=[
+                {
+                    "completed_at": "2026-10-22T12:00:00+00:00",
+                    "results": [{"question_id": "q1", "correct": "false"}],
+                }
+            ]
+        )
+        self.assertEqual(maintenance.activity_dates(progress, "UTC+0"), set())
+        summary = maintenance.build_maintenance_summary(
+            progress, timezone_label="UTC+0", today=TODAY
+        )
+        self.assertEqual(summary["total_due_reviews"], 0)
+
+    def test_mixed_practice_results_count_only_when_some_evidence_is_valid(self):
+        progress = _progress(
+            attempts=[
+                {
+                    "completed_at": "2026-10-22T12:00:00+00:00",
+                    "results": [
+                        {"question_id": "valid", "correct": True},
+                        {"question_id": "malformed", "correct": "false"},
+                    ],
+                }
+            ]
+        )
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 22)},
+        )
+        summary = maintenance.build_maintenance_summary(
+            progress, timezone_label="UTC+0", today=TODAY
+        )
+        self.assertEqual(summary["total_due_reviews"], 1)
+        self.assertEqual(summary["due_reviews"][0]["latest_percent"], 100)
+
     def test_attempt_percent_requires_boolean_binary_correctness(self):
         self.assertEqual(
             maintenance._attempt_percent({"results": [{"correct": True}]}),
