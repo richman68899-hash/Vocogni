@@ -54,9 +54,43 @@ def _local_date(timestamp, tz):
     return parsed.astimezone(tz).date() if parsed else None
 
 
+def _finite_number(value):
+    """Return a finite float for real numeric evidence, excluding booleans."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        converted = float(value)
+    except (OverflowError, TypeError, ValueError):
+        return None
+    return converted if math.isfinite(converted) else None
+
+
 def _valid_results(record):
+    """Return answer rows with explicit, usable correctness or mark evidence."""
     results = record.get("results", []) if isinstance(record, dict) else []
-    return results if isinstance(results, list) and results else []
+    if not isinstance(results, list):
+        return []
+
+    valid = []
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        has_mark_fields = any(
+            field in result for field in ("score", "marks_awarded", "max_marks")
+        )
+        if has_mark_fields:
+            maximum = _finite_number(result.get("max_marks"))
+            if maximum is None or maximum <= 0:
+                continue
+            if any(
+                _finite_number(result.get(field)) is not None
+                for field in ("score", "marks_awarded")
+            ):
+                valid.append(result)
+            continue
+        if isinstance(result.get("correct"), bool):
+            valid.append(result)
+    return valid
 
 
 def _iter_course_progress(progress):
@@ -87,20 +121,14 @@ def _attempt_percent(attempt):
         )
         ratio = None
         if has_mark_fields:
-            raw_maximum = result.get("max_marks")
-            if isinstance(raw_maximum, bool) or not isinstance(raw_maximum, (int, float)):
-                continue
-            maximum = float(raw_maximum)
-            if not math.isfinite(maximum) or maximum <= 0:
+            maximum = _finite_number(result.get("max_marks"))
+            if maximum is None or maximum <= 0:
                 continue
             for score_field in ("score", "marks_awarded"):
                 if score_field not in result:
                     continue
-                raw_earned = result.get(score_field)
-                if isinstance(raw_earned, bool) or not isinstance(raw_earned, (int, float)):
-                    continue
-                earned = float(raw_earned)
-                if not math.isfinite(earned):
+                earned = _finite_number(result.get(score_field))
+                if earned is None:
                     continue
                 ratio = min(1.0, max(0.0, earned / maximum))
                 break
@@ -155,8 +183,8 @@ def _completed_attempt_events(course_progress, tz):
             if not isinstance(checkpoint, dict):
                 continue
             if not (
-                checkpoint.get("completed")
-                and checkpoint.get("screen_3_submitted")
+                checkpoint.get("completed") is True
+                and checkpoint.get("screen_3_submitted") is True
                 and _valid_results(checkpoint)
             ):
                 continue
@@ -197,9 +225,9 @@ def activity_dates_by_course(progress, timezone_label="Prefer not to say"):
             for checkpoint in checkpoints.values():
                 if not isinstance(checkpoint, dict):
                     continue
-                completed_lesson = bool(checkpoint.get("completed"))
+                completed_lesson = checkpoint.get("completed") is True
                 submitted_answer = (
-                    bool(checkpoint.get("screen_3_submitted"))
+                    checkpoint.get("screen_3_submitted") is True
                     and bool(_valid_results(checkpoint))
                 )
                 if not (completed_lesson or submitted_answer):
