@@ -6,6 +6,7 @@ It does not award points, coins, badges, or count app opens as learning.
 """
 from __future__ import annotations
 
+import math
 import re
 from datetime import date, datetime, timedelta, timezone
 
