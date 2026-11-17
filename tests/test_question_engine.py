@@ -323,5 +323,49 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
         )
         self.assertEqual(len(question_engine.order_questions_for_preference(questions, "Hard")), 4)
 
+    def test_review_registry_records_explicit_provenance_and_scope(self):
+        metadata = question_engine.get_review_record("fractions_l1_q1")
+        self.assertEqual(metadata["reviewer_kind"], "internal_team")
+        self.assertEqual(metadata["review_evidence_type"], "seed_content_review")
+        self.assertEqual(metadata["review_independence"], "not_independently_audited")
+        self.assertIn("expected_answer", metadata["review_scope"])
+        self.assertEqual(question_engine.validate_registry(), [])
+
+    def test_registry_rejects_missing_review_provenance(self):
+        metadata = question_engine.get_review_record("fractions_l1_q1")
+        metadata.pop("reviewer_kind")
+        with patch.dict(question_engine.VERIFICATION_REGISTRY, {
+            "fractions_l1_q1": metadata,
+        }):
+            record = question_engine.get_question_record(
+                "fractions_l1_q1", course_id="fractions", lesson_id="fractions_l1"
+            )
+            self.assertEqual(record["verification_status"], "needs_review")
+            self.assertTrue(any("reviewer kind" in issue for issue in record["verification_issues"]))
+
+    def test_registry_rejects_non_string_review_scope_without_crashing(self):
+        metadata = question_engine.get_review_record("fractions_l1_q1")
+        metadata["review_scope"] = [{}]
+        with patch.dict(question_engine.VERIFICATION_REGISTRY, {
+            "fractions_l1_q1": metadata,
+        }):
+            record = question_engine.get_question_record(
+                "fractions_l1_q1", course_id="fractions", lesson_id="fractions_l1"
+            )
+        self.assertEqual(record["verification_status"], "needs_review")
+        self.assertTrue(any("review scope" in issue for issue in record["verification_issues"]))
+
+    def test_bank_audit_reports_per_lesson_coverage_and_review_limits(self):
+        report = question_engine.audit_question_bank(course_id="fractions")
+        self.assertTrue(report["lesson_coverage"])
+        first = report["lesson_coverage"][0]
+        self.assertIn("verified_percent", first)
+        self.assertGreaterEqual(first["total"], first["counts"]["verified"])
+        self.assertEqual(
+            report["review_provenance"]["verified_by_independence"],
+            {"not_independently_audited": report["verified_count"]},
+        )
+        self.assertTrue(report["review_provenance"]["limitations"])
+
 if __name__ == "__main__":
     unittest.main()
