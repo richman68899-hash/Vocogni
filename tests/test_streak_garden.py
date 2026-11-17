@@ -211,5 +211,80 @@ class StreakGardenEngineTests(unittest.TestCase):
         self.assertEqual(len(cleaned["wallet_transactions"]), 1)
 
 
+    def test_sanitizer_rejects_boolean_and_string_schema_versions(self):
+        for version in (True, False, "1", 1.0, None):
+            with self.subTest(version=version):
+                cleaned = sanitize_garden_state({"schema_version": version})
+                self.assertEqual(cleaned["forests"], {})
+                self.assertEqual(cleaned["trees"], [])
+                self.assertEqual(cleaned["wallet_transactions"], [])
+
+    def test_sanitizer_does_not_coerce_forest_configuration_booleans_or_strings(self):
+        cleaned = sanitize_garden_state({
+            "schema_version": 1,
+            "forests": {
+                "fractions": {
+                    "anchor_date": "2026-10-26",
+                    "target_days": True,
+                    "tree_capacity": "5",
+                },
+            },
+        })
+        forest = cleaned["forests"]["fractions"]
+        self.assertEqual(forest["target_days"], 5)
+        self.assertEqual(forest["tree_capacity"], 10)
+
+    def test_sanitizer_rejects_boolean_tree_growth_stage(self):
+        cleaned = sanitize_garden_state({
+            "schema_version": 1,
+            "forests": {"fractions": {"anchor_date": "2026-10-26"}},
+            "trees": [{
+                "id": "fractions:2026-10-26",
+                "forest_id": "fractions",
+                "cycle_start": "2026-10-26",
+                "growth_stage": True,
+                "status": "active",
+                "planted_on": "2026-10-30",
+            }],
+        })
+        self.assertEqual(cleaned["trees"], [])
+
+    def test_sanitizer_requires_consistent_sold_tree_timestamps(self):
+        base_tree = {
+            "id": "fractions:2026-10-26",
+            "forest_id": "fractions",
+            "cycle_start": "2026-10-26",
+            "growth_stage": 1,
+            "planted_on": "2026-10-30",
+        }
+        missing_sale_date = dict(base_tree, status="sold", sold_on=None)
+        active_with_sale_date = dict(base_tree, status="active", sold_on="2026-11-01")
+        cleaned = sanitize_garden_state({
+            "schema_version": 1,
+            "forests": {"fractions": {"anchor_date": "2026-10-26"}},
+            "trees": [missing_sale_date, active_with_sale_date],
+        })
+        self.assertEqual(len(cleaned["trees"]), 1)
+        self.assertEqual(cleaned["trees"][0]["status"], "active")
+        self.assertIsNone(cleaned["trees"][0]["sold_on"])
+
+    def test_sanitizer_rejects_unknown_wallet_reasons_and_coerced_amounts(self):
+        rows = [
+            {"source_key": "bool", "amount": True, "reason": "daily_water", "created_on": "2026-10-26"},
+            {"source_key": "float", "amount": 5.5, "reason": "daily_water", "created_on": "2026-10-26"},
+            {"source_key": "string", "amount": "5", "reason": "daily_water", "created_on": "2026-10-26"},
+            {"source_key": "unknown", "amount": 5, "reason": "admin_adjustment", "created_on": "2026-10-26"},
+            {"source_key": "valid", "amount": 5, "reason": "daily_water", "created_on": "2026-10-26"},
+        ]
+        cleaned = sanitize_garden_state({
+            "schema_version": 1,
+            "wallet_transactions": rows,
+        })
+        self.assertEqual(
+            [row["source_key"] for row in cleaned["wallet_transactions"]],
+            ["valid"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
