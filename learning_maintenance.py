@@ -6,6 +6,7 @@ It does not award points, coins, badges, or count app opens as learning.
 """
 from __future__ import annotations
 
+import math
 import re
 from datetime import date, datetime, timedelta, timezone
 
@@ -67,7 +68,12 @@ def _iter_course_progress(progress):
 
 
 def _attempt_percent(attempt):
-    """Calculate a descriptive attempt percentage from its stored item results."""
+    """Calculate a descriptive percentage from valid stored answer evidence.
+
+    Marked results require finite numeric marks and a positive maximum.
+    Binary results require an actual boolean correctness value. Malformed rows
+    are omitted rather than being converted to zero or full credit.
+    """
     results = _valid_results(attempt)
     if not results:
         return None
@@ -75,21 +81,38 @@ def _attempt_percent(attempt):
     for result in results:
         if not isinstance(result, dict):
             continue
+
+        has_mark_fields = any(
+            field in result for field in ("score", "marks_awarded", "max_marks")
+        )
         ratio = None
-        for score_field in ("score", "marks_awarded"):
-            try:
-                maximum = float(result.get("max_marks"))
-                earned = float(result.get(score_field))
-                if maximum > 0:
-                    ratio = min(1.0, max(0.0, earned / maximum))
-                    break
-            except (TypeError, ValueError):
+        if has_mark_fields:
+            raw_maximum = result.get("max_marks")
+            if isinstance(raw_maximum, bool) or not isinstance(raw_maximum, (int, float)):
                 continue
-        if ratio is None:
-            ratio = 1.0 if bool(result.get("correct")) else 0.0
+            maximum = float(raw_maximum)
+            if not math.isfinite(maximum) or maximum <= 0:
+                continue
+            for score_field in ("score", "marks_awarded"):
+                if score_field not in result:
+                    continue
+                raw_earned = result.get(score_field)
+                if isinstance(raw_earned, bool) or not isinstance(raw_earned, (int, float)):
+                    continue
+                earned = float(raw_earned)
+                if not math.isfinite(earned):
+                    continue
+                ratio = min(1.0, max(0.0, earned / maximum))
+                break
+            if ratio is None:
+                continue
+        else:
+            correct = result.get("correct")
+            if not isinstance(correct, bool):
+                continue
+            ratio = 1.0 if correct else 0.0
         ratios.append(ratio)
     return round(sum(ratios) / len(ratios) * 100) if ratios else None
-
 
 def _completed_attempt_events(course_progress, tz):
     """Yield (lesson_id, local_date, percent) for timestamped completed practice sets."""
