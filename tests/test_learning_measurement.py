@@ -39,15 +39,31 @@ class PostLessonCheckpointTests(unittest.TestCase):
         self.assertEqual(checkpoint["post_total"], 1)
         self.assertEqual(checkpoint["post_practice_percent"], 100)
 
-    def test_non_finite_baseline_percentages_fall_back_safely(self):
+    def test_non_finite_baseline_percentages_do_not_create_comparisons(self):
         for value in (float("nan"), float("inf"), float("-inf")):
             with self.subTest(value=value):
                 checkpoint = learning_measurement.build_post_lesson_checkpoint(
                     {"percent": value},
                     [{"correct": True}],
                 )
-                self.assertEqual(checkpoint["baseline_percent"], 0)
-                self.assertEqual(checkpoint["percentage_point_difference"], 100)
+                self.assertIsNone(checkpoint)
+
+    def test_missing_or_non_numeric_baseline_percentages_do_not_create_comparisons(self):
+        for baseline in ({}, {"percent": None}, {"percent": "50"}, {"percent": True}):
+            with self.subTest(baseline=baseline):
+                checkpoint = learning_measurement.build_post_lesson_checkpoint(
+                    baseline,
+                    [{"correct": True}],
+                )
+                self.assertIsNone(checkpoint)
+
+    def test_valid_zero_baseline_is_not_treated_as_missing(self):
+        checkpoint = learning_measurement.build_post_lesson_checkpoint(
+            {"score": 0, "total": 5, "percent": 0},
+            [{"correct": True}],
+        )
+        self.assertEqual(checkpoint["baseline_percent"], 0)
+        self.assertEqual(checkpoint["percentage_point_difference"], 100)
 
     def test_baseline_percentages_are_clamped_to_valid_range(self):
         for value, expected in ((150, 100), (-25, 0), (75.9, 75)):
