@@ -48,7 +48,7 @@ _SECTIONS = [
         "id": "learning",
         "icon": "book",
         "title": "How you learn",
-        "subtitle": "Preferences that help shape your learning experience.",
+        "subtitle": "Difficulty changes the order of eligible questions without overriding your diagnostic pathway. Other preferences are used only where a feature explicitly supports them.",
         "fields": [
             ("learning_style", "Learning style", "select", "LEARNING_STYLE_OPTIONS"),
             ("preferred_difficulty", "Preferred difficulty", "select", "DIFFICULTY_OPTIONS"),
