@@ -348,5 +348,54 @@ class LearningMaintenanceTests(unittest.TestCase):
             maintenance.activity_days_in_period({TODAY}, "year", TODAY)
 
 
+    def test_checkpoint_flags_require_explicit_true_booleans(self):
+        progress = _progress(checkpoints={
+            "fractions_l1": {
+                "updated_at": "2026-10-23T12:00:00+00:00",
+                "completed": "false",
+                "screen_3_submitted": "false",
+                "results": [{"question_id": "q1", "correct": True}],
+            },
+            "fractions_l2": {
+                "updated_at": "2026-10-23T13:00:00+00:00",
+                "completed": False,
+                "screen_3_submitted": "true",
+                "results": [{"question_id": "q2", "correct": True}],
+            },
+        })
+        self.assertEqual(maintenance.activity_dates(progress, "UTC+0"), set())
+
+    def test_submitted_answer_requires_valid_feedback_evidence(self):
+        progress = _progress(checkpoints={
+            "fractions_l1": {
+                "updated_at": "2026-10-23T12:00:00+00:00",
+                "completed": False,
+                "screen_3_submitted": True,
+                "results": [{}, {"correct": "false"}, None],
+            },
+        })
+        self.assertEqual(maintenance.activity_dates(progress, "UTC+0"), set())
+
+    def test_completed_lesson_requires_boolean_true_but_not_question_results(self):
+        progress = _progress(checkpoints={
+            "fractions_l1": {
+                "updated_at": "2026-10-23T12:00:00+00:00",
+                "completed": True,
+                "screen_3_submitted": False,
+                "results": [],
+            },
+            "fractions_l2": {
+                "updated_at": "2026-10-23T13:00:00+00:00",
+                "completed": "true",
+                "screen_3_submitted": False,
+                "results": [],
+            },
+        })
+        self.assertEqual(
+            maintenance.activity_dates(progress, "UTC+0"),
+            {date(2026, 10, 23)},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
