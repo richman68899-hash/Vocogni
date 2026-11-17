@@ -15,7 +15,7 @@ import data
 import math_taxonomy
 import question_engine
 
-ENGINE_VERSION = "learning-intelligence-2"
+ENGINE_VERSION = "learning-intelligence-3"
 
 
 def _result_ratio(result: dict[str, Any]) -> float:
