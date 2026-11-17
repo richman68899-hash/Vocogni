@@ -687,18 +687,18 @@ class AdaptiveLearningTests(unittest.TestCase):
 
 
     def test_marked_score_normalization_rejects_booleans_and_non_finite_values(self):
-        self.assertEqual(adaptive_learning._result_ratio({
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": True, "max_marks": 1, "correct": True,
-        }), 0.0)
-        self.assertEqual(adaptive_learning._result_ratio({
+        }))
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": float("inf"), "max_marks": 1, "correct": True,
-        }), 0.0)
-        self.assertEqual(adaptive_learning._result_ratio({
+        }))
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": 1, "max_marks": float("inf"), "correct": True,
-        }), 0.0)
-        self.assertEqual(adaptive_learning._result_ratio({
+        }))
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": float("nan"), "max_marks": 2, "correct": True,
-        }), 0.0)
+        }))
         self.assertEqual(adaptive_learning._result_ratio({
             "score": 1, "max_marks": 2,
         }), 0.5)
