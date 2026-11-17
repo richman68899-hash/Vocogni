@@ -92,6 +92,16 @@ def _review(
         "verification_status": "verified",
         "reviewed_at": "2026-10-25",
         "reviewer": "Vocogni VQE prototype content review",
+        "reviewer_kind": "internal_team",
+        "review_evidence_type": "seed_content_review",
+        "review_scope": [
+            "authored_prompt",
+            "expected_answer",
+            "explanation",
+            "question_structure",
+            "skill_and_difficulty_classification",
+        ],
+        "review_independence": "not_independently_audited",
         "review_checks": sorted(_REQUIRED_REVIEW_CHECKS),
         "reviewed_content": reviewed_content,
         "curriculum_alignment": "Provisional lower-secondary planning tag; not an official syllabus code",
@@ -1274,6 +1284,22 @@ def _review_metadata_issues(
     if not isinstance(metadata.get("reviewed_at"), str) or not metadata["reviewed_at"].strip():
         issues.append(f"{question_id}: review date is required.")
 
+    if metadata.get("reviewer_kind") not in ("individual", "internal_team", "external_reviewer"):
+        issues.append(f"{question_id}: reviewer kind must identify the review source.")
+    if metadata.get("review_evidence_type") != "seed_content_review":
+        issues.append(f"{question_id}: review evidence type is missing or unsupported.")
+    review_scope = metadata.get("review_scope")
+    required_scope = {
+        "authored_prompt", "expected_answer", "explanation",
+        "question_structure", "skill_and_difficulty_classification",
+    }
+    if not isinstance(review_scope, list) or not required_scope.issubset(set(review_scope)):
+        issues.append(f"{question_id}: review scope must cover prompt, answer, explanation, structure and classification.")
+    if metadata.get("review_independence") not in (
+        "independently_audited", "not_independently_audited"
+    ):
+        issues.append(f"{question_id}: review independence must be explicitly recorded.")
+
     return issues
 
 
@@ -1520,11 +1546,25 @@ def audit_question_bank(
     issues = list(duplicate_issues)
     counts = {status: 0 for status in VERIFICATION_STATUSES}
     item_reports = []
+    lesson_coverage: dict[tuple[str, str], dict[str, int]] = {}
+    reviewer_kinds: dict[str, int] = {}
+    independence_counts: dict[str, int] = {}
     for record in records:
         status, item_issues = _verification_status(record)
         if status not in counts:
             counts[status] = 0
         counts[status] += 1
+        lesson_key = (str(record.get("course_id") or ""), str(record.get("lesson_id") or ""))
+        lesson_counts = lesson_coverage.setdefault(
+            lesson_key, {key: 0 for key in VERIFICATION_STATUSES}
+        )
+        lesson_counts[status] = lesson_counts.get(status, 0) + 1
+        metadata = VERIFICATION_REGISTRY.get(record["question_id"])
+        if isinstance(metadata, dict) and status == "verified":
+            reviewer_kind = str(metadata.get("reviewer_kind") or "unspecified")
+            independence = str(metadata.get("review_independence") or "unspecified")
+            reviewer_kinds[reviewer_kind] = reviewer_kinds.get(reviewer_kind, 0) + 1
+            independence_counts[independence] = independence_counts.get(independence, 0) + 1
         for message in item_issues:
             severity = "error" if status == "needs_review" else "warning"
             item_reports.append({
@@ -1561,6 +1601,28 @@ def audit_question_bank(
         "verified_count": counts.get("verified", 0),
         "needs_review_count": counts.get("needs_review", 0),
         "legacy_count": counts.get("legacy", 0),
+        "lesson_coverage": [
+            {
+                "course_id": course,
+                "lesson_id": lesson,
+                "counts": dict(lesson_coverage[(course, lesson)]),
+                "total": sum(lesson_coverage[(course, lesson)].values()),
+                "verified_percent": round(
+                    lesson_coverage[(course, lesson)].get("verified", 0)
+                    / max(1, sum(lesson_coverage[(course, lesson)].values())) * 100
+                ),
+            }
+            for course, lesson in sorted(lesson_coverage)
+        ],
+        "review_provenance": {
+            "verified_by_reviewer_kind": dict(sorted(reviewer_kinds.items())),
+            "verified_by_independence": dict(sorted(independence_counts.items())),
+            "limitations": [
+                "Registry metadata records the repository's declared review process.",
+                "A team label is not an independently identifiable reviewer.",
+                "Independence is not inferred from the presence of review checks.",
+            ],
+        },
         "issues": issues,
         "item_reports": item_reports,
     }
