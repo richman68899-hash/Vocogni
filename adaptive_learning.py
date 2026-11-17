@@ -18,15 +18,14 @@ import question_engine
 ENGINE_VERSION = "learning-intelligence-3"
 
 
-def _result_ratio(result: dict[str, Any]) -> float:
-    """Normalize saved marks without promoting malformed values to full credit.
+def _result_ratio(result: dict[str, Any]) -> float | None:
+    """Normalize trustworthy saved marks or boolean correctness evidence.
 
-    This deliberately mirrors the Mastery Receipt evidence contract:
-    finite marked scores take precedence, malformed marked pairs fail closed,
-    and binary-only historical records remain backward-compatible.
+    A malformed marked pair or non-boolean legacy correctness value is omitted
+    from evidence instead of being turned into either full credit or a failure.
     """
     if not isinstance(result, dict):
-        return 0.0
+        return None
 
     has_marked_pair = False
     for earned_field in ("score", "marks_awarded"):
@@ -47,8 +46,11 @@ def _result_ratio(result: dict[str, Any]) -> float:
         return min(1.0, max(0.0, earned / possible))
 
     if has_marked_pair:
-        return 0.0
-    return 1.0 if bool(result.get("correct")) else 0.0
+        return None
+    correct = result.get("correct")
+    if isinstance(correct, bool):
+        return 1.0 if correct else 0.0
+    return None
 
 
 def _verified_question_catalogue() -> dict[tuple[str, str, str], dict[str, Any]]:
@@ -206,16 +208,18 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                         continue
                     source_lesson_id = metadata["lesson_id"]
                     qid = metadata["question_id"]
+                    ratio = _result_ratio(result)
+                    if ratio is None:
+                        continue
                     item = evidence[skill_id]
                     item["practice_question_ids"].add(
                         (str(course_id), source_lesson_id, qid)
                     )
-                    ratio = _result_ratio(result)
                     item["attempts"] += 1
                     item["ratios"].append(ratio)
                     item["recent_ratios"].append((str(attempt.get("completed_at") or ""), ratio))
                     tag = result.get("mistake_tag") or result.get("skill_tag") or metadata.get("mistake_tag")
-                    if not result.get("correct") and tag:
+                    if result.get("correct") is False and tag:
                         item["mistake_tags"][str(tag)] += 1
 
     # Baseline diagnostics can identify likely skill gaps before practice.
@@ -247,10 +251,13 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 )
                 if evidence_id in item["diagnostic_question_ids"]:
                     continue
+                ratio = _event_ratio(result)
+                if ratio is None:
+                    continue
                 item["diagnostic_question_ids"].add(evidence_id)
-                item["diagnostic_ratios"].append(_event_ratio(result))
+                item["diagnostic_ratios"].append(ratio)
                 item["diagnostic_locations"].add((str(course_id), str(lesson_id)))
-                if not result.get("correct") and result.get("skill_tag"):
+                if result.get("correct") is False and result.get("skill_tag"):
                     item["diagnostic_mistake_tags"][str(result["skill_tag"])] += 1
 
     # Keep independent diagnostic confirmations outside ordinary practice accuracy.
@@ -285,11 +292,14 @@ def _collect_skill_evidence(progress: dict[str, Any]) -> dict[str, dict[str, Any
                 item = evidence[skill_id]
                 if evidence_id in item["diagnostic_question_ids"] or evidence_id in item["practice_question_ids"]:
                     continue
+                ratio = _event_ratio(result)
+                if ratio is None:
+                    continue
                 item["diagnostic_question_ids"].add(evidence_id)
                 item["confirmation_question_ids"].add(evidence_id)
-                item["diagnostic_ratios"].append(_event_ratio(result))
+                item["diagnostic_ratios"].append(ratio)
                 item["diagnostic_locations"].add((str(course_id), source_lesson_id))
-                if not result.get("correct"):
+                if result.get("correct") is False:
                     tag = result.get("mistake_tag") or metadata.get("mistake_tag")
                     if tag:
                         item["diagnostic_mistake_tags"][str(tag)] += 1
@@ -446,8 +456,8 @@ def _parse_event_timestamp(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
-def _event_ratio(result: dict[str, Any]) -> float:
-    """Use awarded marks for marked answers and correctness for binary items."""
+def _event_ratio(result: dict[str, Any]) -> float | None:
+    """Use awarded marks for marked answers and strict boolean correctness otherwise."""
     return _result_ratio(result)
 
 
