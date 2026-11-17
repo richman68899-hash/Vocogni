@@ -26,6 +26,11 @@ class VQEIntegrationTests(unittest.TestCase):
         self.assertIn('selected_pathway = route if route in ("level_2", "level_3", "project") else "standard"', COURSE_SOURCE)
         self.assertIn("question_engine.attempt_metadata(", COURSE_SOURCE)
 
+    def test_lesson_selector_applies_preference_only_after_eligibility(self):
+        self.assertIn("question_engine.order_questions_for_preference(", COURSE_SOURCE)
+        self.assertIn('profile.get("preferred_difficulty", "Adaptive")', COURSE_SOURCE)
+        self.assertIn("verified_only=True", COURSE_SOURCE)
+
     def test_pilot_lesson_has_no_silent_unverified_fallback(self):
         self.assertIn(
             "Vocogni has paused the lesson rather than show unreviewed questions",
