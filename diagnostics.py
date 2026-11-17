@@ -59,23 +59,30 @@ PATHWAY_META = {
 
 
 def unlocked_pathways_for_score(result: dict[str, Any]) -> list[str]:
-    """Return cumulative practice pathways unlocked by a saved diagnostic.
+    """Return cumulative pathways, failing closed on malformed saved results.
 
-    A missed prerequisite gates the learner to Level 1. Otherwise:
-    1-2/5 -> Level 1; 3/5 -> Levels 1-2; 4/5 -> Levels 1-3;
-    5/5 -> Levels 1-3 and Project.
+    A malformed score or prerequisite flag must never unlock advanced work.
+    The current whole-screen policy intentionally treats a missed prerequisite
+    as a follow-up signal; legacy policies retain the prerequisite gate.
     """
+    if not isinstance(result, dict):
+        return ["level_1"]
+    score = result.get("score", 0)
+    if type(score) is not int or not 0 <= score <= 5:
+        return ["level_1"]
+    prerequisite_correct = result.get("prerequisite_correct", False)
+    if type(prerequisite_correct) is not bool:
+        return ["level_1"]
     if (
-        not result.get("prerequisite_correct", False)
+        not prerequisite_correct
         and result.get("placement_policy") != "whole_screen_with_prerequisite_follow_up_v2"
     ):
         return ["level_1"]
-    score = int(result.get("score", 0))
-    if score >= 5:
+    if score == 5:
         return ["level_1", "level_2", "level_3", "project"]
-    if score >= 4:
+    if score == 4:
         return ["level_1", "level_2", "level_3"]
-    if score >= 3:
+    if score == 3:
         return ["level_1", "level_2"]
     return ["level_1"]
 
@@ -190,6 +197,8 @@ def evaluate_diagnostic(
     errors = validate_diagnostic_config(config)
     if errors:
         raise ValueError("Invalid diagnostic configuration: " + " ".join(errors))
+    if not isinstance(answers, dict):
+        raise ValueError("Diagnostic answers must be a dictionary keyed by question ID.")
 
     review: list[dict[str, Any]] = []
     confidence = confidence if isinstance(confidence, dict) else {}
@@ -219,7 +228,8 @@ def evaluate_diagnostic(
         correct_count += int(correct)
         if question["stage"] == "prerequisite":
             prerequisite_correct = correct
-        raw_confidence = str(confidence.get(question["id"]) or "").strip().casefold()
+        raw_confidence = confidence.get(question["id"])
+        raw_confidence = raw_confidence.strip().casefold() if isinstance(raw_confidence, str) else ""
         confidence_level = raw_confidence if raw_confidence in CONFIDENCE_LABELS else None
         if confidence_level:
             confidence_counts[confidence_level] += 1
