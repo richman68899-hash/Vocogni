@@ -348,5 +348,44 @@ class LearningMaintenanceTests(unittest.TestCase):
             maintenance.activity_days_in_period({TODAY}, "year", TODAY)
 
 
+    def test_attempt_percent_requires_boolean_binary_correctness(self):
+        self.assertEqual(
+            maintenance._attempt_percent({"results": [{"correct": True}]}),
+            100,
+        )
+        self.assertEqual(
+            maintenance._attempt_percent({"results": [{"correct": False}]}),
+            0,
+        )
+        for value in ("false", "true", 0, 1, None, []):
+            with self.subTest(value=value):
+                self.assertIsNone(
+                    maintenance._attempt_percent({"results": [{"correct": value}]})
+                )
+
+    def test_attempt_percent_omits_malformed_marked_results(self):
+        malformed = [
+            {"score": True, "max_marks": 1, "correct": True},
+            {"score": 1, "max_marks": 0, "correct": True},
+            {"score": float("nan"), "max_marks": 2, "correct": True},
+            {"score": float("inf"), "max_marks": 2, "correct": True},
+            {"score": "1", "max_marks": 2, "correct": True},
+            {"score": 1, "max_marks": float("inf"), "correct": True},
+        ]
+        for result in malformed:
+            with self.subTest(result=result):
+                self.assertIsNone(maintenance._attempt_percent({"results": [result]}))
+
+    def test_attempt_percent_uses_only_valid_rows_in_mixed_result_sets(self):
+        percent = maintenance._attempt_percent({
+            "results": [
+                {"question_id": "valid", "correct": True},
+                {"question_id": "malformed", "correct": "false"},
+                {"question_id": "marked", "score": 1, "max_marks": 2},
+            ],
+        })
+        self.assertEqual(percent, 75)
+
+
 if __name__ == "__main__":
     unittest.main()
