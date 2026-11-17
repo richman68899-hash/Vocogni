@@ -10,14 +10,14 @@ import math
 from typing import Any
 
 
-def _normalise_baseline_percent(value: Any) -> int:
-    """Return a finite whole-number percentage constrained to the 0–100 scale."""
+def _normalise_baseline_percent(value: Any) -> int | None:
+    """Return a valid 0–100 baseline percentage, or None when it is unusable."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return 0
+        return None
     if isinstance(value, int):
         return min(100, max(0, value))
     if not math.isfinite(value):
-        return 0
+        return None
     return min(100, max(0, int(value)))
 
 
@@ -46,7 +46,9 @@ def build_post_lesson_checkpoint(
     if not ordinary:
         return None
 
-    baseline_percent = _normalise_baseline_percent(baseline.get("percent", 0))
+    baseline_percent = _normalise_baseline_percent(baseline.get("percent"))
+    if baseline_percent is None:
+        return None
 
     post_correct = sum(1 for result in ordinary if result["correct"])
     post_total = len(ordinary)
