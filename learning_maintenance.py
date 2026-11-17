@@ -130,11 +130,16 @@ def _completed_attempt_events(course_progress, tz):
             completed_at = _parse_timestamp(attempt.get("completed_at"))
             if completed_at is None:
                 continue
+            percent = _attempt_percent(attempt)
+            # A non-empty result list is not sufficient evidence by itself.
+            # Ignore attempts whose rows contain no usable correctness or marks.
+            if percent is None:
+                continue
             rows.append({
                 "lesson_id": str(lesson_id),
                 "completed_at": completed_at,
                 "local_date": completed_at.astimezone(tz).date(),
-                "percent": _attempt_percent(attempt),
+                "percent": percent,
             })
         if rows:
             found_by_lesson[str(lesson_id)] = rows
