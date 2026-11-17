@@ -769,7 +769,12 @@ def _select_structured_questions(lesson, diagnostic_result, course_id=None):
             verified_only=True,
             include_pathways=True,
         )
-        return [record["question"] for record in records], route
+        questions = [record["question"] for record in records]
+        profile = st.session_state.get("profile", {})
+        preference = profile.get("preferred_difficulty", "Adaptive") if isinstance(profile, dict) else "Adaptive"
+        return question_engine.order_questions_for_preference(
+            questions, preference
+        ), route
 
     authored = lesson.get("practice_questions") or []
     if not authored and lesson.get("interactive_question"):
@@ -782,7 +787,11 @@ def _select_structured_questions(lesson, diagnostic_result, course_id=None):
             item for item in pathway_questions
             if isinstance(item, dict) and item.get("id") not in known_ids
         )
-    return candidates, route
+    profile = st.session_state.get("profile", {})
+    preference = profile.get("preferred_difficulty", "Adaptive") if isinstance(profile, dict) else "Adaptive"
+    return question_engine.order_questions_for_preference(
+        candidates, preference
+    ), route
 
 
 def _select_structured_question(lesson, diagnostic_result, course_id=None):
