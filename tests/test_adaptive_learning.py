@@ -687,18 +687,18 @@ class AdaptiveLearningTests(unittest.TestCase):
 
 
     def test_marked_score_normalization_rejects_booleans_and_non_finite_values(self):
-        self.assertEqual(adaptive_learning._result_ratio({
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": True, "max_marks": 1, "correct": True,
-        }), 0.0)
-        self.assertEqual(adaptive_learning._result_ratio({
+        }))
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": float("inf"), "max_marks": 1, "correct": True,
-        }), 0.0)
-        self.assertEqual(adaptive_learning._result_ratio({
+        }))
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": 1, "max_marks": float("inf"), "correct": True,
-        }), 0.0)
-        self.assertEqual(adaptive_learning._result_ratio({
+        }))
+        self.assertIsNone(adaptive_learning._result_ratio({
             "score": float("nan"), "max_marks": 2, "correct": True,
-        }), 0.0)
+        }))
         self.assertEqual(adaptive_learning._result_ratio({
             "score": 1, "max_marks": 2,
         }), 0.5)
@@ -845,6 +845,70 @@ class AdaptiveLearningTests(unittest.TestCase):
         with patch.object(question_engine, "iter_question_records", return_value=registry):
             timeline = adaptive_learning.build_intervention_timeline(progress)
         self.assertFalse(any(event["event_type"] == "transfer" for event in timeline["events"]))
+
+
+    def test_binary_evidence_requires_an_actual_boolean_correctness_value(self):
+        self.assertEqual(adaptive_learning._result_ratio({"correct": True}), 1.0)
+        self.assertEqual(adaptive_learning._result_ratio({"correct": False}), 0.0)
+        for value in ("true", "false", 1, 0, None, []):
+            with self.subTest(value=value):
+                self.assertIsNone(adaptive_learning._result_ratio({"correct": value}))
+
+    def test_malformed_marked_pairs_are_not_counted_as_zero_score_attempts(self):
+        for result in (
+            {"score": "invalid", "max_marks": 2, "correct": True},
+            {"score": 1, "max_marks": float("nan"), "correct": True},
+            {"score": True, "max_marks": 2, "correct": True},
+        ):
+            with self.subTest(result=result):
+                self.assertIsNone(adaptive_learning._result_ratio(result))
+
+    def test_malformed_binary_practice_evidence_is_excluded_from_skill_aggregates(self):
+        skill_id = "math.number.fraction_operations"
+        catalogue = {
+            ("fractions", "fractions_l2", "malformed"): {
+                "skill_id": skill_id,
+                "question_version": 1,
+                "question_purpose": "practice",
+                "mistake_tag": "Fraction operations",
+            },
+            ("fractions", "fractions_l2", "valid"): {
+                "skill_id": skill_id,
+                "question_version": 1,
+                "question_purpose": "practice",
+                "mistake_tag": "Fraction operations",
+            },
+        }
+        progress = {
+            "fractions": {
+                "practice_attempts": {
+                    "fractions_l2": [{
+                        "completed_at": "2026-11-17T10:00:00+00:00",
+                        "results": [
+                            {
+                                "question_id": "malformed",
+                                "verification_status": "verified",
+                                "correct": "false",
+                            },
+                            {
+                                "question_id": "valid",
+                                "verification_status": "verified",
+                                "correct": True,
+                            },
+                        ],
+                    }],
+                },
+            },
+        }
+        with patch.object(adaptive_learning, "_verified_question_catalogue", return_value=catalogue):
+            evidence = adaptive_learning._collect_skill_evidence(progress)
+        skill = evidence[skill_id]
+        self.assertEqual(skill["attempts"], 1)
+        self.assertEqual(skill["ratios"], [1.0])
+        self.assertEqual(
+            skill["practice_question_ids"],
+            {("fractions", "fractions_l2", "valid")},
+        )
 
 
 if __name__ == "__main__":
