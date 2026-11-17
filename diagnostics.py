@@ -363,23 +363,3 @@ def summarize_weaknesses(result: dict[str, Any]) -> list[str]:
     ))
 
 
-def unlocked_pathways_for_score(result: dict[str, Any]) -> list[str]:
-    """Return cumulative practice routes unlocked by a saved diagnostic result.
-
-    A failed prerequisite gates progression to Level 1 only. Otherwise, the
-    score unlocks a cumulative set of routes: 1-2 -> L1; 3 -> L1-L2;
-    4 -> L1-L3; 5 -> L1-L3 plus project.
-    """
-    if (
-        not result.get("prerequisite_correct", False)
-        and result.get("placement_policy") != "whole_screen_with_prerequisite_follow_up_v2"
-    ):
-        return ["level_1"]
-    score = int(result.get("score", 0))
-    if score >= 5:
-        return ["level_1", "level_2", "level_3", "project"]
-    if score >= 4:
-        return ["level_1", "level_2", "level_3"]
-    if score >= 3:
-        return ["level_1", "level_2"]
-    return ["level_1"]
