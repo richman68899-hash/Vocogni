@@ -318,6 +318,18 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
             self.assertEqual(record["verification_status"], "needs_review")
             self.assertTrue(any("reviewer kind" in issue for issue in record["verification_issues"]))
 
+    def test_registry_rejects_non_string_review_scope_without_crashing(self):
+        metadata = question_engine.get_review_record("fractions_l1_q1")
+        metadata["review_scope"] = [{}]
+        with patch.dict(question_engine.VERIFICATION_REGISTRY, {
+            "fractions_l1_q1": metadata,
+        }):
+            record = question_engine.get_question_record(
+                "fractions_l1_q1", course_id="fractions", lesson_id="fractions_l1"
+            )
+        self.assertEqual(record["verification_status"], "needs_review")
+        self.assertTrue(any("review scope" in issue for issue in record["verification_issues"]))
+
     def test_bank_audit_reports_per_lesson_coverage_and_review_limits(self):
         report = question_engine.audit_question_bank(course_id="fractions")
         self.assertTrue(report["lesson_coverage"])
