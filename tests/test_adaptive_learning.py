@@ -347,7 +347,9 @@ class AdaptiveLearningTests(unittest.TestCase):
 
 
 
+
     def test_intervention_timeline_connects_mapped_diagnostic_to_verified_practice(self):
+        skill_id = "math.number.fraction_representation"
         progress = {
             "fractions": {
                 "diagnostics": {
@@ -366,19 +368,30 @@ class AdaptiveLearningTests(unittest.TestCase):
                         "pathway_label": "Level 2 — Medium",
                         "completed_at": "2026-10-31T09:00:00+00:00",
                         "results": [
-                            {"question_id": "q1", "skill_id": "math.number.fraction_representation",
+                            {"question_id": "q1", "skill_id": skill_id,
                              "verification_status": "verified", "correct": True, "score": 1, "max_marks": 1},
-                            {"question_id": "q2", "skill_id": "math.number.fraction_representation",
+                            {"question_id": "q2", "skill_id": skill_id,
                              "verification_status": "verified", "correct": True, "score": 1, "max_marks": 1},
-                            {"question_id": "q3", "skill_id": "math.number.fraction_representation",
+                            {"question_id": "q3", "skill_id": skill_id,
                              "verification_status": "needs_review", "correct": False, "score": 0, "max_marks": 1},
                         ],
                     }],
                 },
             }
         }
+        registry = [
+            {
+                "course_id": "fractions",
+                "lesson_id": "fractions_l1",
+                "question_id": question_id,
+                "verification_status": "verified",
+                "question": {"skill_id": skill_id, "question_version": 1},
+            }
+            for question_id in ("q1", "q2")
+        ]
         before = repr(progress)
-        result = adaptive_learning.build_intervention_timeline(progress)
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            result = adaptive_learning.build_intervention_timeline(progress)
         self.assertEqual(result["events_total"], 2)
         practice = next(item for item in result["events"] if item["event_type"] == "practice")
         self.assertEqual(practice["total_items"], 2)
@@ -387,7 +400,9 @@ class AdaptiveLearningTests(unittest.TestCase):
         self.assertEqual(practice["comparison"]["change_percentage_points"], 50)
         self.assertEqual(repr(progress), before)
 
+
     def test_intervention_timeline_requires_two_answers_per_comparison(self):
+        skill_id = "math.algebra.variables_expressions"
         progress = {
             "algebra": {
                 "diagnostics": {
@@ -403,38 +418,59 @@ class AdaptiveLearningTests(unittest.TestCase):
                         "pathway_label": "Level 1 — Easy",
                         "completed_at": "2026-10-31T09:00:00+00:00",
                         "results": [
-                            {"question_id": "q1", "skill_id": "math.algebra.variables_expressions",
+                            {"question_id": "q1", "skill_id": skill_id,
                              "verification_status": "verified", "correct": True},
                         ],
                     }],
                 },
             }
         }
-        result = adaptive_learning.build_intervention_timeline(progress)
+        registry = [{
+            "course_id": "algebra",
+            "lesson_id": "algebra_l1",
+            "question_id": "q1",
+            "verification_status": "verified",
+            "question": {"skill_id": skill_id, "question_version": 1},
+        }]
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            result = adaptive_learning.build_intervention_timeline(progress)
         self.assertEqual(result["comparable_events"], 0)
         practice = next(item for item in result["events"] if item["event_type"] == "practice")
         self.assertIsNone(practice["comparison"])
         self.assertEqual(practice["total_items"], 1)
 
+
     def test_intervention_timeline_groups_verified_coach_answers_by_day(self):
+        skill_id = "math.algebra.variables_expressions"
         progress = {
             "algebra": {
                 "coach": {
                     "attempts": [
-                        {"lesson_id": "algebra_l1", "skill_id": "math.algebra.variables_expressions",
+                        {"question_id": "q1", "lesson_id": "algebra_l1", "skill_id": skill_id,
                          "verification_status": "verified", "correct": True,
                          "completed_at": "2026-11-01T09:00:00+00:00"},
-                        {"lesson_id": "algebra_l1", "skill_id": "math.algebra.variables_expressions",
+                        {"question_id": "q2", "lesson_id": "algebra_l1", "skill_id": skill_id,
                          "verification_status": "verified", "correct": False,
                          "completed_at": "2026-11-01T10:00:00+00:00"},
-                        {"lesson_id": "algebra_l1", "skill_id": "math.algebra.variables_expressions",
+                        {"question_id": "q3", "lesson_id": "algebra_l1", "skill_id": skill_id,
                          "verification_status": "needs_review", "correct": True,
                          "completed_at": "2026-11-01T11:00:00+00:00"},
                     ]
                 }
             }
         }
-        result = adaptive_learning.build_intervention_timeline(progress)
+        registry = [
+            {
+                "course_id": "algebra",
+                "lesson_id": "algebra_l1",
+                "question_id": question_id,
+                "verification_status": "verified",
+                "question": {"skill_id": skill_id, "question_version": 1},
+            }
+            for question_id in ("q1", "q2")
+        ]
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            result = adaptive_learning.build_intervention_timeline(progress)
         self.assertEqual(result["events_total"], 1)
         event = result["events"][0]
         self.assertEqual(event["event_type"], "coach")
@@ -648,6 +684,168 @@ class AdaptiveLearningTests(unittest.TestCase):
         with patch.object(question_engine, "iter_question_records", return_value=[registry_record]):
             result = adaptive_learning.build_intervention_timeline(progress)
         self.assertFalse(any(item["event_type"] == "transfer" for item in result["events"]))
+
+
+    def test_marked_score_normalization_rejects_booleans_and_non_finite_values(self):
+        self.assertEqual(adaptive_learning._result_ratio({
+            "score": True, "max_marks": 1, "correct": True,
+        }), 0.0)
+        self.assertEqual(adaptive_learning._result_ratio({
+            "score": float("inf"), "max_marks": 1, "correct": True,
+        }), 0.0)
+        self.assertEqual(adaptive_learning._result_ratio({
+            "score": 1, "max_marks": float("inf"), "correct": True,
+        }), 0.0)
+        self.assertEqual(adaptive_learning._result_ratio({
+            "score": float("nan"), "max_marks": 2, "correct": True,
+        }), 0.0)
+        self.assertEqual(adaptive_learning._result_ratio({
+            "score": 1, "max_marks": 2,
+        }), 0.5)
+        self.assertEqual(adaptive_learning._result_ratio({"correct": True}), 1.0)
+
+    def test_skill_evidence_rejects_stale_versions_and_reassigned_skills(self):
+        skill_id = "math.number.fraction_representation"
+        other_skill_id = "math.number.fraction_operations"
+        progress = {"fractions": {"practice_attempts": {"fractions_l1": [{
+            "completed_at": "2026-11-17T10:00:00+00:00",
+            "results": [
+                {
+                    "question_id": "fractions_l1_q1",
+                    "question_version": 9,
+                    "skill_id": skill_id,
+                    "verification_status": "verified",
+                    "correct": True,
+                },
+                {
+                    "question_id": "fractions_l1_q2",
+                    "question_version": 1,
+                    "skill_id": other_skill_id,
+                    "verification_status": "verified",
+                    "correct": True,
+                },
+            ],
+        }]}}}
+        registry = [
+            {
+                "course_id": "fractions",
+                "lesson_id": "fractions_l1",
+                "question_id": "fractions_l1_q1",
+                "verification_status": "verified",
+                "question": {"skill_id": skill_id, "question_version": 1},
+            },
+            {
+                "course_id": "fractions",
+                "lesson_id": "fractions_l1",
+                "question_id": "fractions_l1_q2",
+                "verification_status": "verified",
+                "question": {"skill_id": skill_id, "question_version": 1},
+            },
+        ]
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            evidence = adaptive_learning._collect_skill_evidence(progress)
+
+        self.assertEqual(evidence[skill_id]["attempts"], 0)
+        self.assertIsNone(evidence[skill_id]["accuracy"])
+
+    def test_skill_evidence_keeps_legacy_records_without_version_compatible(self):
+        skill_id = "math.number.fraction_representation"
+        progress = {"fractions": {"practice_attempts": {"fractions_l1": [{
+            "completed_at": "2026-11-17T10:00:00+00:00",
+            "results": [{
+                "question_id": "fractions_l1_q1",
+                "skill_id": skill_id,
+                "verification_status": "verified",
+                "correct": True,
+            }],
+        }]}}}
+        registry = [{
+            "course_id": "fractions",
+            "lesson_id": "fractions_l1",
+            "question_id": "fractions_l1_q1",
+            "verification_status": "verified",
+            "question": {"skill_id": skill_id, "question_version": 1},
+        }]
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            evidence = adaptive_learning._collect_skill_evidence(progress)
+        self.assertEqual(evidence[skill_id]["attempts"], 1)
+        self.assertEqual(evidence[skill_id]["accuracy"], 1.0)
+
+    def test_intervention_timeline_rejects_stale_practice_and_coach_evidence(self):
+        skill_id = "math.number.fraction_representation"
+        progress = {
+            "fractions": {
+                "practice_attempts": {"fractions_l1": [{
+                    "completed_at": "2026-11-17T10:00:00+00:00",
+                    "results": [{
+                        "question_id": "fractions_l1_q1",
+                        "course_id": "fractions",
+                        "lesson_id": "fractions_l1",
+                        "question_version": 8,
+                        "skill_id": skill_id,
+                        "verification_status": "verified",
+                        "correct": True,
+                    }],
+                }]},
+                "coach": {"attempts": [{
+                    "question_id": "fractions_l1_q2",
+                    "course_id": "fractions",
+                    "lesson_id": "fractions_l1",
+                    "question_version": 2,
+                    "skill_id": skill_id,
+                    "verification_status": "verified",
+                    "correct": True,
+                    "completed_at": "2026-11-17T10:05:00+00:00",
+                }]},
+            }
+        }
+        registry = [
+            {
+                "course_id": "fractions",
+                "lesson_id": "fractions_l1",
+                "question_id": question_id,
+                "verification_status": "verified",
+                "question": {"skill_id": skill_id, "question_version": 1},
+            }
+            for question_id in ("fractions_l1_q1", "fractions_l1_q2")
+        ]
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            timeline = adaptive_learning.build_intervention_timeline(progress)
+        self.assertFalse(any(
+            event["event_type"] in {"practice", "coach"}
+            for event in timeline["events"]
+        ))
+
+    def test_intervention_timeline_rejects_stale_transfer_question_version(self):
+        skill_id = "math.number.fraction_operations"
+        progress = {"fractions": {"transfer_checks": [{
+            "question_id": "fractions_l1_project_q1",
+            "lesson_id": "fractions_l1",
+            "practice_lesson_id": "fractions_l2",
+            "question_version": 4,
+            "skill_id": skill_id,
+            "source_skill_id": skill_id,
+            "verification_status": "verified",
+            "evidence_type": "independent_transfer",
+            "independent": True,
+            "correct": True,
+            "recorded_at": "2026-11-17T10:00:00+00:00",
+        }]}}
+        registry = [{
+            "course_id": "fractions",
+            "lesson_id": "fractions_l1",
+            "question_id": "fractions_l1_project_q1",
+            "verification_status": "verified",
+            "question": {
+                "skill_id": skill_id,
+                "question_version": 1,
+                "purpose": "application",
+            },
+        }]
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            timeline = adaptive_learning.build_intervention_timeline(progress)
+        self.assertFalse(any(event["event_type"] == "transfer" for event in timeline["events"]))
+
 
 if __name__ == "__main__":
     unittest.main()
