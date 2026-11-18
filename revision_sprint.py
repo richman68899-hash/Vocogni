@@ -9,6 +9,7 @@ It does not generate AI content or predict an official examination grade.
 from __future__ import annotations
 
 from collections import defaultdict
+import math
 from copy import deepcopy
 from datetime import datetime, timezone
 
@@ -134,8 +135,55 @@ def weak_skills_for_course(progress, course_id, limit=3):
     return [label for _, _, label in rows[:max(0, int(limit))] if label]
 
 
+def _history_result_ratio(result):
+    """Return a trustworthy score fraction, or None for malformed history."""
+    if not isinstance(result, dict):
+        return None
+
+    has_mark_fields = any(
+        field in result for field in ("score", "marks_awarded", "max_marks")
+    )
+    if has_mark_fields:
+        raw_maximum = result.get("max_marks")
+        if isinstance(raw_maximum, bool):
+            return None
+        try:
+            maximum = float(raw_maximum)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(maximum) or maximum <= 0:
+            return None
+
+        for field in ("score", "marks_awarded"):
+            if field not in result:
+                continue
+            raw_score = result.get(field)
+            if isinstance(raw_score, bool):
+                continue
+            try:
+                score = float(raw_score)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if not math.isfinite(score) or score < 0 or score > maximum:
+                continue
+            return score / maximum
+        # Do not fall back to a binary flag when marked evidence is present
+        # but malformed or incomplete.
+        return None
+
+    correct = result.get("correct")
+    if isinstance(correct, bool):
+        return 1.0 if correct else 0.0
+    return None
+
+
 def _question_history(progress, course_id):
-    """Map saved question attempts by source lesson and question ID."""
+    """Map valid saved answer evidence by source lesson and question ID.
+
+    Binary legacy records require a real boolean. When marks are present, a
+    valid score/max-mark pair is authoritative; malformed marked rows are
+    omitted rather than coerced or treated as binary evidence.
+    """
     course_progress = progress.get(course_id, {})
     attempts_by_lesson = course_progress.get("practice_attempts", {}) if isinstance(course_progress, dict) else {}
     history = defaultdict(list)
@@ -152,12 +200,19 @@ def _question_history(progress, course_id):
             if not isinstance(results, list):
                 continue
             for result in results:
-                if not isinstance(result, dict) or result.get("question_id") is None:
+                if not isinstance(result, dict):
                     continue
-                key = (str(lesson_id), str(result["question_id"]))
+                question_id = result.get("question_id")
+                if question_id is None or not str(question_id).strip():
+                    continue
+                ratio = _history_result_ratio(result)
+                if ratio is None:
+                    continue
+                is_correct = ratio >= 0.999
+                key = (str(lesson_id), str(question_id))
                 history[key].append({
-                    "correct": bool(result.get("correct")),
-                    "score": result.get("score", int(bool(result.get("correct")))),
+                    "correct": is_correct,
+                    "score": result.get("score", result.get("marks_awarded", int(is_correct))),
                     "max_marks": result.get("max_marks", 1),
                 })
     return history
