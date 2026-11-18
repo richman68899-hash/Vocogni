@@ -13,10 +13,19 @@ python -m venv venv
 source venv/bin/activate          # Windows: venv\\Scripts\\activate
 
 pip install -r requirements.txt
+# Private operator preview only; keep the deployment access-restricted.
+# Do not set this on a public learner-facing deployment.
+export VOCogni_INTERNAL_PREVIEW=true
 streamlit run app.py
 ```
 
-Run from the project root (the folder containing `app.py`).
+Run from the project root (the folder containing `app.py`). On Windows PowerShell, set the private-preview flag with `$env:VOCogni_INTERNAL_PREVIEW = "true"` before starting Streamlit.
+
+### Child-facing release gate
+
+Normal learner access is **blocked by default**. The source does not yet implement a verified guardian-consent workflow or a monitored safeguarding contact, and the legal/operator review is not complete. The app therefore stops before authentication and before loading learner data unless the operator explicitly enables a private preview with `VOCogni_INTERNAL_PREVIEW=true`.
+
+That flag is strictly for a restricted operator preview using synthetic accounts and data. It is **not** a public-launch switch, does not verify consent, does not establish legal compliance, and must not be set on a public deployment. Public child-facing access must remain disabled until the outstanding launch-readiness requirements have been completed and the release process has been reviewed by the responsible operator and qualified counsel.
 
 ## Optional LLM tutoring
 
@@ -25,7 +34,7 @@ The Study Guide now combines two modes:
 - **Local commands:** profile/progress/mistake summaries, recommendations, course listing, and navigation. These run without an external model.
 - **Optional AI tutoring:** open-ended subject explanations and conversational learning support through an OpenAI-compatible Chat Completions provider.
 
-AI tutoring is off by default and requires a session-only opt-in inside the Study Guide. It is not used by the answer checker, diagnostic scoring, progress persistence, or official mastery decisions.
+AI tutoring is off by default and requires (1) an explicit server-side feature toggle, (2) a separate operator acknowledgement that provider review is complete, and (3) a session-only learner opt-in inside the Study Guide. Missing or unreadable review configuration fails closed. It is not used by the answer checker, diagnostic scoring, progress persistence, or official mastery decisions.
 
 ### Configure a provider
 
@@ -37,6 +46,10 @@ Set these environment variables on the server:
 VOCogni_LLM_BASE_URL=https://YOUR_PROVIDER_BASE_URL/v1
 VOCogni_LLM_MODEL=YOUR_MODEL_NAME
 VOCogni_LLM_API_KEY=YOUR_SECRET_API_KEY
+# Only after documenting provider retention, training, region, subprocessors,
+# security, and child-safeguarding review:
+VOCogni_ENABLE_EXTERNAL_AI_TUTORING=false
+VOCogni_LLM_PROVIDER_REVIEWED=false
 ```
 
 Or configure Streamlit secrets:
@@ -46,11 +59,13 @@ Or configure Streamlit secrets:
 base_url = "https://YOUR_PROVIDER_BASE_URL/v1"
 model = "YOUR_MODEL_NAME"
 api_key = "YOUR_SECRET_API_KEY"
+enable_external_ai_tutoring = false
+provider_review_completed = false
 ```
 
 For local development, place the TOML in `.streamlit/secrets.toml` (do not commit that file). For hosted Streamlit, add the values in the app's Secrets settings. Never put provider keys in Python source, Git, browser-side code, or learner-visible configuration.
 
-If no complete provider configuration is present, the AI opt-in is disabled and local Study Guide commands continue to work. Provider-specific endpoint and model compatibility must be checked against the provider's documentation.
+If no complete provider configuration is present, the feature toggle is off, or the separate provider-review acknowledgement is absent, the AI opt-in is disabled and local Study Guide commands continue to work. Set `VOCogni_ENABLE_EXTERNAL_AI_TUTORING=true` and `VOCogni_LLM_PROVIDER_REVIEWED=true` (or the matching `[llm]` secrets) only after recording the provider's retention, training use, subprocessors, security, data location, cross-border processing, and child-safeguarding review. This acknowledgement is an operator control, not proof of legal compliance or guardian consent. Provider-specific endpoint and model compatibility must be checked against the provider's documentation.
 
 ### What is sent to the provider
 

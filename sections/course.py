@@ -1718,6 +1718,21 @@ def _render_question(
     if question.get("_is_transfer_check"):
         st.info("Independent transfer check — a new application of a skill from this lesson. Work without hints or worked examples.")
 
+    question_source_lesson = question.get("source_lesson_id") or lesson["id"]
+    review_metadata = question_engine.attempt_metadata(
+        question.get("id"),
+        course_id=course_id,
+        lesson_id=question_source_lesson,
+    )
+    if review_metadata.get("verification_status") != "verified":
+        st.warning(
+            "Content review: this question is not currently marked as verified "
+            "in Vocogni's question registry. Treat its answer and explanation as "
+            "prototype material, check important points against trusted course "
+            "materials or a teacher, and do not treat this attempt as verified "
+            "skill evidence."
+        )
+
     st.markdown(
         f"<span class='vc-muted'>"
         f"Question {idx + 1} of {total}"
