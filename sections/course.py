@@ -54,6 +54,7 @@ import state
 import intervention_tracking
 import mistake_reflections
 import feedback_guidance
+import learner_help
 import transfer_check
 import learning_measurement
 from . import revision_sprint as revision_sprint_section
@@ -1670,6 +1671,95 @@ def _render_diagnostic_result(lesson, course_id, result) -> None:
 # QUESTION
 # ===========================================================================
 
+def _render_progressive_question_help(
+    lesson,
+    flow,
+    course_id,
+    question,
+    review_metadata,
+) -> None:
+    """Reveal verified, authored question help progressively without losing work."""
+    if question.get("_is_transfer_check"):
+        return
+
+    ladder = learner_help.build_help_ladder(
+        question,
+        lesson,
+        verification_status=review_metadata.get("verification_status"),
+    )
+    if ladder.get("reason") == "unverified_content":
+        st.caption(
+            "Guided hints are unavailable because this question is not marked "
+            "as verified. Check trusted course material or ask a teacher before "
+            "relying on its content."
+        )
+        return
+    if not ladder.get("available"):
+        st.caption(
+            "No reviewed hints are available for this question yet. You can "
+            "review trusted course material or ask a teacher for help."
+        )
+        return
+
+    attempt_number = flow.get("attempt_number", 1)
+    question_key = f"{lesson['id']}:{attempt_number}:{question.get('id', 'unknown')}"
+    if flow.get("_guided_help_question_key") != question_key:
+        flow["_guided_help_question_key"] = question_key
+        flow["_guided_help_level"] = 0
+
+    try:
+        level = int(flow.get("_guided_help_level", 0))
+    except (TypeError, ValueError):
+        level = 0
+    level = min(max(level, 0), len(ladder["steps"]))
+
+    if level == 0:
+        if st.button(
+            "I'm stuck — guide me",
+            key=f"guided_help_open_{question_key}",
+        ):
+            level = 1
+            flow["_guided_help_level"] = level
+            _record_learning_intervention(
+                course_id,
+                lesson,
+                flow,
+                "hint",
+                question=question,
+                event_suffix=f"guided_help_{level}",
+            )
+    else:
+        if level < len(ladder["steps"]) and st.button(
+            "Show next hint",
+            key=f"guided_help_next_{question_key}_{level}",
+        ):
+            level += 1
+            flow["_guided_help_level"] = level
+            _record_learning_intervention(
+                course_id,
+                lesson,
+                flow,
+                "hint",
+                question=question,
+                event_suffix=f"guided_help_{level}",
+            )
+        if st.button(
+            "Hide help",
+            key=f"guided_help_hide_{question_key}",
+        ):
+            level = 0
+            flow["_guided_help_level"] = 0
+
+    if level:
+        focus = ladder.get("focus")
+        if focus:
+            st.caption(f"Skill focus: {focus}. Hints do not change your score.")
+        with st.container(border=True):
+            for index, step in enumerate(ladder["steps"][:level], start=1):
+                st.markdown(f"**Step {index} — {step['label']}**")
+                st.markdown(step["content"])
+
+
 def _render_question(
     lesson,
     flow,
@@ -1727,10 +1817,11 @@ def _render_question(
     if review_metadata.get("verification_status") != "verified":
         st.warning(
             "Content review: this question is not currently marked as verified "
-            "in Vocogni's question registry. Treat its answer and explanation as "
-            "prototype material, check important points against trusted course "
-            "materials or a teacher, and do not treat this attempt as verified "
-            "skill evidence."
+            "in Vocogni's question registry. "
+            "Treat its answer and explanation as prototype material, "
+            "check important points against trusted course "
+            "materials or a teacher, and "
+            "do not treat this attempt as verified skill evidence."
         )
 
     st.markdown(
@@ -1742,6 +1833,10 @@ def _render_question(
 
     st.markdown(
         f"#### {question['prompt']}"
+    )
+
+    _render_progressive_question_help(
+        lesson, flow, course_id, question, review_metadata
     )
 
     answer_key = (
