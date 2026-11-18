@@ -26,6 +26,62 @@ def _configure_course(monkeypatch, lessons, next_lesson, diagnostic_id=None, dia
     )
 
 
+def test_recent_course_activity_orders_resume_target_by_saved_timestamps():
+    import logic
+
+    courses = [
+        {"id": "course_a"},
+        {"id": "course_b"},
+        {"id": "course_c"},
+        {"id": "course_d"},
+    ]
+    progress = {
+        "course_a": {
+            "practice_attempts": {
+                "lesson": [{"completed_at": "2026-11-16T12:00:00+07:00"}]
+            }
+        },
+        "course_b": {
+            "diagnostics": {
+                "entry": {"completed_at": "2026-11-17T04:00:00Z"}
+            }
+        },
+        "course_c": {
+            "lesson_screen_progress": {
+                "lesson": {"updated_at": "2026-11-18T08:00:00+07:00"}
+            }
+        },
+        "course_d": {
+            "practice_attempts": {
+                "lesson": [{"completed_at": "not-a-timestamp"}]
+            }
+        },
+    }
+
+    ordered = logic.order_courses_by_recent_activity(courses, progress)
+
+    assert [course["id"] for course in ordered] == [
+        "course_c", "course_b", "course_a", "course_d"
+    ]
+
+
+def test_recent_course_activity_normalizes_offsets_and_preserves_ties():
+    import logic
+
+    courses = [{"id": "first"}, {"id": "second"}, {"id": "undated"}]
+    progress = {
+        "first": {"diagnostics": {"entry": {"completed_at": "2026-11-18T08:00:00+07:00"}}},
+        "second": {"practice_attempts": {"lesson": [
+            {"completed_at": "2026-11-18T01:00:00Z"}
+        ]}},
+        "undated": {},
+    }
+
+    ordered = logic.order_courses_by_recent_activity(courses, progress)
+
+    assert [course["id"] for course in ordered] == ["first", "second", "undated"]
+
+
 def test_previous_transfer_question_ids_only_reads_valid_course_history():
     progress = {
         "fractions": {
