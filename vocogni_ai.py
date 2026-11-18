@@ -55,9 +55,31 @@ def _external_ai_tutoring_enabled(st: Any) -> bool:
         # Missing or unreadable secrets must fail closed.
         pass
 
-    if isinstance(configured_value, bool):
-        return configured_value
-    return str(configured_value or "").strip().casefold() in {
+    enabled = (
+        configured_value
+        if isinstance(configured_value, bool)
+        else str(configured_value or "").strip().casefold() in {
+            "1", "true", "yes", "on"
+        }
+    )
+    if not enabled:
+        return False
+
+    # A separate review acknowledgement is required in addition to the
+    # feature toggle. Credentials and a generic enable flag must not be enough
+    # to send a younger learner's prompt/context to an external provider.
+    provider_reviewed: Any = os.getenv("VOCogni_LLM_PROVIDER_REVIEWED", "")
+    try:
+        section = st.secrets.get("llm", {})
+        if section is not None and "provider_review_completed" in section:
+            provider_reviewed = section.get("provider_review_completed")
+    except Exception:
+        # If the review status cannot be read, fail closed.
+        return False
+
+    if isinstance(provider_reviewed, bool):
+        return provider_reviewed
+    return str(provider_reviewed or "").strip().casefold() in {
         "1", "true", "yes", "on"
     }
 
