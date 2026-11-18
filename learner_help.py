@@ -64,9 +64,9 @@ def build_help_ladder(
         add_step("Try this next", guidance.get("next_step"))
         add_step("Similar worked example", guidance.get("worked_example"))
 
-    # Generic lesson text is the fallback, not invented guidance. It is only
-    # used when the reviewed mistake-tag map does not provide those steps.
-    if len(steps) < 2:
+    # Generic lesson text is the fallback, not invented guidance. Keep adding
+    # authored lesson material until the ladder has a useful example step.
+    if len(steps) < 3:
         add_step("Review the core idea", lesson.get("explanation"))
         add_step("Compare a worked example", lesson.get("worked_example"))
 
