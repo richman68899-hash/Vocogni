@@ -332,9 +332,6 @@ def render_course_detail() -> None:
     # Lesson list
     # -----------------------------------------------------------------------
 
-    if course_id == "word_problems":
-        _render_course_diagnostic_row(course_id, progress)
-
     diagnostic_lesson_id = logic.course_diagnostic_lesson_id(course_id)
     if diagnostic_lesson_id:
         _render_course_diagnostic_row(course_id, progress)

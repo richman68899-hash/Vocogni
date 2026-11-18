@@ -1,5 +1,8 @@
 """Regression tests for the course-to-lesson navigation path."""
 
+import ast
+import inspect
+
 from sections import course as course_section
 
 
@@ -24,6 +27,21 @@ def _configure_course(monkeypatch, lessons, next_lesson, diagnostic_id=None, dia
         "course_diagnostic_completed",
         lambda _progress, _course_id: diagnostic_done,
     )
+
+
+def test_course_detail_renders_the_entry_diagnostic_row_once():
+    source = inspect.getsource(course_section.render_course_detail)
+    tree = ast.parse(source)
+    diagnostic_row_calls = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "_render_course_diagnostic_row"
+    ]
+
+    # The diagnostic-bearing Word Problems lesson used to take both a legacy
+    # special-case path and the generic diagnostic path, showing two identical rows.
+    assert len(diagnostic_row_calls) == 1
 
 
 def test_previous_transfer_question_ids_only_reads_valid_course_history():
