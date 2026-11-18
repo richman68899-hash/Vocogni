@@ -314,6 +314,41 @@ class MasteryReceiptTests(unittest.TestCase):
         self.assertEqual(logic._mastery_result_ratio({"correct": True}), 1.0)
         self.assertEqual(logic._mastery_result_ratio({"correct": False}), 0.0)
 
+    def test_legacy_correctness_requires_an_actual_boolean(self):
+        for malformed in ("false", "true", 0, 1, None, [], {}):
+            with self.subTest(correct=malformed):
+                self.assertEqual(
+                    logic._mastery_result_ratio({"correct": malformed}),
+                    0.0,
+                )
+
+    def test_receipt_exposes_latest_practice_timestamp_for_recency(self):
+        course_id = "practice_recency_course"
+        course = _course(course_id, [_question("recent-q", "Balancing equations")])
+        contexts = self._registered_course(course)
+        timestamp = "2026-11-17T10:30:00+00:00"
+        with contexts[0], contexts[1], contexts[2]:
+            progress = {
+                course_id: {
+                    "practice_attempts": {
+                        f"{course_id}_lesson": [{
+                            "completed_at": timestamp,
+                            "results": [{
+                                "question_id": "recent-q",
+                                "verification_status": "verified",
+                                "correct": True,
+                            }],
+                        }]
+                    }
+                }
+            }
+            receipt = logic.mastery_receipt_for_course(progress, course_id)
+
+        self.assertEqual(
+            receipt["skills"][0]["latest_practice_completed_at"],
+            timestamp,
+        )
+
     def test_malformed_marked_score_cannot_be_promoted_by_correct_flag(self):
         course_id = "invalid_marked_score_course"
         course = _course(course_id, [_question("marked-q", "Balancing equations")])
