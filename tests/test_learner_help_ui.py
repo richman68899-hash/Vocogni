@@ -13,7 +13,7 @@ COURSE_SOURCE = (ROOT / "sections" / "course.py").read_text(encoding="utf-8")
 
 class ProgressiveHelpUiTests(unittest.TestCase):
     def test_question_screen_calls_help_before_answer_input(self):
-        prompt = COURSE_SOURCE.index('st.markdown(f"#### {question[\'prompt\']}")')
+        prompt = COURSE_SOURCE.index('f"#### {question[\'prompt\']}"')
         help_call = COURSE_SOURCE.index(
             "_render_progressive_question_help(lesson, flow, course_id, question, review_metadata)",
             prompt,
