@@ -1817,8 +1817,9 @@ def _render_question(
     if review_metadata.get("verification_status") != "verified":
         st.warning(
             "Content review: this question is not currently marked as verified "
-            "in Vocogni's question registry. Treat its answer and explanation as "
-            "prototype material, check important points against trusted course "
+            "in Vocogni's question registry. "
+            "Treat its answer and explanation as prototype material, "
+            "check important points against trusted course "
             "materials or a teacher, and do not treat this attempt as verified "
             "skill evidence."
         )
