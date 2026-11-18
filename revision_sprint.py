@@ -9,7 +9,6 @@ It does not generate AI content or predict an official examination grade.
 from __future__ import annotations
 
 from collections import defaultdict
-import math
 from copy import deepcopy
 from datetime import datetime, timezone
 
@@ -37,6 +36,7 @@ def _is_supported_question(question):
         return isinstance(options, list) and len(options) >= 2 and question.get("answer") in options
 
     if question_type == "numeric":
+        import math
         raw_answer = question.get("answer")
         raw_tolerance = question.get("tolerance", 0.01)
         if isinstance(raw_answer, bool) or isinstance(raw_tolerance, bool):
