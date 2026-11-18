@@ -53,6 +53,22 @@ class LearnerHelpTests(unittest.TestCase):
             ["Review the core idea", "Compare a worked example"],
         )
 
+    def test_known_tag_without_specific_example_uses_lesson_worked_example(self):
+        ladder = learner_help.build_help_ladder(
+            {"mistake_tag": "selecting relevant information"},
+            {
+                "title": "Word problems",
+                "explanation": "Identify the quantity the question asks you to find.",
+                "worked_example": "List each relevant quantity before choosing an operation.",
+            },
+            verification_status="verified",
+        )
+        self.assertTrue(ladder["available"])
+        self.assertIn(
+            "List each relevant quantity before choosing an operation.",
+            [step["content"] for step in ladder["steps"]],
+        )
+
     def test_unverified_questions_never_receive_the_guided_ladder(self):
         for status in ("legacy", "unverified", None, ""):
             with self.subTest(status=status):
