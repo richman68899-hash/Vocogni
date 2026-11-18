@@ -49,7 +49,10 @@ class PilotReadinessAuditTests(unittest.TestCase):
             "worked_example": "Example.",
         }
         records = [
-            _record("legacy", purpose="practice"),
+            {
+                **_record("legacy", purpose="practice"),
+                "verification_status": "legacy",
+            },
             {
                 **_record("needs-review", purpose="practice"),
                 "verification_status": "needs_review",
