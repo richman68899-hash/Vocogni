@@ -9,6 +9,7 @@ It does not generate AI content or predict an official examination grade.
 from __future__ import annotations
 
 from collections import defaultdict
+import math
 from copy import deepcopy
 from datetime import datetime, timezone
 
@@ -36,11 +37,20 @@ def _is_supported_question(question):
         return isinstance(options, list) and len(options) >= 2 and question.get("answer") in options
 
     if question_type == "numeric":
-        try:
-            float(question.get("answer"))
-            return True
-        except (TypeError, ValueError):
+        raw_answer = question.get("answer")
+        raw_tolerance = question.get("tolerance", 0.01)
+        if isinstance(raw_answer, bool) or isinstance(raw_tolerance, bool):
             return False
+        try:
+            answer = float(raw_answer)
+            tolerance = float(raw_tolerance)
+        except (TypeError, ValueError, OverflowError):
+            return False
+        return (
+            math.isfinite(answer)
+            and math.isfinite(tolerance)
+            and tolerance >= 0
+        )
 
     if question_type == "open_ended":
         points = question.get("marking_points")

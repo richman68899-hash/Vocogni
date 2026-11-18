@@ -93,6 +93,33 @@ class RevisionSprintTests(unittest.TestCase):
         self.assertEqual(len(bank), 3)
         self.assertTrue(all(item["lesson_id"] == "lesson_1" for item in bank))
 
+    def test_question_bank_excludes_ungradable_numeric_question_definitions(self):
+        valid = _numeric("valid", "Arithmetic", answer=2)
+        not_a_number = _numeric("nan", "Arithmetic", answer=float("nan"))
+        infinite = _numeric("infinite", "Arithmetic", answer=float("inf"))
+        boolean_answer = _numeric("boolean", "Arithmetic", answer=True)
+        invalid_tolerance = _numeric("bad_tolerance", "Arithmetic", answer=3)
+        invalid_tolerance["tolerance"] = float("nan")
+        negative_tolerance = _numeric("negative_tolerance", "Arithmetic", answer=4)
+        negative_tolerance["tolerance"] = -0.1
+        course = _course("revision_numeric_validation", [{
+            "id": "lesson_1",
+            "title": "Numeric practice",
+            "questions": [
+                valid,
+                not_a_number,
+                infinite,
+                boolean_answer,
+                invalid_tolerance,
+                negative_tolerance,
+            ],
+        }])
+        contexts = self._registered_course(course)
+        with contexts[0], contexts[1]:
+            bank = revision_sprint.question_bank_for_course(course["id"])
+
+        self.assertEqual([item["question_id"] for item in bank], ["valid"])
+
     def test_personalized_selection_prioritizes_a_previously_missed_question(self):
         course = _course("revision_priority_test", [{
             "id": "lesson_1",
