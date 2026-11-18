@@ -44,17 +44,46 @@ def _parse_timestamp(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
-def _result_ratio(result: dict[str, Any]) -> float:
-    if "score" not in result and "marks_awarded" not in result:
-        return 1.0 if result.get("correct") else 0.0
-    try:
-        maximum = float(result.get("max_marks", 1) or 1)
-        earned = float(result.get("score", result.get("marks_awarded", 0)) or 0)
-    except (TypeError, ValueError):
-        return 1.0 if result.get("correct") else 0.0
-    if maximum <= 0:
-        return 1.0 if result.get("correct") else 0.0
-    return min(1.0, max(0.0, earned / maximum))
+def _result_ratio(result: dict[str, Any]) -> float | None:
+    """Return a finite earned fraction; malformed evidence remains unknown."""
+    has_mark_fields = any(
+        field in result for field in ("score", "marks_awarded", "max_marks")
+    )
+    if has_mark_fields:
+        raw_maximum = result.get("max_marks")
+        if isinstance(raw_maximum, bool):
+            return None
+        try:
+            maximum = float(raw_maximum)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(maximum) or maximum <= 0:
+            return None
+
+        for field in ("score", "marks_awarded"):
+            if field not in result:
+                continue
+            raw_earned = result.get(field)
+            if isinstance(raw_earned, bool):
+                continue
+            try:
+                earned = float(raw_earned)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if (
+                not math.isfinite(earned)
+                or earned < 0
+                or earned > maximum
+            ):
+                continue
+            return min(1.0, max(0.0, earned / maximum))
+        # A malformed marked pair must not fall back to a binary flag.
+        return None
+
+    correct = result.get("correct")
+    if isinstance(correct, bool):
+        return 1.0 if correct else 0.0
+    return None
 
 
 def record_intervention(
@@ -163,12 +192,17 @@ def _verified_answers(progress: dict[str, Any]) -> list[dict[str, Any]]:
                     recorded_skill = result.get("skill_id")
                     if recorded_skill and recorded_skill != skill_id:
                         continue
+                    ratio = _result_ratio(result)
+                    if ratio is None:
+                        # An unusable answer must not enter the follow-up
+                        # denominator or appear to be a success/failure.
+                        continue
                     answers.append({
                         "course_id": course_id,
                         "skill_id": skill_id,
                         "question_id": question_id,
                         "answered_at": answered_at,
-                        "ratio": _result_ratio(result),
+                        "ratio": ratio,
                     })
     answers.sort(key=lambda item: item["answered_at"])
     return answers
