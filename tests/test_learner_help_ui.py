@@ -15,7 +15,7 @@ class ProgressiveHelpUiTests(unittest.TestCase):
     def test_question_screen_calls_help_before_answer_input(self):
         prompt = COURSE_SOURCE.index('f"#### {question[\'prompt\']}"')
         help_call = COURSE_SOURCE.index(
-            "_render_progressive_question_help(lesson, flow, course_id, question, review_metadata)",
+            "_render_progressive_question_help(",
             prompt,
         )
         answer_input = COURSE_SOURCE.index("answer_key = (", help_call)
