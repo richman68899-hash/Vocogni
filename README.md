@@ -13,10 +13,19 @@ python -m venv venv
 source venv/bin/activate          # Windows: venv\\Scripts\\activate
 
 pip install -r requirements.txt
+# Private operator preview only; keep the deployment access-restricted.
+# Do not set this on a public learner-facing deployment.
+export VOCogni_INTERNAL_PREVIEW=true
 streamlit run app.py
 ```
 
-Run from the project root (the folder containing `app.py`).
+Run from the project root (the folder containing `app.py`). On Windows PowerShell, set the private-preview flag with `$env:VOCogni_INTERNAL_PREVIEW = "true"` before starting Streamlit.
+
+### Child-facing release gate
+
+Normal learner access is **blocked by default**. The source does not yet implement a verified guardian-consent workflow or a monitored safeguarding contact, and the legal/operator review is not complete. The app therefore stops before authentication and before loading learner data unless the operator explicitly enables a private preview with `VOCogni_INTERNAL_PREVIEW=true`.
+
+That flag is strictly for a restricted operator preview using synthetic accounts and data. It is **not** a public-launch switch, does not verify consent, does not establish legal compliance, and must not be set on a public deployment. Public child-facing access must remain disabled until the outstanding launch-readiness requirements have been completed and the release process has been reviewed by the responsible operator and qualified counsel.
 
 ## Optional LLM tutoring
 
