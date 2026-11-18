@@ -31,6 +31,12 @@ class VQEIntegrationTests(unittest.TestCase):
         self.assertIn('profile.get("preferred_difficulty", "Adaptive")', COURSE_SOURCE)
         self.assertIn("verified_only=True", COURSE_SOURCE)
 
+    def test_unverified_legacy_questions_are_explicitly_disclosed_to_learners(self):
+        self.assertIn("Content review: this question is not currently marked as verified", COURSE_SOURCE)
+        self.assertIn("Treat its answer and explanation as prototype material", COURSE_SOURCE)
+        self.assertIn("do not treat this attempt as verified skill evidence", COURSE_SOURCE)
+        self.assertIn("review_metadata.get(\"verification_status\") != \"verified\"", COURSE_SOURCE)
+
     def test_pilot_lesson_has_no_silent_unverified_fallback(self):
         self.assertIn(
             "Vocogni has paused the lesson rather than show unreviewed questions",
