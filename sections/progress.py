@@ -372,6 +372,14 @@ def _render_mastery_receipt(progress):
                 latest = item["latest_practice_percent"]
                 if latest is not None:
                     st.caption(f"Latest recorded item: {latest}% performance.")
+                latest_at = item.get("latest_practice_completed_at")
+                if latest_at:
+                    st.caption(f"Most recent recorded practice: {latest_at}.")
+                else:
+                    st.caption(
+                        "Attempt dates are unavailable for this evidence, so its recency "
+                        "cannot be assessed."
+                    )
                 st.caption(
                     f"Full-credit answers: {item['full_credit_answers']} of "
                     f"{item['practice_answers']} answered "

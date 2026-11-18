@@ -240,7 +240,12 @@ def _mastery_result_ratio(result):
     # Binary-only historical records remain backward-compatible.
     if has_marked_pair:
         return 0.0
-    return 1.0 if bool(result.get("correct")) else 0.0
+    correct = result.get("correct")
+    if correct is True:
+        return 1.0
+    if correct is False:
+        return 0.0
+    return 0.0
 
 
 def _mastery_percent(evidence):
@@ -611,6 +616,11 @@ def mastery_receipt_for_course(progress, course_id):
             "distinct_practice_questions": len(distinct_question_ids),
             "full_credit_answers": sum(item["correct"] for item in practice),
             "latest_practice_percent": round(latest_ratio * 100) if latest_ratio is not None else None,
+            "latest_practice_completed_at": (
+                latest_practice.get("completed_at")
+                if latest_practice and isinstance(latest_practice.get("completed_at"), str)
+                else None
+            ),
             "diagnostic_performance_percent": diagnostic_percent,
             "diagnostic_items": len(diagnostic),
             "diagnostic_flagged": diagnostic_flagged,
