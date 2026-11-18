@@ -134,14 +134,16 @@ class ExternalAiOperatorGateTests(unittest.TestCase):
         for value in ("", "false", "0", "no", "off", "enabled"):
             with self.subTest(value=value), patch.dict(
                 "os.environ",
-                {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": value},
+                {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": value,
+                 "VOCogni_LLM_PROVIDER_REVIEWED": "true"},
                 clear=True,
             ):
                 self.assertFalse(_external_ai_tutoring_enabled(st))
         for value in ("true", "1", "yes", "on", " TRUE "):
             with self.subTest(value=value), patch.dict(
                 "os.environ",
-                {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": value},
+                {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": value,
+                 "VOCogni_LLM_PROVIDER_REVIEWED": "true"},
                 clear=True,
             ):
                 self.assertTrue(_external_ai_tutoring_enabled(st))
@@ -161,10 +163,40 @@ class ExternalAiOperatorGateTests(unittest.TestCase):
     def test_streamlit_secret_can_explicitly_enable_gate(self):
         from types import SimpleNamespace
         st = SimpleNamespace(secrets={
-            "llm": {"enable_external_ai_tutoring": True}
+            "llm": {
+                "enable_external_ai_tutoring": True,
+                "provider_review_completed": True,
+            }
         })
         with patch.dict("os.environ", {}, clear=True):
             self.assertTrue(_external_ai_tutoring_enabled(st))
+
+
+    def test_external_ai_requires_a_separate_provider_review_acknowledgement(self):
+        from types import SimpleNamespace
+        st = SimpleNamespace(secrets={})
+        with patch.dict(
+            "os.environ",
+            {"VOCogni_ENABLE_EXTERNAL_AI_TUTORING": "true"},
+            clear=True,
+        ):
+            self.assertFalse(_external_ai_tutoring_enabled(st))
+
+    def test_streamlit_provider_review_secret_overrides_environment(self):
+        from types import SimpleNamespace
+        st = SimpleNamespace(secrets={"llm": {
+            "enable_external_ai_tutoring": True,
+            "provider_review_completed": False,
+        }})
+        with patch.dict(
+            "os.environ",
+            {
+                "VOCogni_ENABLE_EXTERNAL_AI_TUTORING": "true",
+                "VOCogni_LLM_PROVIDER_REVIEWED": "true",
+            },
+            clear=True,
+        ):
+            self.assertFalse(_external_ai_tutoring_enabled(st))
 
     def test_unreadable_or_missing_secret_does_not_enable_gate(self):
         from types import SimpleNamespace
