@@ -16,6 +16,7 @@ import state
 import styles
 from verified_account import is_current_account_verified, verified_badge_html
 import onboarding
+import release_gate
 from vocogni_ai import render_assistant
 from legal_notices import render_legal_notices
 
@@ -215,6 +216,21 @@ def main() -> None:
         page_icon="🎓",
         layout="wide",
     )
+
+    # Fail closed for learner-facing access until the operator has completed
+    # the required child-safety, privacy, consent, and support prerequisites.
+    # The private-preview flag is for restricted operator testing only; it is
+    # not a public-launch approval and must never be set on a public deployment.
+    block_reason = release_gate.learner_access_block_reason()
+    if block_reason:
+        st.title("Vocogni is not open to learners yet")
+        st.warning(block_reason)
+        st.caption(
+            "This is a pre-launch safeguard. The application has not loaded an "
+            "account, course progress, notes, or other learner data."
+        )
+        render_legal_notices(st, compact=True)
+        st.stop()
 
     if not st.user.is_logged_in:
         st.markdown(styles.build_css({}), unsafe_allow_html=True)
