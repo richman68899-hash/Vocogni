@@ -1820,8 +1820,8 @@ def _render_question(
             "in Vocogni's question registry. "
             "Treat its answer and explanation as prototype material, "
             "check important points against trusted course "
-            "materials or a teacher, and do not treat this attempt as verified "
-            "skill evidence."
+            "materials or a teacher, and "
+            "do not treat this attempt as verified skill evidence."
         )
 
     st.markdown(
