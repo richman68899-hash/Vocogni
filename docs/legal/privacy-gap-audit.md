@@ -1,7 +1,7 @@
 # Vocogni privacy and child-safety gap audit
 
 **Audit date:** 19 November 2026  
-**Scope:** Repository source and documentation on `main` at commit `c810bec17a1bd13c7187cc0efc62cceb5c65bed8` (after PR #175 was merged).  
+**Scope:** Repository `main` at commit `c810bec17a1bd13c7187cc0efc62cceb5c65bed8`, plus proposed code/document changes in PR #176. Do not treat proposed changes as deployed or merged.  
 **Purpose:** Identify the controls that must be completed before a controlled learner soft-launch.  
 **Status:** Internal engineering/product audit, not legal advice, an audit of the live deployment, or a compliance certification.
 
@@ -17,6 +17,7 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 - **Documented but unverified:** the checklist describes the required control, but no evidence proves it is configured or operating.
 - **External verification required:** code cannot establish the fact; inspect the live provider, database, contract, dashboard, or deployment.
 - **Implemented in main, not externally verified:** the code is present in the repository, but its live configuration and operational effectiveness have not been independently tested.
+- **Proposed in PR #176, not yet merged:** code in the current branch is under review and is not part of `main` or the deployed service.
 
 ## Critical blockers — no real-learner soft launch
 
@@ -29,7 +30,7 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 | P0 | **Purposes, lawful bases, and data inventory** | The privacy draft lists broad data categories, but no completed data-flow map, lawful-basis register, or live-schema reconciliation was found. | Map every field and data flow: Auth0 claims, profile, diagnostics, practice attempts, notes, milestones, settings, session chat, technical logs, backups, remote fonts, and enabled providers. For each purpose, document necessity, lawful basis, recipient, access, retention, and children-specific treatment. Remove unnecessary fields and processing. |
 | P0 | **Provider contracts, regions, and international transfers** | Auth0, Supabase, Streamlit hosting, Google Fonts, and a configurable AI provider are referenced. The actual tenants, project/hosting regions, subprocessors, agreements, backup locations, access/support routes, and transfer safeguards are not established by source code. | Inspect actual production settings and provider contracts; document the exact entities, processing roles, locations, data received, retention, subprocessors, and safeguards. Confirm whether remote Google Fonts are fetched at runtime. Do not make a data-residency promise without evidence. Keep external AI disabled until its exact provider and data flow are approved. |
 | P0 | **Retention schedule and deletion** | No deletion function was found in `persistence.py`; the current privacy draft explicitly says retention is not yet defined/enforced and self-service deletion is absent. | Define retention by data category and trigger, including inactive accounts, requests, logs, provider retention, and backups. Implement a verified request-driven deletion procedure for the Supabase learner record and all associated data; separately handle Auth0 identity, provider logs/backups, and legal exceptions. Test deletion with synthetic records and retain non-sensitive completion evidence. |
-| P0 | **Access, correction, withdrawal, and child/guardian requests** | Account settings now provide a scoped JSON download of the current Vocogni learner-state snapshot. No complete request intake, requester/guardian authority verification, third-party data retrieval, case tracking, or completion workflow was found. | Retain the scoped export as a self-service convenience, but establish a monitored request channel and private case workflow with identity/authority verification, deadlines, access/correction/deletion/withdrawal handling, guardian routing, provider coordination, response records, and escalation. Publish only after it is operational. |
+| P0 | **Access, correction, withdrawal, and child/guardian requests** | PR #176 proposes a scoped JSON download of the current Vocogni learner-state snapshot. No complete request intake, requester/guardian authority verification, third-party data retrieval, case tracking, or completion workflow exists. | If PR #176 is merged, retain the scoped export as a self-service convenience, but establish a monitored request channel and private case workflow with identity/authority verification, deadlines, access/correction/deletion/withdrawal handling, guardian routing, provider coordination, response records, and escalation. Publish only after it is operational. |
 | P0 | **Database isolation and privileged-key controls** | `persistence.py` uses server-side Supabase credentials and filters reads/writes by the authenticated OIDC subject. This is useful application-layer isolation, but is not evidence of database-level row security. No SQL migration or RLS policy file was found in the repository tree reviewed. | Inspect the live Supabase grants, RLS status/policies, key type, table exposure, backups, and operator access. Confirm service-role/secret credentials never reach client code or logs. Run two-account tests for read, write, update, session-switch, expired session, and direct API access. Do not treat a source-level `.eq("user_id", ...)` filter as a substitute for verified database controls. |
 | P0 | **Incident response and breach handling** | The app notices say there is no live monitoring; no tested incident procedure, ownership/escalation roster, or breach evidence was found. | Establish who monitors reports, how to contain access, disable providers, preserve evidence, assess affected data, contact affected people/guardians, and meet any applicable notification duties. Test the procedure with a tabletop exercise. |
 | P0 | **Final notices, terms, and consent records** | `PRIVACY_POLICY.md` and Terms are drafts with placeholders. No final counsel sign-off, published version, or versioned acceptance/consent record was found. | Have counsel review the actual service, controller, data flows, vendors, school/guardian arrangements, and applicable jurisdictions. Publish accurate notices with effective versioning. Where acceptance or consent is the correct basis, record it separately and do not treat a draft notice or general Terms acceptance as guardian consent. |
@@ -49,7 +50,7 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 - The login screen labels Vocogni as a prototype, restricts the stated purpose to invited testers, and tells testers not to enter sensitive or personal information.
 - The AI-tutoring path is described as off by default and opt-in for the current session; it should stay off for real learners pending provider review.
 - Authenticated persistence uses the OIDC subject as the learner key and filters queries by that subject. This is not a substitute for database-level policy verification.
-- Account settings provides a scoped JSON download of the current learner-state snapshot; it does not include Auth0 identity-provider records, hosting/provider logs, backups, or session-only AI chat.
+- PR #176 proposes a scoped JSON download of the current learner-state snapshot; it does not include Auth0 identity-provider records, hosting/provider logs, backups, or session-only AI chat.
 - Terms, privacy, and AI-safety drafts are available in the application. Draft visibility must not be confused with completed legal notices or consent.
 
 ## Changes already merged in PR #175
@@ -61,6 +62,15 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 - Add regression tests for the preview allowlist, pre-load access gate, canonical in-app privacy source, and the regulatory disclosure.
 
 These changes reduce accidental access and documentation drift. The scoped export partially supports learner access to Vocogni-held data, but **the code does not implement guardian consent, account deletion, a full rights-request workflow, retention, a DPIA, vendor review, final legal notices, or operational support.**
+
+## Proposed changes in PR #176
+
+- Keep authentication-status failures as a hard stop rather than converting them into an anonymous session.
+- Treat a logged-in session with unreadable or missing OIDC `sub` claims as unauthorised.
+- Add an identity-checked JSON export of the current Vocogni learner-state bundle, including an unsaved-change marker and explicit exclusions.
+- Add regression tests and update the policy wording to describe the limited scope.
+
+These changes are proposed and remain unmerged until PR #176 is accepted. Even after merge, they do not implement guardian consent, account deletion, retention enforcement, third-party provider rights requests, or legal approval.
 
 ## Legal review references
 
