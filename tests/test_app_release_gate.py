@@ -40,7 +40,7 @@ class AppReleaseGateWiringTests(unittest.TestCase):
         source = (ROOT / "app.py").read_text(encoding="utf-8")
         main = source.split("def main() -> None:", 1)[1]
         gate_index = main.index("release_gate.learner_access_block_reason(")
-        subject_index = main.index('authenticated_subject = st.user.get("sub", "")')
+        subject_index = main.index("authenticated_subject_from_user(")
         state_index = main.index("state.init_session_state()")
         self.assertLess(subject_index, gate_index)
         self.assertLess(gate_index, state_index)
