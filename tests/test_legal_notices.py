@@ -44,7 +44,7 @@ class LegalNoticeTests(unittest.TestCase):
         text = load_notice("privacy").casefold()
         self.assertIn("auth0", text)
         self.assertIn("supabase", text)
-        self.assertIn("do not require an external generative ai request", text)
+        self.assertIn("do not require an external generative-ai request", text)
         self.assertIn("optional ai tutoring", text)
         self.assertIn("disabled by default", text)
         self.assertIn("up to eight selected messages", text)
