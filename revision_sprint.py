@@ -37,11 +37,21 @@ def _is_supported_question(question):
         return isinstance(options, list) and len(options) >= 2 and question.get("answer") in options
 
     if question_type == "numeric":
-        try:
-            float(question.get("answer"))
-            return True
-        except (TypeError, ValueError):
+        import math
+        raw_answer = question.get("answer")
+        raw_tolerance = question.get("tolerance", 0.01)
+        if isinstance(raw_answer, bool) or isinstance(raw_tolerance, bool):
             return False
+        try:
+            answer = float(raw_answer)
+            tolerance = float(raw_tolerance)
+        except (TypeError, ValueError, OverflowError):
+            return False
+        return (
+            math.isfinite(answer)
+            and math.isfinite(tolerance)
+            and tolerance >= 0
+        )
 
     if question_type == "open_ended":
         points = question.get("marking_points")
