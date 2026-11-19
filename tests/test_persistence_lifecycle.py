@@ -1,6 +1,7 @@
 """Regression tests for learner identity and persistence lifecycle safeguards."""
 from types import SimpleNamespace
 import unittest
+import json
 from unittest.mock import patch
 
 import app
@@ -512,6 +513,71 @@ class NoteAndFolderRestoreIdentityTests(unittest.TestCase):
             [None, 1, None, None, None, None],
         )
         self.assertIn("folder_id", notes[-1])
+
+
+
+class LearnerDataExportTests(unittest.TestCase):
+    def _initialised_session(self):
+        session = FakeSessionState()
+        state.init_session_state()
+        return session
+
+    def test_export_contains_current_users_durable_state_and_unsaved_marker(self):
+        session = FakeSessionState()
+        with patch.object(state.st, "session_state", session):
+            state.init_session_state()
+            session.profile["name"] = "Learner A"
+            session.notes.append({"id": 1, "title": "My note", "content": "My own content"})
+            session["_persistent_state_loaded"] = True
+            session["_persistent_user_id"] = "auth0|learner-a"
+            session["_persistent_updated_at"] = "2026-11-19T10:00:00+00:00"
+            session["_persistent_dirty"] = True
+
+            with (
+                patch.object(persistence, "_is_logged_in", return_value=True),
+                patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            ):
+                document = json.loads(state.build_learner_data_export_json())
+
+        self.assertEqual(document["learner_data"]["profile"]["name"], "Learner A")
+        self.assertEqual(document["learner_data"]["notes"][0]["content"], "My own content")
+        self.assertTrue(document["includes_unsaved_changes"])
+        self.assertEqual(
+            document["last_successful_save_at"],
+            "2026-11-19T10:00:00+00:00",
+        )
+        self.assertNotIn("_persistent_user_id", document["learner_data"])
+
+    def test_export_rejects_unauthenticated_session(self):
+        session = FakeSessionState()
+        with patch.object(state.st, "session_state", session):
+            with patch.object(persistence, "_is_logged_in", return_value=False):
+                with self.assertRaisesRegex(RuntimeError, "Sign in"):
+                    state.build_learner_data_export_json()
+
+    def test_export_rejects_unloaded_session(self):
+        session = FakeSessionState()
+        with patch.object(state.st, "session_state", session):
+            state.init_session_state()
+            with (
+                patch.object(persistence, "_is_logged_in", return_value=True),
+                patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "not fully loaded"):
+                    state.build_learner_data_export_json()
+
+    def test_export_rejects_state_loaded_for_a_different_account(self):
+        session = FakeSessionState()
+        with patch.object(state.st, "session_state", session):
+            state.init_session_state()
+            session["_persistent_state_loaded"] = True
+            session["_persistent_user_id"] = "auth0|learner-b"
+            with (
+                patch.object(persistence, "_is_logged_in", return_value=True),
+                patch.object(persistence, "get_user_id", return_value="auth0|learner-a"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "does not match"):
+                    state.build_learner_data_export_json()
 
 
 if __name__ == "__main__":
