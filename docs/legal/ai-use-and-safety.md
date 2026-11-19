@@ -56,7 +56,7 @@ When AI tutoring is enabled, the current message and bounded conversation contex
 > - Vocogni is not watched live. Do not rely on it to get urgent help.
 > - This prototype is not cleared for public child-facing use until the required checks and safeguards are complete.
 
-The current prototype does not verify or record parent/guardian consent and has no documented child-safety risk classification. These notes do not replace legally required consent, age-appropriate controls, or risk mitigation. Public child-facing use should remain blocked until the operator completes a jurisdiction-specific legal review and implements the required controls.
+The current prototype does not verify or record parent/guardian consent and has no documented child-safety risk classification. Indonesia's relevant review includes Law No. 27 of 2022, PP No. 17/2025, Permenkomdigi No. 9/2026, and PP No. 33/2026 (effective 16 January 2027); PP 33/2026 Article 38 addresses child-user identification and verification of parent/guardian consent. These notes do not replace legal advice, legally required consent, age-appropriate controls, or risk mitigation. Public child-facing use should remain blocked until the operator completes a jurisdiction-specific legal review and implements the required controls.
 
 Do not use the service to bully, threaten, exploit, impersonate, or expose others. **Reporting channel: not configured.** A verified, monitored safety contact must be published before public launch; do not treat this draft as a working reporting channel.
 
