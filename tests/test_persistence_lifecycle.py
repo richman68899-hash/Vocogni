@@ -517,11 +517,6 @@ class NoteAndFolderRestoreIdentityTests(unittest.TestCase):
 
 
 class LearnerDataExportTests(unittest.TestCase):
-    def _initialised_session(self):
-        session = FakeSessionState()
-        state.init_session_state()
-        return session
-
     def test_export_contains_current_users_durable_state_and_unsaved_marker(self):
         session = FakeSessionState()
         with patch.object(state.st, "session_state", session):
