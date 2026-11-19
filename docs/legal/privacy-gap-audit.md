@@ -1,7 +1,7 @@
 # Vocogni privacy and child-safety gap audit
 
 **Audit date:** 19 November 2026  
-**Scope:** Repository source and documentation on `main` at base commit `69567ad674461697317885f407360b14a1ebff6f`.  
+**Scope:** Repository source and documentation on `main` at commit `c810bec17a1bd13c7187cc0efc62cceb5c65bed8` (after PR #175 was merged).  
 **Purpose:** Identify the controls that must be completed before a controlled learner soft-launch.  
 **Status:** Internal engineering/product audit, not legal advice, an audit of the live deployment, or a compliance certification.
 
@@ -9,14 +9,14 @@
 
 **Do not soft-launch with real learner accounts or personal learning records yet.** The repository contains a fail-closed learner-access gate and draft notices, but it does not contain a verified age/guardian-consent workflow, a complete data-rights/deletion process, or evidence that actual provider, database, and hosting controls have been reviewed and tested.
 
-A small invited preview using synthetic accounts and synthetic data can be considered only when the preview deployment is actually access-restricted, its exact OIDC subject allowlist is configured, the responsible adult operator accepts the residual technical risk, and no real learner data is collected. The allowlist change proposed in this branch is not active on `main` or the deployed site until it is reviewed, merged, and deliberately deployed.
+A small invited preview using synthetic accounts and synthetic data can be considered only when the preview deployment is separately access-restricted, both server-side preview settings are configured, the responsible adult operator accepts the residual technical risk, and no real learner data is collected. The application-level OIDC allowlist is present in `main` after PR #175, but the live deployment configuration and actual hosting-level restriction must still be verified.
 
 ## Evidence categories
 
 - **Confirmed source gap:** the reviewed repository source does not implement or record the control.
 - **Documented but unverified:** the checklist describes the required control, but no evidence proves it is configured or operating.
 - **External verification required:** code cannot establish the fact; inspect the live provider, database, contract, dashboard, or deployment.
-- **Implemented in this branch only:** the control is proposed in this pull request and is not yet part of the main release.
+- **Implemented in main, not externally verified:** the code is present in the repository, but its live configuration and operational effectiveness have not been independently tested.
 
 ## Critical blockers — no real-learner soft launch
 
@@ -29,7 +29,7 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 | P0 | **Purposes, lawful bases, and data inventory** | The privacy draft lists broad data categories, but no completed data-flow map, lawful-basis register, or live-schema reconciliation was found. | Map every field and data flow: Auth0 claims, profile, diagnostics, practice attempts, notes, milestones, settings, session chat, technical logs, backups, remote fonts, and enabled providers. For each purpose, document necessity, lawful basis, recipient, access, retention, and children-specific treatment. Remove unnecessary fields and processing. |
 | P0 | **Provider contracts, regions, and international transfers** | Auth0, Supabase, Streamlit hosting, Google Fonts, and a configurable AI provider are referenced. The actual tenants, project/hosting regions, subprocessors, agreements, backup locations, access/support routes, and transfer safeguards are not established by source code. | Inspect actual production settings and provider contracts; document the exact entities, processing roles, locations, data received, retention, subprocessors, and safeguards. Confirm whether remote Google Fonts are fetched at runtime. Do not make a data-residency promise without evidence. Keep external AI disabled until its exact provider and data flow are approved. |
 | P0 | **Retention schedule and deletion** | No deletion function was found in `persistence.py`; the current privacy draft explicitly says retention is not yet defined/enforced and self-service deletion is absent. | Define retention by data category and trigger, including inactive accounts, requests, logs, provider retention, and backups. Implement a verified request-driven deletion procedure for the Supabase learner record and all associated data; separately handle Auth0 identity, provider logs/backups, and legal exceptions. Test deletion with synthetic records and retain non-sensitive completion evidence. |
-| P0 | **Access, correction, withdrawal, and child/guardian requests** | No complete request intake, requester/guardian authority verification, case tracking, or completion workflow was found. | Establish a monitored request channel and a private case workflow with identity/authority verification, deadlines, access/correction/deletion/withdrawal handling, guardian routing, response records, and escalation. Publish only after it is operational. |
+| P0 | **Access, correction, withdrawal, and child/guardian requests** | Account settings now provide a scoped JSON download of the current Vocogni learner-state snapshot. No complete request intake, requester/guardian authority verification, third-party data retrieval, case tracking, or completion workflow was found. | Retain the scoped export as a self-service convenience, but establish a monitored request channel and private case workflow with identity/authority verification, deadlines, access/correction/deletion/withdrawal handling, guardian routing, provider coordination, response records, and escalation. Publish only after it is operational. |
 | P0 | **Database isolation and privileged-key controls** | `persistence.py` uses server-side Supabase credentials and filters reads/writes by the authenticated OIDC subject. This is useful application-layer isolation, but is not evidence of database-level row security. No SQL migration or RLS policy file was found in the repository tree reviewed. | Inspect the live Supabase grants, RLS status/policies, key type, table exposure, backups, and operator access. Confirm service-role/secret credentials never reach client code or logs. Run two-account tests for read, write, update, session-switch, expired session, and direct API access. Do not treat a source-level `.eq("user_id", ...)` filter as a substitute for verified database controls. |
 | P0 | **Incident response and breach handling** | The app notices say there is no live monitoring; no tested incident procedure, ownership/escalation roster, or breach evidence was found. | Establish who monitors reports, how to contain access, disable providers, preserve evidence, assess affected data, contact affected people/guardians, and meet any applicable notification duties. Test the procedure with a tabletop exercise. |
 | P0 | **Final notices, terms, and consent records** | `PRIVACY_POLICY.md` and Terms are drafts with placeholders. No final counsel sign-off, published version, or versioned acceptance/consent record was found. | Have counsel review the actual service, controller, data flows, vendors, school/guardian arrangements, and applicable jurisdictions. Publish accurate notices with effective versioning. Where acceptance or consent is the correct basis, record it separately and do not treat a draft notice or general Terms acceptance as guardian consent. |
@@ -44,14 +44,15 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 
 ## What already exists
 
-- The normal learner path is blocked by `release_gate.py` unless private preview is explicitly enabled.
+- The normal learner path is blocked by `release_gate.py`. Private preview requires both the explicit preview flag and an exact OIDC `sub` allowlist; the flag alone does not authorise access.
 - `app.py` checks the release gate before initializing/loading learner state.
 - The login screen labels Vocogni as a prototype, restricts the stated purpose to invited testers, and tells testers not to enter sensitive or personal information.
 - The AI-tutoring path is described as off by default and opt-in for the current session; it should stay off for real learners pending provider review.
 - Authenticated persistence uses the OIDC subject as the learner key and filters queries by that subject. This is not a substitute for database-level policy verification.
+- Account settings provides a scoped JSON download of the current learner-state snapshot; it does not include Auth0 identity-provider records, hosting/provider logs, backups, or session-only AI chat.
 - Terms, privacy, and AI-safety drafts are available in the application. Draft visibility must not be confused with completed legal notices or consent.
 
-## Changes proposed in the companion pull request
+## Changes already merged in PR #175
 
 - Require both the private-preview flag and an exact allowlist of OIDC `sub` identifiers. The flag alone no longer authorises any account.
 - Re-check the authenticated subject before any learner state is initialised or read; block non-allowlisted accounts and offer sign-out.
@@ -59,7 +60,7 @@ A small invited preview using synthetic accounts and synthetic data can be consi
 - Align the launch checklist and draft notices with PP No. 33 of 2026 and its stated effective date, while retaining PP No. 17 of 2025 and Permenkomdigi No. 9 of 2026 as relevant review references.
 - Add regression tests for the preview allowlist, pre-load access gate, canonical in-app privacy source, and the regulatory disclosure.
 
-These changes reduce accidental access and documentation drift. **They do not implement guardian consent, deletion, retention, a DPIA, vendor review, final legal notices, or operational support.**
+These changes reduce accidental access and documentation drift. The scoped export partially supports learner access to Vocogni-held data, but **the code does not implement guardian consent, account deletion, a full rights-request workflow, retention, a DPIA, vendor review, final legal notices, or operational support.**
 
 ## Legal review references
 
@@ -77,7 +78,7 @@ This audit intentionally does not decide which provisions apply to the particula
 - [ ] Counsel-reviewed age cohort, child-safety and privacy assessment completed.
 - [ ] All required guardian-consent and withdrawal controls implemented and tested.
 - [ ] Live provider, transfer, database, RLS, secrets, logging, backup, and retention review completed.
-- [ ] Deletion and data-rights request process tested end-to-end.
+- [ ] Scoped learner export tested; complete deletion and data-rights request process tested end-to-end.
 - [ ] Monitored support/safety/privacy reporting and incident response operational.
 - [ ] Final notices and any required acceptance/consent records approved.
 - [ ] Exact deployed commit, access restrictions, device tests, and rollback verified.
