@@ -115,7 +115,7 @@ Subject to applicable law and its conditions, you may be entitled to request inf
 
 To make a request, contact the privacy contact listed in Section 1. The operator may need to verify the requester's identity or authority before acting. Requests concerning a child's personal data may require involvement or consent from a parent or legal guardian. Requests will be handled within the time limits required by applicable law.
 
-The current prototype does not yet provide a self-service account deletion control. A verified request may therefore need to be handled by the operator. A documented request workflow and tested deletion procedure are release requirements, not optional enhancements.
+Vocogni's Account settings provide a JSON download of the current learner-state snapshot held in the authenticated application session. It can include current unsaved session changes and covers the durable Vocogni learner-state bundle. It does not include identity-provider records, hosting or provider logs, provider backups, or session-only AI conversation history; it is not a complete export from every provider or a complete response to every data-rights request.\n\nThe current prototype does not yet provide a self-service account deletion control. A verified request may therefore need to be handled by the operator. A documented request workflow and tested deletion procedure are release requirements, not optional enhancements.
 
 ## 10. Children's personal data
 
