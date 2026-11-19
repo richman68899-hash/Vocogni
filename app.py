@@ -51,13 +51,18 @@ def _render_login() -> None:
     with hero:
         st.markdown(
             "<div class='vc-login-hero'>"
-            "<h1>Learning that moves you forward.</h1>"
-            "<p class='vc-page-intro'>Sign in to continue learning, revisit your notes, and pick up where you left off.</p>"
+            "<h1>Vocogni is a prototype.</h1>"
+            "<p class='vc-page-intro'>An early version of our learning platform is being tested and improved.</p>"
             "</div>",
             unsafe_allow_html=True,
         )
+        st.warning(
+            "**Prototype preview only.** Vocogni is not open to general learners yet. "
+            "Access is limited to invited testers. Please use test accounts and do not "
+            "enter personal or sensitive information; features and saved data may change."
+        )
         st.button(
-            "Continue to Vocogni",
+            "Continue to prototype preview",
             type="primary",
             on_click=st.login,
             args=["auth0"],
@@ -66,7 +71,7 @@ def _render_login() -> None:
 
     st.divider()
     st.markdown("#### Terms, privacy & AI safety")
-    st.caption("Review these prototype notices before signing in.")
+    st.caption("Review these prototype notices before accessing the preview.")
     render_legal_notices(st, compact=True)
     st.stop()
 
