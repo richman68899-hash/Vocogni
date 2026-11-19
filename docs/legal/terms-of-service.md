@@ -19,7 +19,7 @@ Learners should use Vocogni in an age-appropriate way. If you are under the age 
 
 The operator must confirm the age rules, guardian-consent flow, and school-use requirements before opening the service to the public. The current prototype does not verify or record parent/guardian consent, and a documented child-safety risk assessment has not been completed. For that reason, this build must not be treated as cleared for public child-facing use. Displaying this draft does not record or prove consent.
 
-For an Indonesian launch, the operator's review should assess the Personal Data Protection Law (Law No. 27 of 2022), Government Regulation No. 17 of 2025 on child protection in electronic systems, and Minister of Communication and Digital Regulation No. 9 of 2026, alongside other rules that qualified counsel determines apply. This is a launch-review requirement, not a legal conclusion about the operator's obligations.
+For an Indonesian launch, the operator's review should assess the Personal Data Protection Law (Law No. 27 of 2022), Government Regulation No. 17 of 2025, Minister of Communication and Digital Regulation No. 9 of 2026, and Government Regulation No. 33 of 2026 (effective 16 January 2027), alongside other rules that qualified counsel determines apply. PP 33/2026 Article 38 addresses child-user identification and parent/guardian consent verification. This is a launch-review requirement, not a legal conclusion about the operator's obligations.
 
 ## 3. Accounts and learner information
 
