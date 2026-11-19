@@ -63,7 +63,7 @@ class ReleaseGateTests(unittest.TestCase):
     def test_allowlist_parser_trims_and_ignores_empty_entries(self):
         environ = {
             release_gate.PREVIEW_ALLOWED_SUBJECTS_ENV:
-                " auth0|one, ,auth0|two;\\nauth0|three ",
+                " auth0|one, ,auth0|two;\nauth0|three ",
         }
         self.assertEqual(
             release_gate.get_preview_allowed_subjects(environ),
