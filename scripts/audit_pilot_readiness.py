@@ -16,8 +16,12 @@ import question_engine
 
 
 def audit_lesson(course_id: str, lesson: dict[str, Any], records: list[dict[str, Any]]) -> dict[str, Any]:
-    """Audit one pilot lesson using current VQE records."""
+    """Audit one pilot lesson using a readiness profile matched to its kind."""
     lesson_id = str(lesson.get("id") or "")
+    lesson_kind = lesson.get("kind") if isinstance(lesson.get("kind"), str) else "standard"
+    is_assessment = lesson_kind.strip().casefold() == "assessment"
+    readiness_profile = "assessment" if is_assessment else "instructional"
+
     errors: list[str] = []
     warnings: list[str] = []
 
@@ -49,14 +53,23 @@ def audit_lesson(course_id: str, lesson: dict[str, Any], records: list[dict[str,
         errors.append(
             f"Only {len(verified)} verified questions; at least 2 are required for a pilot lesson."
         )
-    if len(practice) < 2:
-        errors.append(
-            f"Only {len(practice)} verified practice questions; at least 2 are required."
-        )
-    if not application:
-        warnings.append(
-            "No verified application/reasoning question is available; transfer evidence is limited."
-        )
+
+    if is_assessment:
+        if len(application) < 2:
+            errors.append(
+                "Only "
+                f"{len(application)} verified application/reasoning questions; "
+                "at least 2 are required for an assessment lesson."
+            )
+    else:
+        if len(practice) < 2:
+            errors.append(
+                f"Only {len(practice)} verified practice questions; at least 2 are required."
+            )
+        if not application:
+            warnings.append(
+                "No verified application/reasoning question is available; transfer evidence is limited."
+            )
 
     missing_skill = [
         item.get("question_id")
@@ -74,6 +87,8 @@ def audit_lesson(course_id: str, lesson: dict[str, Any], records: list[dict[str,
         "course_id": course_id,
         "lesson_id": lesson_id,
         "lesson_title": lesson.get("title") or lesson_id,
+        "lesson_kind": lesson_kind,
+        "readiness_profile": readiness_profile,
         "verified_question_count": len(verified),
         "verified_practice_count": len(practice),
         "verified_application_or_reasoning_count": len(application),
@@ -94,6 +109,8 @@ def build_report() -> dict[str, Any]:
                 "course_id": course_id,
                 "lesson_id": lesson_id,
                 "lesson_title": lesson_id,
+                "lesson_kind": "unknown",
+                "readiness_profile": "unknown",
                 "verified_question_count": 0,
                 "verified_practice_count": 0,
                 "verified_application_or_reasoning_count": 0,
@@ -111,6 +128,8 @@ def build_report() -> dict[str, Any]:
                 "course_id": course_id,
                 "lesson_id": lesson_id,
                 "lesson_title": lesson_id,
+                "lesson_kind": "unknown",
+                "readiness_profile": "unknown",
                 "verified_question_count": 0,
                 "verified_practice_count": 0,
                 "verified_application_or_reasoning_count": 0,
