@@ -25,6 +25,17 @@ class AppReleaseGateWiringTests(unittest.TestCase):
         self.assertIn("not open to learners yet", source)
         self.assertIn("pre-launch safeguard", source)
 
+    def test_login_screen_clearly_labels_the_private_prototype_preview(self):
+        source = (ROOT / "app.py").read_text(encoding="utf-8")
+        login = source.split("def _render_login() -> None:", 1)[1].split(
+            "\ndef _render_logo", 1
+        )[0].casefold()
+        self.assertIn("vocogni is a prototype", login)
+        self.assertIn("not open to general learners yet", login)
+        self.assertIn("invited testers", login)
+        self.assertIn("test accounts", login)
+        self.assertIn("continue to prototype preview", login)
+
 
 if __name__ == "__main__":
     unittest.main()
