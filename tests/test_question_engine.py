@@ -211,6 +211,81 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
         record["question"]["prompt"] = "changed in returned result"
         self.assertEqual(lesson["questions"][0], original)
 
+    def test_question_audit_warns_when_distinct_ids_share_normalised_prompt(self):
+        def record(question_id, prompt, question_type="mc"):
+            question = {
+                "id": question_id,
+                "type": question_type,
+                "prompt": prompt,
+                "options": ["A", "B"],
+                "answer": "A",
+                "explanation": "A checked explanation.",
+            }
+            return {
+                "question_id": question_id,
+                "course_id": "test_course",
+                "lesson_id": "test_lesson",
+                "source_field": "questions",
+                "question": question,
+            }
+
+        records = [
+            record("q1", "Choose the ＦRACTION that equals 1/2."),
+            record("q2", "  choose the FRACTION that equals 1/2.  "),
+        ]
+        with patch.object(
+            question_engine,
+            "_catalogue",
+            return_value=(records, [], len(records)),
+        ):
+            report = question_engine.audit_question_bank()
+
+        duplicate_issues = [
+            issue for issue in report["issues"]
+            if issue.get("code") == "duplicate_prompt"
+        ]
+        self.assertEqual(report["duplicate_prompt_group_count"], 1)
+        self.assertEqual(len(duplicate_issues), 1)
+        self.assertEqual(duplicate_issues[0]["question_ids"], ["q1", "q2"])
+        self.assertEqual(duplicate_issues[0]["severity"], "warning")
+        self.assertEqual(len(duplicate_issues[0]["locations"]), 2)
+
+    def test_question_audit_does_not_flag_same_id_or_different_types_as_prompt_duplicates(self):
+        def record(question_id, prompt, question_type):
+            question = {
+                "id": question_id,
+                "type": question_type,
+                "prompt": prompt,
+                "options": ["A", "B"] if question_type == "mc" else None,
+                "answer": "A" if question_type == "mc" else 1,
+                "explanation": "A checked explanation.",
+            }
+            return {
+                "question_id": question_id,
+                "course_id": "test_course",
+                "lesson_id": "test_lesson",
+                "source_field": "questions",
+                "question": question,
+            }
+
+        records = [
+            record("same-id", "What is 2 + 2?", "mc"),
+            record("same-id", "What is 2 + 2?", "mc"),
+            record("different-type", "What is 2 + 2?", "numeric"),
+            record("different-prompt", "What is 3 + 3?", "mc"),
+        ]
+        with patch.object(
+            question_engine,
+            "_catalogue",
+            return_value=(records, [], len(records)),
+        ):
+            report = question_engine.audit_question_bank()
+
+        self.assertEqual(report["duplicate_prompt_group_count"], 0)
+        self.assertFalse(
+            any(issue.get("code") == "duplicate_prompt" for issue in report["issues"])
+        )
+
     def test_bank_audit_distinguishes_verified_items_from_legacy_content(self):
         report = question_engine.audit_question_bank(course_id="fractions")
         self.assertGreaterEqual(report["verified_count"], 6)

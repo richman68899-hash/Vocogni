@@ -129,6 +129,10 @@ def build_report() -> dict[str, Any]:
         issue for issue in global_question_audit.get("issues", [])
         if issue.get("code") in ("duplicate_global_id", "conflicting_duplicate")
     ]
+    duplicate_prompt_warnings = [
+        issue for issue in global_question_audit.get("issues", [])
+        if issue.get("code") == "duplicate_prompt"
+    ]
     transfer = transfer_check.audit_transfer_coverage()
 
     question_bank_errors = sum(
@@ -150,7 +154,7 @@ def build_report() -> dict[str, Any]:
         + question_bank_errors
         + len(global_duplicate_errors)
     )
-    warning_count = int(question_totals.get("legacy", 0))
+    warning_count = int(question_totals.get("legacy", 0)) + len(duplicate_prompt_warnings)
 
     return {
         "schema_version": 1,
@@ -168,7 +172,8 @@ def build_report() -> dict[str, Any]:
             "lesson_identity_error_count": len(lesson_identity_issues),
             "question_needs_review_count": question_bank_errors,
             "global_duplicate_question_error_count": len(global_duplicate_errors),
-            "legacy_question_warning_count": warning_count,
+            "legacy_question_warning_count": int(question_totals.get("legacy", 0)),
+            "duplicate_prompt_warning_count": len(duplicate_prompt_warnings),
             "transfer_coverage": {
                 key: value
                 for key, value in transfer.items()
