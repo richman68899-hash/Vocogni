@@ -687,8 +687,13 @@ def build_intervention_timeline(
                 skill_id = metadata["skill_id"]
                 lesson_id = metadata["lesson_id"]
                 day = completed.date().isoformat()
+                ratio = _result_ratio(result)
+                if ratio is None:
+                    # Malformed binary/marked evidence is unknown, not an
+                    # incorrect response. Keep it out of the event denominator.
+                    continue
                 coach_groups[(lesson_id, skill_id, day)].append(
-                    (completed, 1.0 if result.get("correct") else 0.0)
+                    (completed, ratio)
                 )
 
         for (lesson_id, skill_id, day), rows in coach_groups.items():
