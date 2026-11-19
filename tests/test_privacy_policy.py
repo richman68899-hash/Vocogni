@@ -42,6 +42,9 @@ class PrivacyPolicyDraftTests(unittest.TestCase):
     def test_policy_does_not_claim_children_are_already_supported(self):
         self.assertIn("does not establish that it identifies child users", self.policy)
         self.assertIn("not parental consent", self.policy)
+        self.assertIn("government regulation no. 33 of 2026", self.policy.casefold())
+        self.assertIn("16 january 2027", self.policy.casefold())
+        self.assertIn("article 38", self.policy.casefold())
 
     def test_unresolved_release_items_are_explicit(self):
         for marker in (
