@@ -2,7 +2,7 @@
 
 **Status:** Required before public launch  
 **Related document:** [`PRIVACY_POLICY.md`](../../PRIVACY_POLICY.md)  
-**Review date:** 28 October 2026
+**Review date:** 19 November 2026
 
 This checklist is an internal release gate. Creating a privacy policy is necessary but does not itself make the product's processing lawful or establish that technical safeguards are in place.
 
@@ -16,9 +16,9 @@ This checklist is an internal release gate. Creating a privacy policy is necessa
 
 ## 2. Children's data — release blocker
 
-The PDP Law (Law No. 27 of 2022), Article 25, requires special treatment of children's personal data and parent/guardian consent. Current legal reporting says Government Regulation No. 33 of 2026 takes effect on **16 January 2027** and adds more detailed operational obligations, including identifying child users and verifying parental/guardian consent. Confirm the enacted text and any later official guidance with Indonesian counsel before release.
+The PDP Law (Law No. 27 of 2022), Article 25, requires special treatment of children's personal data and parent/guardian consent. Government Regulation No. 33 of 2026 was promulgated on 16 July 2026 and takes effect six months later, on **16 January 2027**. Article 38 addresses identifying child users, obtaining parent/guardian consent, verifying consent using available technology, requests concerning a child's data, and the transition when a user is no longer a child. PP No. 17/2025 and Permenkomdigi No. 9/2026 also remain relevant to electronic-system child protection. Have qualified Indonesian counsel confirm the enacted text, applicability, risk classification, and implementation steps before release.
 
-- [ ] Decide and document the permitted user-age range.
+- [ ] Decide and document the permitted user-age range and age bands under the applicable child-protection framework; do not treat a self-entered profile age as verified age assurance.
 - [ ] Implement age identification or age assurance appropriate to the service and legal review.
 - [ ] Implement a parent/guardian consent process before processing children's personal data.
 - [ ] Verify the consent is valid; record what was consented to, by whom, when, and which notice/version applied.
