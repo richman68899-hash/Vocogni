@@ -226,7 +226,20 @@ def main() -> None:
     # the required child-safety, privacy, consent, and support prerequisites.
     # The private-preview flag is for restricted operator testing only; it is
     # not a public-launch approval and must never be set on a public deployment.
-    block_reason = release_gate.learner_access_block_reason()
+    # Check preview identity before loading any learner state. A configured
+    # allowlist may let an unauthenticated visitor reach Auth0, but the gate is
+    # re-evaluated after login and before Supabase is queried.
+    try:
+        is_logged_in = bool(st.user.is_logged_in)
+        authenticated_subject = st.user.get("sub", "") if is_logged_in else ""
+    except Exception:
+        is_logged_in = False
+        authenticated_subject = ""
+
+    block_reason = release_gate.learner_access_block_reason(
+        is_logged_in=is_logged_in,
+        authenticated_subject=authenticated_subject,
+    )
     if block_reason:
         st.title("Vocogni is not open to learners yet")
         st.warning(block_reason)
@@ -235,6 +248,8 @@ def main() -> None:
             "account, course progress, notes, or other learner data."
         )
         render_legal_notices(st, compact=True)
+        if is_logged_in and st.button("Sign out of this account", key="release_gate_sign_out"):
+            st.logout()
         st.stop()
 
     if not st.user.is_logged_in:

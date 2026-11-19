@@ -8,7 +8,7 @@ from typing import Any
 _ROOT = Path(__file__).resolve().parent
 NOTICE_FILES = {
     "terms": ("Terms of Use (prototype draft)", _ROOT / "docs" / "legal" / "terms-of-service.md"),
-    "privacy": ("Privacy Notice (prototype draft)", _ROOT / "docs" / "legal" / "privacy-notice.md"),
+    "privacy": ("Privacy Policy (prototype draft)", _ROOT / "PRIVACY_POLICY.md"),
     "ai_safety": ("AI Use and Safety Notes", _ROOT / "docs" / "legal" / "ai-use-and-safety.md"),
 }
 
