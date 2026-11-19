@@ -91,6 +91,62 @@ class ReleaseGateTests(unittest.TestCase):
         self.assertFalse(release_gate.is_private_preview_enabled({}))
         self.assertEqual(release_gate.get_preview_allowed_subjects({}), frozenset())
 
+    def test_claim_extraction_returns_exact_subject_for_logged_in_user(self):
+        user = {"sub": " auth0|tester-1 ", "email": "tester@example.test"}
+        self.assertEqual(
+            release_gate.authenticated_subject_from_user(user, is_logged_in=True),
+            "auth0|tester-1",
+        )
+
+    def test_claim_extraction_fails_closed_for_missing_or_malformed_claims(self):
+        malformed = (
+            {},
+            {"sub": ""},
+            {"sub": "   "},
+            {"sub": 12345},
+            None,
+            object(),
+        )
+        for user in malformed:
+            with self.subTest(user=user):
+                self.assertIsNone(
+                    release_gate.authenticated_subject_from_user(
+                        user, is_logged_in=True
+                    )
+                )
+
+    def test_claim_extraction_does_not_inspect_anonymous_user_claims(self):
+        class ClaimsMustNotBeRead:
+            def __iter__(self):
+                raise AssertionError("anonymous claims must not be inspected")
+
+        self.assertIsNone(
+            release_gate.authenticated_subject_from_user(
+                ClaimsMustNotBeRead(), is_logged_in=False
+            )
+        )
+
+    def test_claim_extraction_error_cannot_be_reinterpreted_as_anonymous(self):
+        class BrokenClaims:
+            def __iter__(self):
+                raise RuntimeError("claims unavailable")
+
+        environ = {
+            release_gate.PREVIEW_ENV: "true",
+            release_gate.PREVIEW_ALLOWED_SUBJECTS_ENV: "auth0|tester-1",
+        }
+        subject = release_gate.authenticated_subject_from_user(
+            BrokenClaims(), is_logged_in=True
+        )
+        self.assertIsNone(subject)
+        self.assertIsNotNone(
+            release_gate.learner_access_block_reason(
+                environ,
+                is_logged_in=True,
+                authenticated_subject=subject,
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
