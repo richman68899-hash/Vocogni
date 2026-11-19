@@ -231,10 +231,19 @@ def main() -> None:
     # re-evaluated after login and before Supabase is queried.
     try:
         is_logged_in = bool(st.user.is_logged_in)
-        authenticated_subject = st.user.get("sub", "") if is_logged_in else ""
     except Exception:
-        is_logged_in = False
-        authenticated_subject = ""
+        # An unknown authentication state must never be downgraded to anonymous:
+        # that could otherwise bypass the authenticated preview allowlist.
+        st.error(
+            "Vocogni could not verify your sign-in state. "
+            "Access is paused and no learner data was loaded."
+        )
+        st.stop()
+
+    authenticated_subject = release_gate.authenticated_subject_from_user(
+        st.user,
+        is_logged_in=is_logged_in,
+    )
 
     block_reason = release_gate.learner_access_block_reason(
         is_logged_in=is_logged_in,

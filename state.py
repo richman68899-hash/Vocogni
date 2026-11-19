@@ -555,6 +555,36 @@ def _build_persistent_state() -> dict[str, Any]:
     }
 
 
+def build_learner_data_export_json() -> str:
+    """Return the current learner's durable data snapshot as JSON.
+
+    The identity and loaded-state checks prevent exporting a previous
+    authenticated user's session data after an account switch. The export
+    intentionally excludes session-only UI state and authentication tokens.
+    """
+    if not persistence._is_logged_in():
+        raise RuntimeError("Sign in before downloading learner data.")
+
+    user_id = persistence.get_user_id()
+    if not st.session_state.get("_persistent_state_loaded", False):
+        raise RuntimeError("Learner data is not fully loaded; retry before exporting.")
+
+    loaded_user_id = st.session_state.get("_persistent_user_id")
+    if not loaded_user_id or loaded_user_id != user_id:
+        raise RuntimeError(
+            "The loaded learner data does not match the current account. "
+            "Export was blocked."
+        )
+
+    from privacy_export import build_privacy_export_json
+
+    return build_privacy_export_json(
+        _build_persistent_state(),
+        last_saved_at=st.session_state.get("_persistent_updated_at"),
+        includes_unsaved_changes=has_pending_persistence(),
+    )
+
+
 # ===========================================================================
 # DIRTY-STATE MANAGEMENT
 # ===========================================================================

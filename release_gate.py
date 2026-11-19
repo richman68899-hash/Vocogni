@@ -104,10 +104,38 @@ def learner_access_block_reason(
     return None
 
 
+def authenticated_subject_from_user(
+    user: object,
+    *,
+    is_logged_in: bool,
+) -> str | None:
+    """Extract a verified OIDC subject without ever treating errors as anonymous.
+
+    A logged-in session with unreadable, missing, blank, or malformed claims
+    returns None. The caller must pass that result to the access gate, which
+    rejects an authenticated account without an exact allowlisted subject.
+    """
+    if not is_logged_in:
+        return None
+
+    try:
+        claims = dict(user)  # Streamlit's st.user is a dict-like OIDC object.
+    except Exception:
+        return None
+
+    subject = claims.get("sub")
+    if not isinstance(subject, str):
+        return None
+
+    subject = subject.strip()
+    return subject or None
+
+
 __all__ = [
     "PREVIEW_ENV",
     "PREVIEW_ALLOWED_SUBJECTS_ENV",
     "is_private_preview_enabled",
     "get_preview_allowed_subjects",
+    "authenticated_subject_from_user",
     "learner_access_block_reason",
 ]
