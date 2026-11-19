@@ -54,7 +54,7 @@ def get_preview_allowed_subjects(
     raw = _read_setting(PREVIEW_ALLOWED_SUBJECTS_ENV, environ)
     return frozenset(
         subject.strip()
-        for subject in re.split(r"[,;\\r\\n]+", raw)
+        for subject in re.split(r"[,;\r\n]+", raw)
         if subject.strip()
     )
 
