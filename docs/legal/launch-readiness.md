@@ -24,6 +24,7 @@ Internal release checklist. Do not treat the presence of legal-document drafts a
 
 - Authentication is handled through Auth0.
 - Learner state is persisted through Supabase/PostgreSQL.
+- The Account page provides a scoped JSON download of the current Vocogni learner-state bundle. It does not include external identity-provider records, infrastructure/provider logs, backups, or session-only AI conversation history, and does not replace a full data-rights request workflow.
 - The Study Guide has deterministic local commands and a separate optional external AI-tutoring path. The latter is disabled by default, requires a session-only learner opt-in, and sends a bounded subset of chat history plus a limited learning-context summary to the operator-configured provider when used. The actual provider/deployment configuration and its contractual data handling have not been independently verified by this source review.
 - The repository review did not confirm a complete self-service account deletion workflow, final data retention schedule, legal operator/contact details, verified guardian-consent process, or completed legal review.
 - The in-app privacy notice now renders the root PRIVACY_POLICY.md draft as its canonical source; docs/legal/privacy-notice.md is only an archived pointer to prevent two competing privacy drafts.
