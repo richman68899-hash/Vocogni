@@ -51,13 +51,18 @@ def _render_login() -> None:
     with hero:
         st.markdown(
             "<div class='vc-login-hero'>"
-            "<h1>Learning that moves you forward.</h1>"
-            "<p class='vc-page-intro'>Sign in to continue learning, revisit your notes, and pick up where you left off.</p>"
+            "<h1>Vocogni is a prototype.</h1>"
+            "<p class='vc-page-intro'>An early version of our learning platform is being tested and improved.</p>"
             "</div>",
             unsafe_allow_html=True,
         )
+        st.warning(
+            "**Prototype preview only.** Vocogni is not open to general learners yet. "
+            "Access is limited to invited testers. Please use test accounts and do not "
+            "enter personal or sensitive information; features and saved data may change."
+        )
         st.button(
-            "Continue to Vocogni",
+            "Continue to prototype preview",
             type="primary",
             on_click=st.login,
             args=["auth0"],
@@ -66,7 +71,7 @@ def _render_login() -> None:
 
     st.divider()
     st.markdown("#### Terms, privacy & AI safety")
-    st.caption("Review these prototype notices before signing in.")
+    st.caption("Review these prototype notices before accessing the preview.")
     render_legal_notices(st, compact=True)
     st.stop()
 
@@ -221,7 +226,29 @@ def main() -> None:
     # the required child-safety, privacy, consent, and support prerequisites.
     # The private-preview flag is for restricted operator testing only; it is
     # not a public-launch approval and must never be set on a public deployment.
-    block_reason = release_gate.learner_access_block_reason()
+    # Check preview identity before loading any learner state. A configured
+    # allowlist may let an unauthenticated visitor reach Auth0, but the gate is
+    # re-evaluated after login and before Supabase is queried.
+    try:
+        is_logged_in = bool(st.user.is_logged_in)
+    except Exception:
+        # An unknown authentication state must never be downgraded to anonymous:
+        # that could otherwise bypass the authenticated preview allowlist.
+        st.error(
+            "Vocogni could not verify your sign-in state. "
+            "Access is paused and no learner data was loaded."
+        )
+        st.stop()
+
+    authenticated_subject = release_gate.authenticated_subject_from_user(
+        st.user,
+        is_logged_in=is_logged_in,
+    )
+
+    block_reason = release_gate.learner_access_block_reason(
+        is_logged_in=is_logged_in,
+        authenticated_subject=authenticated_subject,
+    )
     if block_reason:
         st.title("Vocogni is not open to learners yet")
         st.warning(block_reason)
@@ -230,6 +257,8 @@ def main() -> None:
             "account, course progress, notes, or other learner data."
         )
         render_legal_notices(st, compact=True)
+        if is_logged_in and st.button("Sign out of this account", key="release_gate_sign_out"):
+            st.logout()
         st.stop()
 
     if not st.user.is_logged_in:

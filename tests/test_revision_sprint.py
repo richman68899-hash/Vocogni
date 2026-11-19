@@ -93,6 +93,43 @@ class RevisionSprintTests(unittest.TestCase):
         self.assertEqual(len(bank), 3)
         self.assertTrue(all(item["lesson_id"] == "lesson_1" for item in bank))
 
+    def test_question_history_ignores_malformed_and_conflicting_evidence(self):
+        progress = {
+            "revision_history_validation": {
+                "practice_attempts": {
+                    "lesson_1": [{
+                        "results": [
+                            {"question_id": "binary_true", "correct": True},
+                            {"question_id": "binary_false", "correct": False},
+                            {"question_id": "truthy_string", "correct": "false"},
+                            {"question_id": "truthy_number", "correct": 1},
+                            {"question_id": "malformed_marks", "correct": True, "score": "bad", "max_marks": 1},
+                            {"question_id": "partial_marks", "correct": True, "score": 0, "max_marks": 1},
+                            {"question_id": "full_marks", "correct": False, "score": 2, "max_marks": 2},
+                        ]
+                    }]
+                }
+            }
+        }
+
+        history = revision_sprint._question_history(
+            progress, "revision_history_validation"
+        )
+
+        self.assertEqual(
+            set(history),
+            {
+                ("lesson_1", "binary_true"),
+                ("lesson_1", "binary_false"),
+                ("lesson_1", "partial_marks"),
+                ("lesson_1", "full_marks"),
+            },
+        )
+        self.assertTrue(history[("lesson_1", "binary_true")][-1]["correct"])
+        self.assertFalse(history[("lesson_1", "binary_false")][-1]["correct"])
+        self.assertFalse(history[("lesson_1", "partial_marks")][-1]["correct"])
+        self.assertTrue(history[("lesson_1", "full_marks")][-1]["correct"])
+
     def test_personalized_selection_prioritizes_a_previously_missed_question(self):
         course = _course("revision_priority_test", [{
             "id": "lesson_1",
@@ -209,6 +246,33 @@ class RevisionSprintTests(unittest.TestCase):
         self.assertEqual(correct["max_marks"], 1)
         self.assertFalse(incorrect["correct"])
         self.assertEqual(incorrect["score"], 0)
+
+    def test_question_bank_excludes_ungradable_numeric_question_definitions(self):
+        valid = _numeric("valid", "Arithmetic", answer=2)
+        not_a_number = _numeric("nan", "Arithmetic", answer=float("nan"))
+        infinite = _numeric("infinite", "Arithmetic", answer=float("inf"))
+        boolean_answer = _numeric("boolean", "Arithmetic", answer=True)
+        invalid_tolerance = _numeric("bad_tolerance", "Arithmetic", answer=3)
+        invalid_tolerance["tolerance"] = float("nan")
+        negative_tolerance = _numeric("negative_tolerance", "Arithmetic", answer=4)
+        negative_tolerance["tolerance"] = -0.1
+        course = _course("revision_numeric_validation", [{
+            "id": "lesson_1",
+            "title": "Numeric practice",
+            "questions": [
+                valid,
+                not_a_number,
+                infinite,
+                boolean_answer,
+                invalid_tolerance,
+                negative_tolerance,
+            ],
+        }])
+        contexts = self._registered_course(course)
+        with contexts[0], contexts[1]:
+            bank = revision_sprint.question_bank_for_course(course["id"])
+
+        self.assertEqual([item["question_id"] for item in bank], ["valid"])
 
     def test_completed_sprint_saves_attempts_and_updates_course_totals(self):
         progress = {"revision_store_test": logic.blank_course_progress()}

@@ -816,6 +816,56 @@ class AdaptiveLearningTests(unittest.TestCase):
             for event in timeline["events"]
         ))
 
+    def test_intervention_timeline_omits_malformed_coach_correctness(self):
+        skill_id = "math.number.fraction_representation"
+        progress = {
+            "fractions": {
+                "coach": {"attempts": [
+                    {
+                        "question_id": "fractions_l1_q1",
+                        "course_id": "fractions",
+                        "lesson_id": "fractions_l1",
+                        "question_version": 1,
+                        "skill_id": skill_id,
+                        "verification_status": "verified",
+                        "correct": False,
+                        "completed_at": "2026-11-17T10:05:00+00:00",
+                    },
+                    {
+                        "question_id": "fractions_l1_q2",
+                        "course_id": "fractions",
+                        "lesson_id": "fractions_l1",
+                        "question_version": 1,
+                        "skill_id": skill_id,
+                        "verification_status": "verified",
+                        "correct": "false",
+                        "completed_at": "2026-11-17T10:06:00+00:00",
+                    },
+                ]}
+            }
+        }
+        registry = [
+            {
+                "course_id": "fractions",
+                "lesson_id": "fractions_l1",
+                "question_id": question_id,
+                "verification_status": "verified",
+                "question": {"skill_id": skill_id, "question_version": 1},
+            }
+            for question_id in ("fractions_l1_q1", "fractions_l1_q2")
+        ]
+
+        with patch.object(question_engine, "iter_question_records", return_value=registry):
+            timeline = adaptive_learning.build_intervention_timeline(progress)
+
+        coach_events = [
+            event for event in timeline["events"] if event["event_type"] == "coach"
+        ]
+        self.assertEqual(len(coach_events), 1)
+        self.assertEqual(coach_events[0]["total_items"], 1)
+        self.assertEqual(coach_events[0]["correct_answers"], 0)
+        self.assertEqual(coach_events[0]["accuracy_percent"], 0)
+
     def test_intervention_timeline_rejects_stale_transfer_question_version(self):
         skill_id = "math.number.fraction_operations"
         progress = {"fractions": {"transfer_checks": [{

@@ -767,6 +767,80 @@ def get_lesson_screen_checkpoint(progress, course_id, lesson_id):
     return result
 
 
+
+def _parse_course_activity_timestamp(value):
+    """Parse saved activity timestamps into comparable UTC datetimes."""
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and value.strip():
+        try:
+            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    try:
+        return parsed.astimezone(timezone.utc)
+    except (OverflowError, ValueError):
+        return None
+
+
+def latest_course_activity(progress, course_id):
+    """Return the latest timestamped, saved learning activity for one course.
+
+    Supported sources are completed diagnostics, completed practice attempts,
+    and saved lesson-screen checkpoints. Missing or malformed timestamps are
+    ignored so they cannot displace trustworthy activity.
+    """
+    course_progress = progress.get(course_id, {}) if isinstance(progress, dict) else {}
+    if not isinstance(course_progress, dict):
+        return None
+
+    timestamps = []
+    diagnostics = course_progress.get("diagnostics", {})
+    if isinstance(diagnostics, dict):
+        for record in diagnostics.values():
+            if isinstance(record, dict):
+                timestamp = _parse_course_activity_timestamp(record.get("completed_at"))
+                if timestamp is not None:
+                    timestamps.append(timestamp)
+
+    attempts_by_lesson = course_progress.get("practice_attempts", {})
+    if isinstance(attempts_by_lesson, dict):
+        for attempts in attempts_by_lesson.values():
+            if not isinstance(attempts, list):
+                continue
+            for attempt in attempts:
+                if isinstance(attempt, dict):
+                    timestamp = _parse_course_activity_timestamp(attempt.get("completed_at"))
+                    if timestamp is not None:
+                        timestamps.append(timestamp)
+
+    checkpoints = course_progress.get("lesson_screen_progress", {})
+    if isinstance(checkpoints, dict):
+        for checkpoint in checkpoints.values():
+            if isinstance(checkpoint, dict):
+                timestamp = _parse_course_activity_timestamp(checkpoint.get("updated_at"))
+                if timestamp is not None:
+                    timestamps.append(timestamp)
+
+    return max(timestamps) if timestamps else None
+
+
+def order_courses_by_recent_activity(courses, progress):
+    """Order courses newest saved learning activity first; preserve input order on ties."""
+    return sorted(
+        courses,
+        key=lambda course: (
+            latest_course_activity(progress, course.get("id"))
+            or datetime.min.replace(tzinfo=timezone.utc)
+        ),
+        reverse=True,
+    )
+
+
 def course_lesson_progress_percent(progress, course_id):
     course = data.get_course(course_id)
     if not course:

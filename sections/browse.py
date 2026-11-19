@@ -123,13 +123,14 @@ def _render_grid():
 
     courses = data.all_courses_in_order()
 
-    # A low-friction resume action keeps an unfinished course one click away.
-    # Course order is used as a stable fallback because the current progress
-    # schema does not record a reliable last-opened timestamp.
+    # Prefer the course with the most recent saved learning activity.
+    # Courses without usable timestamps remain in stable catalog order after
+    # timestamped courses.
     in_progress = [
         course for course in courses
         if _status_for_course(course["id"], progress) == "In progress"
     ]
+    in_progress = logic.order_courses_by_recent_activity(in_progress, progress)
     if in_progress:
         resume_course = in_progress[0]
         resume_pct = logic.course_lesson_progress_percent(progress, resume_course["id"])

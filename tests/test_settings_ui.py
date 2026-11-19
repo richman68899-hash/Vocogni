@@ -165,7 +165,9 @@ class SettingsPageTests(unittest.TestCase):
         self.assertIn("settings_active_section", source)
         self.assertIn("on_click=_select_settings_section", source)
         self.assertIn("Notification controls will be added here in a future update.", source)
-        self.assertIn("Account and sign-in management will be added here in a future update.", source)
+        self.assertIn("Download my Vocogni data (JSON)", source)
+        self.assertIn("state.build_learner_data_export_json()", source)
+        self.assertIn("Full account deletion and external-provider data requests", source)
 
     def test_ai_section_preferences_are_saved_and_feed_the_offline_summary(self):
         source = (ROOT / "sections" / "settings.py").read_text(encoding="utf-8")

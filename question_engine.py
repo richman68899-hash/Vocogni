@@ -14,6 +14,7 @@ from __future__ import annotations
 from copy import deepcopy
 import math
 from typing import Any
+import unicodedata
 
 import data
 import math_grading
@@ -1569,14 +1570,93 @@ def order_questions_for_preference(
     return [question for _, question in sorted(indexed, key=sort_key)]
 
 
+def _duplicate_prompt_issues(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Report exact repeated prompts attached to different question IDs.
+
+    Unicode compatibility normalisation, case-folding, and whitespace
+    collapsing make harmless formatting differences comparable. This is an
+    exact-text detector, not semantic similarity or an automatic rejection
+    rule: repeated wording can be intentional and remains a human-review item.
+    """
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for record in records:
+        question = record.get("question")
+        if not isinstance(question, dict):
+            continue
+        question_type = question.get("type")
+        prompt = question.get("prompt")
+        if not isinstance(question_type, str) or not question_type.strip():
+            continue
+        if not isinstance(prompt, str) or not prompt.strip():
+            continue
+
+        normalized_prompt = " ".join(
+            unicodedata.normalize("NFKC", prompt).casefold().split()
+        )
+        if not normalized_prompt:
+            continue
+        key = (question_type.strip().casefold(), normalized_prompt)
+        grouped.setdefault(key, []).append(record)
+
+    issues: list[dict[str, Any]] = []
+    for (question_type, _), matches in sorted(grouped.items()):
+        question_ids = sorted({
+            str(record.get("question_id") or "").strip()
+            for record in matches
+            if str(record.get("question_id") or "").strip()
+        })
+        if len(question_ids) < 2:
+            continue
+
+        locations = sorted({
+            (
+                str(record.get("question_id") or "").strip(),
+                str(record.get("course_id") or ""),
+                str(record.get("lesson_id") or ""),
+                str(record.get("source_field") or ""),
+            )
+            for record in matches
+            if str(record.get("question_id") or "").strip()
+        })
+        prompt = next(
+            record["question"]["prompt"]
+            for record in matches
+            if isinstance(record.get("question"), dict)
+            and isinstance(record["question"].get("prompt"), str)
+        )
+        issues.append({
+            "severity": "warning",
+            "code": "duplicate_prompt",
+            "question_type": question_type,
+            "prompt": prompt,
+            "question_ids": question_ids,
+            "locations": [
+                {
+                    "question_id": question_id,
+                    "course_id": course,
+                    "lesson_id": lesson,
+                    "source_field": source_field,
+                }
+                for question_id, course, lesson, source_field in locations
+            ],
+            "message": (
+                "Different question IDs share identical prompt text after "
+                "Unicode, case, and whitespace normalisation; review for "
+                "intentional reuse or accidental duplication."
+            ),
+        })
+    return issues
+
+
 def audit_question_bank(
     *,
     course_id: str | None = None,
     lesson_id: str | None = None,
 ) -> dict[str, Any]:
-    """Return a read-only audit of question structure, duplicate IDs, and evidence."""
+    """Return a read-only audit of question structure, repeated prompts, and evidence."""
     records, duplicate_issues, occurrence_count = _catalogue(course_id, lesson_id)
-    issues = list(duplicate_issues)
+    prompt_duplicate_issues = _duplicate_prompt_issues(records)
+    issues = [*duplicate_issues, *prompt_duplicate_issues]
     counts = {status: 0 for status in VERIFICATION_STATUSES}
     item_reports = []
     lesson_coverage: dict[tuple[str, str], dict[str, int]] = {}
@@ -1634,6 +1714,7 @@ def audit_question_bank(
         "verified_count": counts.get("verified", 0),
         "needs_review_count": counts.get("needs_review", 0),
         "legacy_count": counts.get("legacy", 0),
+        "duplicate_prompt_group_count": len(prompt_duplicate_issues),
         "lesson_coverage": [
             {
                 "course_id": course,

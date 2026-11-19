@@ -14,7 +14,7 @@ math skill taxonomy and transfer-coverage audit. It reports:
 - Course and lesson inventory.
 - Unique question counts and verification-status counts.
 - Verified question distribution by purpose, difficulty and skill.
-- Question-bank review issues and duplicate-ID conflicts.
+- Question-bank review issues, duplicate-ID conflicts, and exact repeated prompts under different question IDs.
 - Diagnostic configuration errors.
 - Registry metadata errors.
 - Cross-lesson application coverage by course/skill.
@@ -28,6 +28,11 @@ math skill taxonomy and transfer-coverage audit. It reports:
   automatically a structural failure.
 - `needs_review` means the item fails a current structural or review-contract
   check and should not be treated as verified.
+- `duplicate_prompt` is a non-blocking warning when different question IDs
+  have the same prompt after Unicode compatibility, case, and whitespace
+  normalisation. It is an exact-text check, not semantic similarity; shared
+  wording may be intentional and must be reviewed in context. It does not
+  change verification status, selection, or learner scores.
 - Transfer coverage is a metadata inventory. It does not establish that an
   application question is novel, appropriately difficult, or a valid measure
   of transfer.

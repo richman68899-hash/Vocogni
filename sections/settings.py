@@ -500,9 +500,36 @@ def render() -> None:
 
     if active_section == "Account":
         with st.container(border=True):
-            st.subheader("Account")
-            st.caption("Account and sign-in management will be added here in a future update.")
-            st.info("No account-management controls are available here yet.")
+            st.subheader("Your learner data")
+            st.caption(
+                "Download the Vocogni learner-state snapshot currently held "
+                "in this signed-in session."
+            )
+            try:
+                export_json = state.build_learner_data_export_json()
+            except (RuntimeError, ValueError, TypeError) as exc:
+                st.warning(str(exc))
+            else:
+                st.download_button(
+                    "Download my Vocogni data (JSON)",
+                    data=export_json.encode("utf-8"),
+                    file_name="vocogni-learner-data.json",
+                    mime="application/json",
+                    key="account_download_learner_data",
+                    use_container_width=True,
+                )
+            st.caption(
+                "Includes your saved profile, learning progress, notes, "
+                "whiteboards, folders, milestones, streak-garden state, and "
+                "settings. The snapshot may include unsaved changes."
+            )
+            st.caption(
+                "This is not a complete export from external providers. It "
+                "does not include Auth0 identity-provider records, hosting or "
+                "provider logs, provider backups, or session-only AI chat. "
+                "Full account deletion and external-provider data requests "
+                "are not yet available in this prototype."
+            )
 
     if active_section == "Socials":
         with st.container(border=True):

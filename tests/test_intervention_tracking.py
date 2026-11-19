@@ -89,6 +89,67 @@ class InterventionTrackingTests(unittest.TestCase):
         self.assertEqual(report["events"][0]["follow_up_answer_count"], 2)
         self.assertEqual(report["events"][0]["follow_up_accuracy_percent"], 50)
 
+    def test_report_excludes_malformed_answer_evidence_from_follow_up(self):
+        progress = {
+            "fractions": {
+                "intervention_events": [{
+                    "event_id": "support-1",
+                    "intervention_type": "hint",
+                    "skill_id": "math.number.fraction_representation",
+                    "lesson_id": "fractions_l1",
+                    "occurred_at": "2026-10-30T09:00:00+00:00",
+                }],
+                "practice_attempts": {
+                    "fractions_l1": [{
+                        "results": [
+                            {
+                                "question_id": "q-valid-true",
+                                "correct": True,
+                                "answered_at": "2026-10-30T09:10:00+00:00",
+                            },
+                            {
+                                "question_id": "q-truthy-string",
+                                "correct": "false",
+                                "answered_at": "2026-10-30T09:11:00+00:00",
+                            },
+                            {
+                                "question_id": "q-malformed-marks",
+                                "correct": True,
+                                "score": "bad",
+                                "max_marks": 1,
+                                "answered_at": "2026-10-30T09:12:00+00:00",
+                            },
+                            {
+                                "question_id": "q-zero-maximum",
+                                "correct": True,
+                                "score": 0,
+                                "max_marks": 0,
+                                "answered_at": "2026-10-30T09:13:00+00:00",
+                            },
+                            {
+                                "question_id": "q-valid-false",
+                                "correct": False,
+                                "answered_at": "2026-10-30T09:14:00+00:00",
+                            },
+                        ]
+                    }]
+                },
+            }
+        }
+        with patch.object(
+            question_engine,
+            "attempt_metadata",
+            return_value={
+                "verification_status": "verified",
+                "skill_id": "math.number.fraction_representation",
+            },
+        ):
+            report = intervention_tracking.build_intervention_report(progress)
+
+        event = report["events"][0]
+        self.assertEqual(event["follow_up_answer_count"], 2)
+        self.assertEqual(event["follow_up_accuracy_percent"], 50)
+
     def test_report_uses_saved_source_lesson_for_cross_lesson_practice(self):
         progress = {
             "fractions": {

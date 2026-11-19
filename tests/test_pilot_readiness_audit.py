@@ -38,8 +38,56 @@ class PilotReadinessAuditTests(unittest.TestCase):
         self.assertEqual(report["verified_question_count"], 3)
         self.assertEqual(report["verified_practice_count"], 2)
         self.assertEqual(report["verified_application_or_reasoning_count"], 1)
+        self.assertEqual(report["readiness_profile"], "instructional")
         self.assertEqual(report["errors"], [])
         self.assertEqual(report["warnings"], [])
+
+    def test_assessment_lesson_requires_application_evidence_not_practice_items(self):
+        lesson = {
+            "id": "test_lesson",
+            "title": "Cumulative assessment",
+            "kind": "assessment",
+            "explanation": "A cumulative independent check.",
+            "worked_example": "A method summary shown before the assessment.",
+        }
+        report = audit_lesson(
+            "test_course",
+            lesson,
+            [
+                _record("q1", purpose="application"),
+                _record("q2", purpose="reasoning"),
+                _record("q3", purpose="conceptual"),
+            ],
+        )
+        self.assertTrue(report["ready_for_structural_pilot_review"])
+        self.assertEqual(report["readiness_profile"], "assessment")
+        self.assertEqual(report["verified_practice_count"], 0)
+        self.assertEqual(report["verified_application_or_reasoning_count"], 2)
+        self.assertEqual(report["errors"], [])
+        self.assertEqual(report["warnings"], [])
+
+    def test_assessment_lesson_fails_when_application_coverage_is_insufficient(self):
+        lesson = {
+            "id": "test_lesson",
+            "title": "Cumulative assessment",
+            "kind": "assessment",
+            "explanation": "A cumulative independent check.",
+            "worked_example": "A method summary.",
+        }
+        report = audit_lesson(
+            "test_course",
+            lesson,
+            [
+                _record("q1", purpose="practice"),
+                _record("q2", purpose="practice"),
+                _record("q3", purpose="application"),
+            ],
+        )
+        self.assertFalse(report["ready_for_structural_pilot_review"])
+        self.assertTrue(
+            any("at least 2 are required for an assessment lesson" in error
+                for error in report["errors"])
+        )
 
     def test_legacy_and_unverified_questions_do_not_count_as_coverage(self):
         lesson = {

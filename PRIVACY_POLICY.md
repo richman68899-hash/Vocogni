@@ -1,7 +1,7 @@
 # Vocogni Privacy Policy
 
-**Effective date:** 28 October 2026  
-**Version:** Draft 0.2  
+**Draft revision date:** 19 November 2026  
+**Version:** Draft 0.3  
 **Publication status:** **Draft for review — not approved for public release.**
 
 > **Before publication:** replace the marked controller/contact fields, confirm the actual hosting and data-transfer arrangements, set enforceable retention/deletion procedures, and implement the child-data safeguards in the release checklist. This document describes the current prototype; it does not certify legal compliance.
@@ -115,13 +115,17 @@ Subject to applicable law and its conditions, you may be entitled to request inf
 
 To make a request, contact the privacy contact listed in Section 1. The operator may need to verify the requester's identity or authority before acting. Requests concerning a child's personal data may require involvement or consent from a parent or legal guardian. Requests will be handled within the time limits required by applicable law.
 
-The current prototype does not yet provide a self-service account deletion control. A verified request may therefore need to be handled by the operator. A documented request workflow and tested deletion procedure are release requirements, not optional enhancements.
+Vocogni's Account settings provide a JSON download of the current learner-state snapshot held in the authenticated application session. It can include current unsaved session changes and covers the durable Vocogni learner-state bundle. It does not include identity-provider records, hosting or provider logs, provider backups, or session-only AI conversation history; it is not a complete export from every provider or a complete response to every data-rights request.\n\nThe current prototype does not yet provide a self-service account deletion control. A verified request may therefore need to be handled by the operator. A documented request workflow and tested deletion procedure are release requirements, not optional enhancements.
 
 ## 10. Children's personal data
 
-Vocogni is an educational product and may be relevant to school-age learners. Indonesian Law No. 27 of 2022 on Personal Data Protection treats children's personal data specially and requires parent or guardian consent for its processing. Government Regulation No. 33 of 2026 is scheduled to take effect on 16 January 2027 and adds operational requirements; the operator must verify the applicable requirements and implementation guidance at launch.
+Vocogni is an educational product and may be relevant to school-age learners. Indonesian Law No. 27 of 2022 on Personal Data Protection (including Article 25) requires special handling of children's personal data and parent/guardian consent in accordance with applicable law.
 
-**The current prototype does not establish that it identifies child users or obtains and verifies parent/guardian consent. This draft notice is not parental consent and does not fix that product gap. Vocogni must not be publicly launched for children until an appropriate, legally reviewed age-identification, parent/guardian consent and verification, consent-recording, withdrawal, and rights-request process is implemented.**
+The child-protection framework also includes Government Regulation No. 17 of 2025 and Minister of Communication and Digital Regulation No. 9 of 2026, which address child protection in electronic systems, including age ranges, user verification, product/service/feature risk assessment, mitigation, reporting, and child-friendly design.
+
+Government Regulation No. 33 of 2026 implements the Personal Data Protection Law and is stated to take effect on 16 January 2027, six months after its promulgation on 16 July 2026. In particular, Article 38 addresses identifying child users, obtaining parent/guardian consent, verifying that consent using available technology, handling requests concerning a child's data, and the transition when a user no longer qualifies as a child. The operator must confirm the enacted text, applicable rules, and implementation guidance with qualified Indonesian counsel.
+
+**The current prototype does not establish that it identifies child users or obtains and verifies parent/guardian consent. This draft notice is not parental consent and does not fix that product gap. Vocogni must not be publicly launched for child users until the responsible operator has completed the legal assessment and implemented and tested the age-identification, parent/guardian consent and verification, consent-recording, withdrawal, child-rights, and transition processes that the assessment requires.**
 
 A parent or guardian who believes that a child's personal data has been provided without the required authorisation should contact the responsible operator using the contact details in Section 1 once those details have been completed.
 
