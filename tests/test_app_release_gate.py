@@ -28,7 +28,7 @@ class AppReleaseGateWiringTests(unittest.TestCase):
     def test_login_screen_clearly_labels_the_private_prototype_preview(self):
         source = (ROOT / "app.py").read_text(encoding="utf-8")
         login = source.split("def _render_login() -> None:", 1)[1].split(
-            "\\ndef _render_logo", 1
+            "\ndef _render_logo", 1
         )[0].casefold()
         self.assertIn("vocogni is a prototype", login)
         self.assertIn("not open to general learners yet", login)
