@@ -209,7 +209,13 @@ def render_settings_controls(st: Any) -> None:
             "separately control whether saved learning context and previous AI tutor "
             "messages are added."
         )
-        st.warning(
-            "These preferences do not replace verified parent/guardian permission. "
-            "The prototype's guardian-consent process remains unimplemented."
-        )
+        if developer_sandbox_enabled():
+            st.caption(
+                "Developer sandbox: consent warnings are suppressed in this isolated test view. "
+                "This setting is not for real learner accounts."
+            )
+        else:
+            st.warning(
+                "These preferences do not replace verified parent/guardian permission. "
+                "The prototype's guardian-consent process remains unimplemented."
+            )
