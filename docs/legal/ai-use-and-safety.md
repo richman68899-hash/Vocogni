@@ -16,8 +16,10 @@ The optional model is a language-generation aid. It is not the source of truth f
 When the learner enables AI tutoring and sends an open-ended request, Vocogni sends to the configured provider:
 
 - the current message;
-- up to eight messages from prior AI-tutoring turns; local account-data summaries are excluded; and
-- a limited learning-context summary, which may include grade level, preferred language/difficulty/feedback style, course-level practice accuracy, and recorded mistake tags.
+- up to eight messages from prior AI-tutoring turns, only when the separate saved chat-history choice is enabled; and
+- a limited learning-context summary, which may include grade level, preferred language/difficulty/feedback style, course-level practice accuracy, and recorded mistake tags, only when the separate saved-learning-summary choice is enabled.
+
+Both optional sharing choices are off by default. The learner can change them in Settings. The current message is still sent when the learner explicitly uses external AI tutoring.
 
 The application code does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. This is data minimisation, not a guarantee that a learner cannot type personal information into the message or chat history. Learners must not enter private or sensitive information.
 
@@ -26,7 +28,8 @@ The provider receives the request over HTTPS using a server-side API key. The ke
 ## 3. Choice and provider configuration
 
 - AI tutoring is off by default.
-- The opt-in applies only to the current Streamlit session and is not saved as a learner preference.
+- The external AI tutoring opt-in applies only to the current Streamlit session and is not saved as a learner preference.
+- Sharing a saved learning summary and sharing previous AI-tutoring messages are two separate saved preferences, both off by default.
 - If no provider is configured, the opt-in control is unavailable and local commands continue to work.
 - The provider is configured by the operator using `VOCogni_LLM_BASE_URL`, `VOCogni_LLM_MODEL`, and `VOCogni_LLM_API_KEY`, or an `[llm]` section in Streamlit secrets.
 - The operator must identify the actual provider and review its terms, retention, training use, subprocessors, security, data location, and cross-border transfer arrangements before enabling real learners.

@@ -8,7 +8,7 @@
 
 ## 1. Executive assessment
 
-Vocogni is a child-directed educational learning platform. The current product stores account-linked profile and learning data, produces diagnostics and progress summaries, tracks mistakes and skill performance, and uses these data for recommendations and adaptive learning. Optional AI tutoring can send a learner's prompt, selected prior AI messages, and a limited learning summary to an operator-configured external provider.
+Vocogni is a child-directed educational learning platform. The current product stores account-linked profile and learning data, produces diagnostics and progress summaries, tracks mistakes and skill performance, and uses these data for recommendations and adaptive learning. Optional AI tutoring sends the learner's current prompt to an operator-configured external provider; saved learning summaries and prior AI-tutoring messages are separate, off-by-default sharing preferences.
 
 **Conclusion:** The product is not inherently unlawful because it is educational or experimental. However, the current repository does not demonstrate the safeguards needed for a real child-facing pilot. Do not enable real child accounts until the responsible adult operator and qualified Indonesian counsel have reviewed the exact pilot and approved its evidence and deployment.
 
@@ -20,7 +20,7 @@ Observed in the source reviewed:
 - Auth0 OIDC is used for sign-in; a stable OIDC subject associates a learner with durable data.
 - Supabase stores a learner-state JSON bundle. It can contain profile/preferences, age or grade information if entered, learning goals, course progress, practice responses/results, mistakes, notes, milestones, and settings.
 - Local Study Guide commands use application logic and saved learner state.
-- Optional external AI tutoring is off by default and needs an operator-side feature switch plus a session-only learner opt-in. When enabled, the current request, up to eight selected prior AI messages, and a learning summary can be sent to the configured provider.
+- Optional external AI tutoring is off by default and needs an operator-side feature switch plus a session-only learner opt-in. The current request is sent when used; prior AI messages and a saved learning summary are included only when their separate, off-by-default learner preferences are enabled.
 - The app expects an elevated server-side Supabase key and scopes database queries to the authenticated subject in application code. Actual key type, project grants, RLS, database region, backups, logs, provider configuration, and production deployment have not been verified from source alone.
 - The release gate blocks ordinary learner access. Its private-preview route uses a server-side flag and exact OIDC-subject allowlist and is documented for synthetic test accounts/data.
 

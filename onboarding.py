@@ -8,6 +8,8 @@ from __future__ import annotations
 import html
 from typing import Any
 
+import learner_choices
+
 
 TUTORIAL_STEPS: tuple[dict[str, str], ...] = (
     {
@@ -191,6 +193,8 @@ def _complete_tutorial() -> None:
 def render_tutorial(st: Any) -> None:
     """Render a compact, accessible guide card above the current page."""
     settings = st.session_state.get("settings", {})
+    if learner_choices.render_first_run_choices(st):
+        return
     if is_tutorial_complete(settings):
         return
 

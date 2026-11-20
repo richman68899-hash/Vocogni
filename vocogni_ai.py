@@ -9,6 +9,7 @@ import os
 from typing import Any
 
 import logic
+import learner_choices
 from ai_prototype.engine import answer as generate_ai_answer
 from ai_prototype.llm import is_configured
 from vocogni_assistant import answer_request, _recent_mistakes
@@ -194,6 +195,12 @@ def render_assistant(
     operator_enabled = _external_ai_tutoring_enabled(st)
     provider_ready = is_configured(provider_config)
     external_ai_available = operator_enabled and provider_ready
+    include_learning_summary = learner_choices.choice_enabled(
+        settings, "ai_share_learning_summary"
+    )
+    include_recent_chat_history = learner_choices.choice_enabled(
+        settings, "ai_share_recent_chat_history"
+    )
 
     with st.sidebar.container(key="vocogni_assistant_launcher"):
         button_label = "Close Study Guide" if st.session_state.vocogni_assistant_open else "Study Guide"
@@ -226,10 +233,12 @@ def render_assistant(
         )
         if external_ai_available:
             st.caption(
-                "When enabled, open-ended questions are sent to the configured provider "
-                "with up to 8 messages from previous AI-tutoring turns and a limited learning summary. "
-                "The summary may include grade level, learning preferences, course accuracy, and mistake tags. "
-                "Local profile/notes/progress-summary replies are excluded from chat history."
+                "Your current message is sent to the configured provider when you use "
+                "external AI tutoring. Previous AI tutor messages are "
+                + ("included (up to 8)" if include_recent_chat_history else "not included")
+                + "; your saved learning summary is "
+                + ("included" if include_learning_summary else "not included")
+                + ". You can change these choices in Settings → Privacy & safety."
             )
         elif not operator_enabled:
             st.info(
@@ -255,10 +264,12 @@ def render_assistant(
             )
 
         st.caption(
-            "External AI is off by default. If enabled, your current message and selected prior AI chat "
-            "messages are sent to the configured provider. Do not enter passwords, contact details, "
-            "precise location, or sensitive information. Provider retention and training terms "
-            "depend on the provider you configure."
+            "External AI is off by default and requires a separate session opt-in. "
+            "Your current message is sent when you use it. Previous AI tutor messages "
+            "and a saved learning summary are included only when their separate "
+            "Settings choices are enabled. Do not enter passwords, contact details, "
+            "precise location, or sensitive information. Provider retention and "
+            "training terms depend on the provider you configure."
         )
 
         if st.button(
@@ -344,11 +355,18 @@ def render_assistant(
                 mode = "local"
                 if _is_unhandled(reply, route):
                     if ai_enabled and external_ai_available:
-                        history = _recent_ai_history(messages[:-1])
+                        history = (
+                            _recent_ai_history(messages[:-1])
+                            if include_recent_chat_history else []
+                        )
+                        learner_context = (
+                            _learner_context(profile, progress)
+                            if include_learning_summary else ""
+                        )
                         result = generate_ai_answer(
                             chosen_query,
                             history=history,
-                            learner_context=_learner_context(profile, progress),
+                            learner_context=learner_context,
                             llm_config=provider_config,
                         )
                         reply = result["text"]
