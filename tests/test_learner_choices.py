@@ -27,5 +27,14 @@ class LearnerChoiceTests(unittest.TestCase):
         self.assertNotIn("store_account_data", CHOICE_WIDGET_KEYS)
 
 
+    def test_developer_sandbox_is_explicit_and_fail_closed(self):
+        from learner_choices import developer_sandbox_enabled, DEVELOPER_SANDBOX_ENV
+        self.assertFalse(developer_sandbox_enabled({}))
+        self.assertFalse(developer_sandbox_enabled({DEVELOPER_SANDBOX_ENV: "false"}))
+        self.assertFalse(developer_sandbox_enabled({DEVELOPER_SANDBOX_ENV: "dev"}))
+        self.assertTrue(developer_sandbox_enabled({DEVELOPER_SANDBOX_ENV: "true"}))
+        self.assertTrue(developer_sandbox_enabled({DEVELOPER_SANDBOX_ENV: "1"}))
+
+
 if __name__ == "__main__":
     unittest.main()
