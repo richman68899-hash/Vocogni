@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "notes": "Template only. All entries are pending. Do not enter learner personal data, guardian identity data, secrets, or private evidence links here. Supporting evidence must be held in an adult-controlled secure location; use a non-sensitive reference only.",
+  "items": {
+    "responsible_operator": {
+      "status": "pending"
+    },
+    "privacy_notice_final": {
+      "status": "pending"
+    },
+    "terms_final": {
+      "status": "pending"
+    },
+    "child_protection_assessment": {
+      "status": "pending"
+    },
+    "age_assurance": {
+      "status": "pending"
+    },
+    "guardian_consent": {
+      "status": "pending"
+    },
+    "data_inventory_and_lawful_basis": {
+      "status": "pending"
+    },
+    "vendor_and_transfer_review": {
+      "status": "pending"
+    },
+    "retention_and_deletion": {
+      "status": "pending"
+    },
+    "data_rights_workflow": {
+      "status": "pending"
+    },
+    "database_access_controls": {
+      "status": "pending"
+    },
+    "incident_response": {
+      "status": "pending"
+    },
+    "pse_registration_assessment": {
+      "status": "pending"
+    },
+    "deployment_acceptance": {
+      "status": "pending"
+    },
+    "external_ai_review": {
+      "status": "pending"
+    }
+  }
+}
