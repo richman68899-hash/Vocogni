@@ -14,6 +14,7 @@ import streamlit as st
 import styles
 import onboarding
 from legal_notices import render_legal_notices
+import learner_choices
 
 from version import APP_VERSION
 import state
@@ -808,6 +809,7 @@ def render() -> None:
         state.mark_persistent_dirty()
 
     if active_section == "Privacy & safety":
+        learner_choices.render_settings_controls(st)
         st.divider()
         st.caption(f"Vocogni v{APP_VERSION}")
 

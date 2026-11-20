@@ -23,6 +23,11 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "corner_style": "Standard",
     "use_custom_accent": False,
     "custom_accent_color": "#176B5B",
+    # Optional learner-facing choices; all default off and are not legal consent.
+    "personalized_progress_recommendations": False,
+    "ai_share_learning_summary": False,
+    "ai_share_recent_chat_history": False,
+    "learning_data_choices_reviewed": False,
 }
 
 

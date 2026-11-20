@@ -11,6 +11,7 @@ import state
 import adaptive_learning
 import intervention_tracking
 import skill_confirmation
+import learner_choices
 
 
 # The overview stays open on first use; detailed panels start collapsed to
@@ -579,6 +580,23 @@ def _render_skill_confirmation():
 
 
 def _render_recommendations(progress):
+    settings = st.session_state.get("settings", {})
+    if not learner_choices.choice_enabled(
+        settings, "personalized_progress_recommendations"
+    ):
+        st.info(
+            "Personalised Progress recommendations are off. Your ordinary course "
+            "progress and feedback still work. You can enable this panel later in "
+            "Settings → Privacy & safety."
+        )
+        st.caption(
+            "This choice controls the Progress page's Learning Intelligence "
+            "recommendations, skill trajectories, and intervention timeline. It "
+            "does not disable core account saving, diagnostics, or every use of "
+            "learning results elsewhere in Vocogni."
+        )
+        return
+
     st.caption("Turns saved activity into suggested next actions, so you know what to practise next.")
     recs = logic.generate_recommendations(progress)
     if recs:

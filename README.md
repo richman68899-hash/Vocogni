@@ -71,8 +71,10 @@ If no complete provider configuration is present, the feature toggle is off, or 
 
 After the learner enables AI tutoring and submits an open-ended request, the server sends:
 - the current message;
-- up to eight messages from previous AI-tutoring turns; local account-data summaries are excluded; and
-- a limited learning summary that may include grade level, preferred learning settings, course-level accuracy, and recorded mistake tags.
+- up to eight messages from previous AI-tutoring turns, only when the separate saved chat-history choice is enabled; and
+- a limited learning summary that may include grade level, preferred learning settings, course-level accuracy, and recorded mistake tags, only when the separate saved-learning-summary choice is enabled.
+
+Both optional sharing preferences are off by default. The current message is still sent when the learner explicitly uses external AI tutoring. These preferences do not replace any legally required parent/guardian permission.
 
 The code does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. A learner can still type private information into the chat, so the interface warns against doing so. Provider retention, training, subprocessors, and data location depend on the configured provider and its terms.
 

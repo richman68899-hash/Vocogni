@@ -35,7 +35,7 @@ The endpoint must implement the OpenAI-compatible Chat Completions contract. No 
 
 ## Request data
 
-When AI is enabled, the provider receives the current prompt, up to eight messages from previous AI-tutoring turns; local account-data summaries are excluded, and a limited summary containing only selected learning preferences/grade level, course accuracy, and recent mistake tags.
+When the learner enables external AI tutoring for the current session, the provider receives the current prompt. Up to eight previous AI-tutoring messages are included only when the separate saved chat-history preference is on. The limited learning summary (selected learning preferences/grade level, course accuracy, and recent mistake tags) is included only when the separate saved-learning-summary preference is on. Both optional sharing preferences are off by default.
 
 The context builder deliberately excludes name, email, account ID, age, country, saved notes, and milestones. It does not prevent a learner from typing personal data into the chat itself.
 

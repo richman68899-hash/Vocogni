@@ -52,7 +52,7 @@ No provider or API key is bundled with the repository. The adapter requires the 
 
 ## Data minimisation
 
-When AI is enabled, the request includes the current message, up to eight recent chat messages, and a limited learner summary. The summary may include grade level, selected learning preferences, course-level accuracy, and recent mistake tags.
+When the learner enables external AI tutoring for the current session, the provider receives the current message. Up to eight recent AI-tutoring messages are included only when the separate saved chat-history preference is on. A limited learner summary (grade level, selected learning preferences, course-level accuracy, and recent mistake tags) is included only when the separate saved-learning-summary preference is on. Both optional sharing preferences are off by default.
 
 The application does not add the learner's name, email, account ID, saved notes, milestones, age, or country to that summary. A learner can still type personal information into chat, so the interface warns against sharing sensitive details.
 
