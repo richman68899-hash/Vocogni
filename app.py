@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import html
 import os
+from urllib.parse import urlsplit
 
 import streamlit as st
 
@@ -214,56 +215,121 @@ def _load_persistent_state_safely() -> bool:
     return True
 
 
+def _request_uses_loopback_host() -> bool:
+    """Allow the local developer entry point only through a loopback URL."""
+    try:
+        host_header = str(st.context.headers.get("host", "") or "").strip()
+    except Exception:
+        return False
+    if not host_header:
+        return False
+    try:
+        hostname = (urlsplit(f"//{host_header}").hostname or "").casefold()
+    except ValueError:
+        return False
+    return hostname in {"localhost", "127.0.0.1", "::1"}
+
+
+def _render_local_developer_tools() -> None:
+    """Expose local-only tools while keeping every original application section."""
+    st.info(
+        "Local developer workspace · data is stored on this computer in "
+        ".vocogni_dev/learner_progress.json. This entry point does not use "
+        "Auth0 or Supabase."
+    )
+    with st.expander("Developer tools", expanded=False):
+        st.caption(
+            "Load a synthetic learner profile with verified practice evidence "
+            "to inspect Learning Intelligence, skill trends, recommendations, "
+            "Mastery Receipt, and Coach. Loading it replaces this local workspace's "
+            "current learner data."
+        )
+        if st.button(
+            "Load synthetic sample learner",
+            key="load_local_synthetic_learner",
+            type="primary",
+        ):
+            try:
+                from developer_mode import build_synthetic_learner_state
+
+                sample = build_synthetic_learner_state()
+                for key, value in sample.items():
+                    st.session_state[key] = value
+                state.mark_persistent_dirty()
+                if not state.flush_persistent_save():
+                    st.error(
+                        "The synthetic data was loaded into this session but could "
+                        "not be saved to the local workspace. Check the save status."
+                    )
+                    return
+                st.toast("Synthetic learner data saved locally.", icon="✅")
+                st.rerun()
+            except Exception as exc:
+                st.error(f"Could not build the synthetic learner dataset: {exc}")
+
+
 def main() -> None:
-    """Run the authenticated Vocogni application."""
+    """Run Vocogni, either as the authenticated app or the loopback-only local workspace."""
     st.set_page_config(
         page_title="Vocogni",
         page_icon="🎓",
         layout="wide",
     )
 
-    # Fail closed for learner-facing access until the operator has completed
-    # the required child-safety, privacy, consent, and support prerequisites.
-    # The private-preview flag is for restricted operator testing only; it is
-    # not a public-launch approval and must never be set on a public deployment.
-    # Check preview identity before loading any learner state. A configured
-    # allowlist may let an unauthenticated visitor reach Auth0, but the gate is
-    # re-evaluated after login and before Supabase is queried.
-    try:
-        is_logged_in = bool(st.user.is_logged_in)
-    except Exception:
-        # An unknown authentication state must never be downgraded to anonymous:
-        # that could otherwise bypass the authenticated preview allowlist.
-        st.error(
-            "Vocogni could not verify your sign-in state. "
-            "Access is paused and no learner data was loaded."
+    local_developer_mode = persistence.local_developer_mode_enabled()
+    if local_developer_mode:
+        # The dedicated dev_app.py entry point sets this process-local flag.
+        # Refuse it when requests arrive through a non-loopback host.
+        if not _request_uses_loopback_host():
+            st.error(
+                "Local Developer Mode is available only at http://localhost "
+                "or http://127.0.0.1. Start it with the documented loopback command."
+            )
+            st.stop()
+        is_logged_in = True
+    else:
+        # Fail closed for learner-facing access until the operator has completed
+        # the required child-safety, privacy, consent, and support prerequisites.
+        # The private-preview flag is for restricted operator testing only; it is
+        # not a public-launch approval and must never be set on a public deployment.
+        # Check preview identity before loading any learner state. A configured
+        # allowlist may let an unauthenticated visitor reach Auth0, but the gate is
+        # re-evaluated after login and before Supabase is queried.
+        try:
+            is_logged_in = bool(st.user.is_logged_in)
+        except Exception:
+            # An unknown authentication state must never be downgraded to anonymous:
+            # that could otherwise bypass the authenticated preview allowlist.
+            st.error(
+                "Vocogni could not verify your sign-in state. "
+                "Access is paused and no learner data was loaded."
+            )
+            st.stop()
+
+        authenticated_subject = release_gate.authenticated_subject_from_user(
+            st.user,
+            is_logged_in=is_logged_in,
         )
-        st.stop()
 
-    authenticated_subject = release_gate.authenticated_subject_from_user(
-        st.user,
-        is_logged_in=is_logged_in,
-    )
-
-    block_reason = release_gate.learner_access_block_reason(
-        is_logged_in=is_logged_in,
-        authenticated_subject=authenticated_subject,
-    )
-    if block_reason:
-        st.title("Vocogni is not open to learners yet")
-        st.warning(block_reason)
-        st.caption(
-            "This is a pre-launch safeguard. The application has not loaded an "
-            "account, course progress, notes, or other learner data."
+        block_reason = release_gate.learner_access_block_reason(
+            is_logged_in=is_logged_in,
+            authenticated_subject=authenticated_subject,
         )
-        render_legal_notices(st, compact=True)
-        if is_logged_in and st.button("Sign out of this account", key="release_gate_sign_out"):
-            st.logout()
-        st.stop()
+        if block_reason:
+            st.title("Vocogni is not open to learners yet")
+            st.warning(block_reason)
+            st.caption(
+                "This is a pre-launch safeguard. The application has not loaded an "
+                "account, course progress, notes, or other learner data."
+            )
+            render_legal_notices(st, compact=True)
+            if is_logged_in and st.button("Sign out of this account", key="release_gate_sign_out"):
+                st.logout()
+            st.stop()
 
-    if not st.user.is_logged_in:
-        st.markdown(styles.build_css({}), unsafe_allow_html=True)
-        _render_login()
+        if not st.user.is_logged_in:
+            st.markdown(styles.build_css({}), unsafe_allow_html=True)
+            _render_login()
 
     state.init_session_state()
     if not _load_persistent_state_safely():
@@ -276,11 +342,16 @@ def main() -> None:
         styles.build_css(st.session_state.settings) + accessibility_overrides,
         unsafe_allow_html=True,
     )
+    if local_developer_mode:
+        _render_local_developer_tools()
     onboarding.render_tutorial(st)
 
     _render_logo()
     _render_nav()
-    _render_logout()
+    if not local_developer_mode:
+        _render_logout()
+    else:
+        st.sidebar.caption("LOCAL DEVELOPER MODE · loopback only")
 
     renderer = SECTION_RENDERERS.get(
         st.session_state.nav,

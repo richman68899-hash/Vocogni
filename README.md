@@ -139,3 +139,49 @@ python -m unittest discover -s tests -p 'test_ai_prototype.py' -v
 GitHub Actions runs the full test suite and a Python compilation check. Passing automated checks does **not** validate live Auth0 login/session behavior, Supabase account isolation, deployed persistence recovery, actual-device usability, question correctness, educational effectiveness, or legal compliance.
 
 Before a learner pilot, complete the evidence-based [Stage 1 beta acceptance checklist](docs/testing/stage1-beta-acceptance.md), the [lesson diagnostics acceptance tests](docs/testing/lesson-diagnostics-acceptance.md), and the [legal and safety launch-readiness checklist](docs/legal/launch-readiness.md). Use synthetic accounts and data until the applicable privacy, consent, and learner-safeguarding gates are complete.
+
+ 
+## Local developer workspace (full application, isolated data)
+
+Use this entry point when developing the original Vocogni application without
+Auth0, the hosted preview gate, or Supabase. It reuses the same Browse/Learn,
+course and lesson flows, diagnostics, practice, Coach, Progress, Learning
+Intelligence, Mastery Receipt, Notes, Profile, Settings, streak garden, and
+local Study Guide UI as the main app.
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m streamlit run dev_app.py --server.address 127.0.0.1 --server.port 8501
+```
+
+On macOS/Linux:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m streamlit run dev_app.py --server.address 127.0.0.1 --server.port 8501
+```
+
+Open `http://localhost:8501`. The developer entry point refuses requests whose
+Host header is not `localhost`, `127.0.0.1`, or `::1`; bind Streamlit to
+`127.0.0.1` as shown above. Do not deploy `dev_app.py` to a hosted service.
+
+Local Developer Mode never calls Auth0 or Supabase. It stores the complete
+learner-state bundle in the ignored file
+`.vocogni_dev/learner_progress.json`. This includes any profile, notes, and
+learning activity you enter locally, so keep the file on your own device and
+do not commit or share it. The normal hosted `app.py` entry point and its
+restricted preview / OIDC allowlist gate are unchanged.
+
+The local workspace starts with a blank learner. Expand **Developer tools** and
+select **Load synthetic sample learner** to populate the Progress page with
+fictional, provenance-valid practice evidence for testing recommendations,
+skill trends, the intervention timeline, Mastery Receipt, and other adaptive
+features. Loading the sample replaces the existing local learner bundle.
+External AI tutoring remains subject to its separate provider configuration,
+operator gate, and in-session opt-in; local Study Guide commands work without it.
