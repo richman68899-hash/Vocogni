@@ -16,7 +16,7 @@ A floating support panel available throughout the Learn/Browse flow, including c
 - Open Profile, Progress, Learn, Notes, or Settings
 - Help / supported requests
 
-The local intent handler is deterministic and framework-free. Supported account-data commands use the saved learner data passed to the Study Guide. Open-ended subject tutoring can use the configured external AI provider only after explicit session-only opt-in; it is off by default. When enabled, the current message, up to eight prior AI-tutoring messages, and a limited learning summary may be sent to that provider.
+The local intent handler is deterministic and framework-free. Supported account-data commands use the saved learner data passed to the Study Guide. Open-ended subject tutoring can use the configured external AI provider only after the operator gate and explicit session-only opt-in; it is off by default. The current message is sent when the learner uses external AI tutoring. Up to eight prior AI-tutoring messages and a limited learning summary are included only when their separate saved sharing preferences are enabled; both preferences are off by default.
 
 ## Data boundaries
 

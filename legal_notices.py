@@ -29,7 +29,7 @@ NOTICE_SUMMARIES = {
     "privacy": (
         "**Quick read**\n\n"
         "- Vocogni saves learning progress and details you choose to enter.\n"
-        "- Optional AI tutoring sends your current prompt. Prior AI chat history and saved learning summaries are separate optional sharing choices, both off by default.\n"
+        "- Optional AI tutoring sends your current prompt only after the operator enables the feature and you opt in for the session. Prior AI chat history and saved learning summaries are separate optional sharing choices, both off by default.\n"
         "- Your name, email, saved notes, milestones, and account ID are not added to the AI context summary.\n"
         "- Provider retention, training, and data location depend on the provider and must be reviewed.\n"
         "- Child-facing use is not cleared until required reviews and safeguards are completed."
@@ -38,7 +38,7 @@ NOTICE_SUMMARIES = {
         "**Quick read**\n\n"
         "- Local Study Guide commands work without generative AI.\n"
         "- Open-ended AI tutoring is optional, off by default, and requires session opt-in.\n"
-        "- Your current message is sent when you use external AI tutoring. Up to 8 prior AI-tutoring messages and a saved learning summary are included only when their separate sharing choices are enabled.\n"
+        "- Your current message is sent only after the operator enables external AI tutoring and you opt in for the session. Up to 8 prior AI-tutoring messages and a saved learning summary are included only when their separate sharing choices are enabled.\n"
         "- AI can make mistakes. Check important answers with trusted course materials or a teacher.\n"
         "- Do not enter passwords, contact details, precise location, or sensitive information.\n"
         "- The app is not watched live; a monitored safety contact and child-safety review are still outstanding."
