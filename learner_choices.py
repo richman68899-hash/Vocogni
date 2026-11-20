@@ -5,6 +5,17 @@ These are feature preferences, not legal consent records and not guardian consen
 from __future__ import annotations
 
 from typing import Any
+import os
+
+DEVELOPER_SANDBOX_ENV = "VOCogni_DEVELOPER_SANDBOX"
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+
+def developer_sandbox_enabled(environ: Any = None) -> bool:
+    """Explicit server-side switch for developer-only experimentation."""
+    values = os.environ if environ is None else environ
+    return str(values.get(DEVELOPER_SANDBOX_ENV, "")).strip().casefold() in _TRUE_VALUES
+
+
 
 
 CHOICE_WIDGET_KEYS = {
@@ -119,6 +130,19 @@ def render_first_run_choices(st: Any) -> bool:
         settings = {}
         st.session_state.settings = settings
 
+    if developer_sandbox_enabled():
+        # Enable only personalised Progress; external AI context sharing stays off.
+        updated = dict(settings)
+        updated["personalized_progress_recommendations"] = True
+        updated["ai_share_learning_summary"] = False
+        updated["ai_share_recent_chat_history"] = False
+        updated["learning_data_choices_reviewed"] = True
+        if updated != settings:
+            import state
+            st.session_state.settings = updated
+            state.mark_persistent_dirty()
+        return False
+
     if settings.get("learning_data_choices_reviewed") is True:
         return False
 
@@ -185,7 +209,13 @@ def render_settings_controls(st: Any) -> None:
             "separately control whether saved learning context and previous AI tutor "
             "messages are added."
         )
-        st.warning(
-            "These preferences do not replace verified parent/guardian permission. "
-            "The prototype's guardian-consent process remains unimplemented."
-        )
+        if developer_sandbox_enabled():
+            st.caption(
+                "Developer sandbox: consent warnings are suppressed in this isolated test view. "
+                "This setting is not for real learner accounts."
+            )
+        else:
+            st.warning(
+                "These preferences do not replace verified parent/guardian permission. "
+                "The prototype's guardian-consent process remains unimplemented."
+            )
