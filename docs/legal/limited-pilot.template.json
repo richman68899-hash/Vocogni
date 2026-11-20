@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "notes": "Template only; all evidence remains pending. Complete a private working copy under adult operator control. Never commit child names, identity documents, guardian details, consent forms, credentials, participant lists, or private evidence links.",
+  "pilot": {
+    "name": "",
+    "purpose": "",
+    "operator_legal_name": "",
+    "start_date": null,
+    "end_date": null,
+    "participant_limit": null,
+    "approved_participant_count": null,
+    "age_bands": [],
+    "recruitment_mode": "pending",
+    "public_signup_enabled": null,
+    "ministerial_risk_profile": "pending",
+    "article_19_profiling_disposition": "pending",
+    "external_ai_tutoring_enabled": null,
+    "learner_to_learner_interaction_enabled": null,
+    "features_in_scope": [],
+    "release_commit_sha": ""
+  },
+  "evidence": {
+    "adult_operator_and_authority": {
+      "status": "pending"
+    },
+    "pilot_scope_and_stop_rules": {
+      "status": "pending"
+    },
+    "age_assurance_and_age_band_assessment": {
+      "status": "pending"
+    },
+    "ministerial_child_risk_profile": {
+      "status": "pending"
+    },
+    "article_19_child_profiling_analysis": {
+      "status": "pending"
+    },
+    "guardian_consent_and_withdrawal": {
+      "status": "pending"
+    },
+    "child_specific_dpia": {
+      "status": "pending"
+    },
+    "privacy_by_default_and_age_appropriate_design": {
+      "status": "pending"
+    },
+    "data_inventory_purposes_and_lawful_basis": {
+      "status": "pending"
+    },
+    "parental_oversight_and_reporting": {
+      "status": "pending"
+    },
+    "child_data_protection_contact": {
+      "status": "pending"
+    },
+    "vendor_contracts_and_cross_border_transfers": {
+      "status": "pending"
+    },
+    "security_and_account_isolation": {
+      "status": "pending"
+    },
+    "retention_deletion_and_data_rights": {
+      "status": "pending"
+    },
+    "incident_response_and_human_monitoring": {
+      "status": "pending"
+    },
+    "pse_registration_decision": {
+      "status": "pending"
+    },
+    "deployment_acceptance_and_kill_switch": {
+      "status": "pending"
+    },
+    "external_ai_provider_review": {
+      "status": "pending"
+    },
+    "learner_interaction_safety_review": {
+      "status": "pending"
+    }
+  }
+}
