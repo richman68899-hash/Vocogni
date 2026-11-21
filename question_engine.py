@@ -60,6 +60,13 @@ _REQUIRED_REVIEW_CHECKS = {
     "explanation_checked",
     "pedagogical_reviewed",
 }
+_AI_REVIEW_CHECKS = {
+    "arithmetic_recalculated",
+    "answer_format_checked",
+    "explanation_matches_answer",
+    "options_checked",
+    "misconception_reviewed",
+}
 
 
 def _reviewed_metadata_payload(metadata: dict[str, Any]) -> dict[str, Any]:
@@ -1277,18 +1284,34 @@ def _review_metadata_issues(
                 + "."
             )
 
-    if metadata.get("verification_status") != "verified":
-        issues.append("Review record is not marked verified.")
+    review_status = metadata.get("verification_status")
+    if review_status not in ("verified", "ai_reviewed"):
+        issues.append("Review record is not marked verified or AI-reviewed.")
 
     if not isinstance(metadata.get("reviewer"), str) or not metadata["reviewer"].strip():
         issues.append(f"{question_id}: reviewer identity is required.")
     if not isinstance(metadata.get("reviewed_at"), str) or not metadata["reviewed_at"].strip():
         issues.append(f"{question_id}: review date is required.")
 
-    if metadata.get("reviewer_kind") not in ("individual", "internal_team", "external_reviewer"):
+    reviewer_kind = metadata.get("reviewer_kind")
+    if reviewer_kind not in ("individual", "internal_team", "external_reviewer", "ai_assistant"):
         issues.append(f"{question_id}: reviewer kind must identify the review source.")
-    if metadata.get("review_evidence_type") != "seed_content_review":
-        issues.append(f"{question_id}: review evidence type is missing or unsupported.")
+    if reviewer_kind == "ai_assistant":
+        if metadata.get("review_evidence_type") != "ai_assisted_content_review":
+            issues.append(f"{question_id}: AI review evidence type is missing or unsupported.")
+        if review_status != "ai_reviewed":
+            issues.append(f"{question_id}: AI review must not be represented as human-verified.")
+        summary = metadata.get("review_summary")
+        if not isinstance(summary, str) or len(summary.strip()) < 30:
+            issues.append(f"{question_id}: AI review summary must describe the review performed.")
+        ai_checks = metadata.get("ai_review_checks")
+        if not isinstance(ai_checks, dict) or any(ai_checks.get(check) is not True for check in _AI_REVIEW_CHECKS):
+            issues.append(f"{question_id}: AI review checklist is incomplete.")
+    else:
+        if metadata.get("review_evidence_type") != "seed_content_review":
+            issues.append(f"{question_id}: review evidence type is missing or unsupported.")
+        if review_status != "verified":
+            issues.append(f"{question_id}: non-AI review records must use verified status.")
     review_scope = metadata.get("review_scope")
     required_scope = {
         "authored_prompt", "expected_answer", "explanation",
@@ -1338,6 +1361,8 @@ def _verification_status(record: dict[str, Any]) -> tuple[str, list[str]]:
         issues.append("Question classification metadata differs from the reviewed snapshot; review evidence is stale.")
     if issues:
         return "needs_review", issues
+    if metadata.get("verification_status") == "ai_reviewed":
+        return "ai_reviewed", []
     return "verified", []
 
 
@@ -1662,6 +1687,8 @@ def audit_question_bank(
     lesson_coverage: dict[tuple[str, str], dict[str, int]] = {}
     reviewer_kinds: dict[str, int] = {}
     independence_counts: dict[str, int] = {}
+    reviewed_reviewer_kinds: dict[str, int] = {}
+    reviewed_independence_counts: dict[str, int] = {}
     for record in records:
         status, item_issues = _verification_status(record)
         if status not in counts:
@@ -1673,11 +1700,14 @@ def audit_question_bank(
         )
         lesson_counts[status] = lesson_counts.get(status, 0) + 1
         metadata = VERIFICATION_REGISTRY.get(record["question_id"])
-        if isinstance(metadata, dict) and status == "verified":
+        if isinstance(metadata, dict) and status in ("verified", "ai_reviewed"):
             reviewer_kind = str(metadata.get("reviewer_kind") or "unspecified")
             independence = str(metadata.get("review_independence") or "unspecified")
-            reviewer_kinds[reviewer_kind] = reviewer_kinds.get(reviewer_kind, 0) + 1
-            independence_counts[independence] = independence_counts.get(independence, 0) + 1
+            reviewed_reviewer_kinds[reviewer_kind] = reviewed_reviewer_kinds.get(reviewer_kind, 0) + 1
+            reviewed_independence_counts[independence] = reviewed_independence_counts.get(independence, 0) + 1
+            if status == "verified":
+                reviewer_kinds[reviewer_kind] = reviewer_kinds.get(reviewer_kind, 0) + 1
+                independence_counts[independence] = independence_counts.get(independence, 0) + 1
         for message in item_issues:
             severity = "error" if status == "needs_review" else "warning"
             item_reports.append({
@@ -1731,6 +1761,8 @@ def audit_question_bank(
         "review_provenance": {
             "verified_by_reviewer_kind": dict(sorted(reviewer_kinds.items())),
             "verified_by_independence": dict(sorted(independence_counts.items())),
+            "reviewed_by_reviewer_kind": dict(sorted(reviewed_reviewer_kinds.items())),
+            "reviewed_by_independence": dict(sorted(reviewed_independence_counts.items())),
             "limitations": [
                 "Registry metadata records the repository's declared review process.",
                 "A team label is not an independently identifiable reviewer.",
@@ -1740,6 +1772,84 @@ def audit_question_bank(
         "issues": issues,
         "item_reports": item_reports,
     }
+
+
+def record_ai_review(
+    question_id: str,
+    *,
+    reviewed_at: str,
+    review_summary: str,
+    ai_review_checks: dict[str, bool],
+) -> dict[str, Any]:
+    """Record an explicitly AI-assisted review without promoting it to human verification.
+
+
+
+    The caller must perform the content review before invoking this function.
+    A complete checklist and summary are required; this function captures the
+    current content/classification snapshots and preserves a compact prior-review
+    entry. AI-reviewed items remain excluded from verified-only pilot retrieval.
+    """
+    qid = str(question_id)
+    reviewed_at = str(reviewed_at).strip()
+    summary = str(review_summary).strip()
+    if not reviewed_at:
+        raise ValueError("reviewed_at is required.")
+    if len(summary) < 30:
+        raise ValueError("review_summary must be at least 30 characters.")
+    if not isinstance(ai_review_checks, dict) or any(
+        ai_review_checks.get(check) is not True for check in _AI_REVIEW_CHECKS
+    ):
+        raise ValueError("AI review checklist must explicitly pass every required check.")
+
+    raw_records, _, _ = _catalogue()
+    matches = [item for item in raw_records if item.get("question_id") == qid]
+    if len(matches) != 1:
+        raise ValueError("Question ID must resolve to exactly one authored question.")
+    authored = matches[0]["question"]
+    structural_errors = validate_question(authored)
+    if structural_errors:
+        raise ValueError("Question fails structural checks: " + "; ".join(structural_errors))
+
+    previous = VERIFICATION_REGISTRY.get(qid)
+    if not isinstance(previous, dict):
+        raise ValueError("AI review can only re-review an existing VQE registry entry.")
+    metadata = deepcopy(previous)
+    history = list(metadata.get("review_history", [])) if isinstance(metadata.get("review_history"), list) else []
+    history.append({
+        "version": metadata.get("version"),
+        "verification_status": metadata.get("verification_status"),
+        "reviewed_at": metadata.get("reviewed_at"),
+        "reviewer_kind": metadata.get("reviewer_kind"),
+        "review_evidence_type": metadata.get("review_evidence_type"),
+        "review_summary": metadata.get("review_summary"),
+        "reviewed_content": deepcopy(metadata.get("reviewed_content")),
+    })
+    metadata.update({
+        "version": max(1, int(metadata.get("version", 1))) + 1,
+        "verification_status": "ai_reviewed",
+        "reviewed_at": reviewed_at,
+        "reviewer": "AI-assisted review (ChatGPT)",
+        "reviewer_kind": "ai_assistant",
+        "review_evidence_type": "ai_assisted_content_review",
+        "review_independence": "not_independently_audited",
+        "review_scope": [
+            "authored_prompt", "expected_answer", "explanation",
+            "question_structure", "skill_and_difficulty_classification",
+        ],
+        "review_checks": sorted(_REQUIRED_REVIEW_CHECKS),
+        "review_summary": summary,
+        "ai_review_checks": {check: True for check in sorted(_AI_REVIEW_CHECKS)},
+        "reviewed_content": _question_fingerprint_payload(authored),
+        "reviewed_metadata": _reviewed_metadata_payload(metadata),
+        "review_history": history,
+    })
+    VERIFICATION_REGISTRY[qid] = metadata
+    result = get_question_record(qid)
+    if result is None or result["verification_status"] != "ai_reviewed":
+        raise ValueError("AI review record did not validate; item remains needs_review.")
+    return deepcopy(metadata)
+
 
 
 def get_review_record(question_id: str) -> dict[str, Any] | None:
