@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "status": "template_only",
+  "notes": "All entries are pending. Store no child or guardian personal data, identity documents, credentials, contracts or private evidence URLs here. Supporting evidence belongs in an adult-controlled secure system. This register can never authorise release.",
+  "release": {
+    "release_name": "",
+    "release_commit_sha": "",
+    "environment_reference": "",
+    "intended_age_bands": [],
+    "feature_scope": [],
+    "review_cycle": ""
+  },
+  "controls": {
+    "responsible_operator": {
+      "control_id": "GOV-01",
+      "description": "Responsible adult operator/controller identified and legally authorised",
+      "required_reviewer_role": "responsible_adult_operator",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "ppdp_function": {
+      "control_id": "GOV-02",
+      "description": "PPDP/data-protection function appointed, competent, contactable and resourced",
+      "required_reviewer_role": "responsible_adult_operator",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "safeguarding_contact": {
+      "control_id": "GOV-03",
+      "description": "Monitored safeguarding and privacy contact routes staffed",
+      "required_reviewer_role": "responsible_adult_operator",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "processing_register": {
+      "control_id": "PROC-01",
+      "description": "Processing register reconciled to deployed systems, logs, data flows and vendors",
+      "required_reviewer_role": "ppdp_or_data_protection_function",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "lawful_basis_and_minimisation": {
+      "control_id": "PROC-02",
+      "description": "Purpose-specific lawful basis, necessity and data minimisation reviewed",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "age_band_and_eligibility": {
+      "control_id": "CHILD-01",
+      "description": "Age-band and feature eligibility decisions documented for this release",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "age_assurance": {
+      "control_id": "CHILD-02",
+      "description": "Proportionate age-assurance method implemented and tested",
+      "required_reviewer_role": "independent_security_reviewer",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "guardian_authorisation": {
+      "control_id": "CHILD-03",
+      "description": "Required guardian authority, consent, verification, refusal and withdrawal workflow implemented",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "child_protection_risk_profile": {
+      "control_id": "CHILD-04",
+      "description": "Applicable child product/service/feature risk-profile decision and mitigations verified",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "privacy_by_default": {
+      "control_id": "CHILD-05",
+      "description": "Child-appropriate privacy-high defaults and user-facing explanations tested",
+      "required_reviewer_role": "independent_security_reviewer",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "article_19_profiling": {
+      "control_id": "PROFILE-01",
+      "description": "Article 19 profiling classification/exception decision and safeguards approved",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "child_dpia": {
+      "control_id": "DPIA-01",
+      "description": "Child-specific DPIA and residual-risk decision completed before high-risk processing",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "privacy_notice": {
+      "control_id": "NOTICE-01",
+      "description": "Final privacy notice accurately describes the deployed service and has counsel approval",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "terms_and_acceptance": {
+      "control_id": "NOTICE-02",
+      "description": "Operator-specific terms and any required versioned acceptance flow approved",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "data_rights_workflow": {
+      "control_id": "RIGHTS-01",
+      "description": "Private access/correction/deletion/withdrawal and child/guardian request workflow tested",
+      "required_reviewer_role": "responsible_adult_operator",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "retention_and_deletion": {
+      "control_id": "LIFE-01",
+      "description": "Retention schedule, deletion, provider deletion and backup expiry implemented and tested",
+      "required_reviewer_role": "independent_security_reviewer",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "vendor_contracts_and_security": {
+      "control_id": "VENDOR-01",
+      "description": "Actual processors, roles, contracts, subprocessors, regions and security reviewed",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "international_transfer": {
+      "control_id": "TRANSFER-01",
+      "description": "Cross-border transfers and applicable safeguards/notice approved",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "database_and_account_isolation": {
+      "control_id": "SEC-01",
+      "description": "Production access control, RLS/grants, secrets, logs and cross-account isolation independently tested",
+      "required_reviewer_role": "independent_security_reviewer",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "incident_response": {
+      "control_id": "INC-01",
+      "description": "Incident procedure, 3x24-hour legal assessment, vendor escalation and tabletop tested",
+      "required_reviewer_role": "responsible_adult_operator",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "pse_registration": {
+      "control_id": "PSE-01",
+      "description": "PSE registration applicability assessed and any required registration completed",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "external_ai_review": {
+      "control_id": "AI-01",
+      "description": "Optional AI provider, data flow, contract, safety and transfer approved or disabled",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": true,
+      "status": "pending"
+    },
+    "school_deployment": {
+      "control_id": "SCHOOL-01",
+      "description": "School roles, contracts, notices, authority and data scope approved or not applicable",
+      "required_reviewer_role": "qualified_indonesian_counsel",
+      "not_applicable_allowed": true,
+      "status": "pending"
+    },
+    "deployment_acceptance": {
+      "control_id": "REL-01",
+      "description": "Exact deployed commit/configuration matches the reviewed evidence; synthetic acceptance tests pass",
+      "required_reviewer_role": "independent_security_reviewer",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    },
+    "adult_release_approval": {
+      "control_id": "REL-02",
+      "description": "Responsible adult operator records a scoped go/no-go decision for this exact release",
+      "required_reviewer_role": "responsible_adult_operator",
+      "not_applicable_allowed": false,
+      "status": "pending"
+    }
+  }
+}

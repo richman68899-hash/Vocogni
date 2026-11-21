@@ -39,3 +39,26 @@ Recheck this list whenever the architecture or provider configuration changes.
 - Government Regulation No. 33 of 2026 — implementing regulation for Law No. 27 of 2022 on Personal Data Protection. It was promulgated on 16 July 2026 and takes effect six months later, on 16 January 2027. Article 38 concerns identifying child users, parent/guardian consent and verification, rights requests concerning children's data, and transition out of child status. Verify the enacted text and application with qualified counsel.
 
 These are sources to take to qualified counsel, not a legal opinion or confirmation of compliance.
+
+
+## Consolidated compliance operating system
+
+Use [the Vocogni Legal & Privacy Compliance Operating System](compliance-operating-system.md) as the central control manual. Complete and maintain its linked records and procedures:
+
+- [Child access, age assurance and guardian authorisation](child-access-and-consent-procedure.md)
+- [Processing register template](processing-register.template.json)
+- [Child-specific DPIA template](impact-assessment.template.md)
+- [Vendor and cross-border transfer review](vendor-and-transfer-review.md) and [vendor register](vendor-transfer-register.template.json)
+- [Personal-data rights procedure](data-rights-procedure.md)
+- [Retention and deletion policy](retention-and-deletion.md)
+- [Incident response procedure](incident-response.md)
+- [Operational control register](operational-control-register.template.json)
+
+Run the documentary integrity audit from the repository root:
+
+```bash
+python scripts/audit_legal_system.py
+python scripts/audit_legal_system.py --strict
+```
+
+The strict audit is expected to fail while evidence remains pending. Even a complete audit report does not authorise release. The existing application release gate must remain closed until the responsible adult operator, qualified Indonesian counsel, and independent security reviewer have approved the exact release and the real safeguards have been implemented and tested.
