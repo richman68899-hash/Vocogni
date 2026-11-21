@@ -105,7 +105,7 @@ COURSES = {
                     "answer": "5/8",
                     "explanation": "Five slices were eaten out of eight equal slices, so the fraction is 5/8.",
                     "mistake_tag": "Representing fractions",
-                    ],
+                },
                 "diagnostic": {
                     "version": 1,
                     "questions": [
