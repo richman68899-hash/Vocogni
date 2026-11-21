@@ -620,3 +620,60 @@ Use the enacted Indonesian text and obtain counsel's review. Links are provided 
 ---
 
 **Document control:** Architecture proposal only. It does not amend the live Privacy Policy or Terms, implement a consent mechanism, establish a lawful basis, certify compliance, or authorise a public or child-facing release.
+
+
+## 15. Child-learning profiling safeguards: explicit opt-in, fail-closed
+
+### Premise and legal constraint
+
+Profiling is **off by default**. A learner must actively, consciously request the feature after a plain-language explanation of the learning-purpose data categories. Denied, withdrawn, missing, invalid, or expired permission means **no profiling**.
+
+This is a safeguard—not a claim that learner consent alone makes child profiling lawful. PP 17/2025 Article 19 prohibits child profiling, subject to narrowly framed exceptions (including best-interest justification and a core feature actively and consciously requested by the child, with effective safeguards). Vocogni's exact legal route and feature/cohort eligibility must be approved in writing by Indonesian counsel before use. <Cite refs={["turn322841view0"]} />
+
+### 15.1 Learning-purpose data list shown to the learner
+
+The proposed purpose-specific allowlist (legal/learning review required) is:
+
+| Data | Learning purpose | Controls |
+|---|---|---|
+| Course, lesson, and skill identifiers/progress | Identify the learning objective being practised | Minimal identifiers only |
+| Answer outcomes and learner-selected responses | Detect gaps and misconceptions | Scope to relevant questions/objectives |
+| Attempts/revisions | Distinguish repeated difficulty from a one-off error | Limited history/window; no indefinite raw event log |
+| Course-specific misconception tags | Select an explanation or practice targeting the gap | Neutral wording; never stigmatizing/fixed-ability labels |
+| Hint/assistance level | Adjust scaffolding | Record only what is necessary |
+| Learner-chosen goals/preferences (e.g. worked examples) | Adapt presentation and next steps | Optional, editable; do not infer sensitive traits |
+| Timing/sequence signals (optional) | Evaluate pacing only if validated and necessary | Off by default; separately approved and minimized |
+| Provisional mastery estimate/confidence | Select next practice objective | Clearly provisional; explainable, correctable and resettable |
+
+**Excluded from learning profiling:** gender or inferred gender, pronouns, race/ethnicity, religion, precise location, contacts/social graph, ad identifiers, unrelated browsing, health information, family/financial data, private notes, and full external-AI conversation history. No advertising, selling profiles, learner ranking, or unrelated decisions. New data fields require separate necessity, legal, child-safety, and privacy review.
+
+### 15.2 Separate gates: age, guardian, learner, legal and infrastructure
+
+- **Age/cohort:** apply counsel-approved age assurance and age/feature/risk-profile eligibility. Do not treat a self-entered birthdate as legal verification.
+- **Guardian:** required guardian permission and authority verification must be completed and server-validated, with purpose/feature/notice scope. The learner cannot set a guardian-verified boolean.
+- **Learner request:** child actively and consciously requests profiling; no pre-ticked or bundled consent, no dark patterns.
+- **Legal feature approval:** Article 19 exception, child-specific risk assessment/DPIA and safeguard review approved for the feature/cohort.
+- **Infrastructure:** live provider, region, subprocessor, contracts, schema/payload/log inventory, access-isolation, secret handling, encryption, retention/deletion/backups, incident-response and request channels reviewed; documented reviewer, evidence version, date and expiry.
+
+If a required permission is refused/withdrawn, profiling stops. Counsel must determine whether the applicable guardian-refusal rule blocks the whole service and triggers deletion; a local/session mode is not a workaround. Age and risk-profile obligations under Permenkomdigi 9/2026 apply to the relevant product/service/features; internal toggles do not prove official eligibility. <Cite refs={["turn322841view0","turn322841view1"]} />
+
+### 15.3 Fail-closed decision matrix
+
+| Learner choice | Verified guardian permission (if required) | Age/cohort + legal feature approval | Infrastructure attestation current | Result |
+|---|---|---|---|
+| Not asked / no | Any | Any | Any | Profiling off |
+| Denied / withdrawn | Any | Any | Any | Profiling off; revoke/reset/deletion/access consequences per counsel |
+| Requested | Missing, pending, unverified | Any | Any | Profiling off |
+| Requested | Granted and verified | Not approved/unknown | Any | Profiling off |
+| Requested | Granted and verified | Approved | Failed/unknown/stale | Profiling off |
+| Requested | Granted and verified | Approved | Verified and current | May enable only approved data scope and feature |
+
+Consent evidence and infrastructure approval must be server-controlled, auditable and bound to learner, feature, purpose, notice version, time, expiry/review and withdrawal state. Never accept browser/session/query-parameter claims as proof.
+
+### 15.4 Revocation response
+
+On denial, withdrawal, expiry, or any gate becoming invalid: revoke the decision immediately; prevent profiling reads and writes; cancel queued jobs; invalidate caches; reset/delete profile-derived state as required; and re-evaluate overall child-service eligibility. If guardian refusal requires service termination, block the service—not just profiling. Audit events should contain only pseudonymous account key, purpose/feature scope, consent/verification reference, notice version, timestamp and actor/source. Never include raw learner answers or guardian documents.
+
+### 15.5 Code contract
+
+The proposed pure policy module and tests in this PR are a fail-closed guard only. They do not implement consent collection, age assurance, guardian identity verification, official risk-profile verification, or live infrastructure auditing. Callers must pass server-verified evidence only. The app must remain closed until those systems and evidence are actually implemented and reviewed.
