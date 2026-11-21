@@ -120,6 +120,19 @@ See:
 - `docs/features/ai-learning-core-prototype.md`
 - `docs/features/ai-learning-core-integration.md`
 
+## Legal and privacy compliance
+
+The legal framework is documented in [the Legal & Privacy Compliance Operating System](docs/legal/compliance-operating-system.md). It includes child access and guardian-authorisation procedures, a processing register, child-specific DPIA template, vendor/transfer review, rights requests, retention/deletion, incident response, and a pending operational control register.
+
+The [launch-readiness checklist](docs/legal/launch-readiness.md) remains the release authority checklist. Run the documentation/evidence integrity audit with:
+
+```bash
+python scripts/audit_legal_system.py
+python scripts/audit_legal_system.py --strict
+```
+
+The audit is not legal advice, does not verify real evidence, and can never authorise release. The privacy and terms notices remain drafts; public child-facing access stays blocked until an accountable adult operator, qualified Indonesian counsel, and independent security reviewer approve the exact implementation.
+
 ## Tests and beta verification
 
 Install the project requirements, then run the **full** automated suite from the repository root:
