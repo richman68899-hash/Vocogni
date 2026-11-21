@@ -49,6 +49,10 @@ Autosave state management belongs in state.py.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+import tempfile
 from typing import Any
 
 import streamlit as st
@@ -57,6 +61,91 @@ from supabase import Client, create_client
 
 
 TABLE_NAME = "learner_progress"
+
+LOCAL_DEVELOPER_MODE_ENV = "VOCogni_LOCAL_DEVELOPER_MODE"
+LOCAL_DEVELOPER_USER_ID = "local-developer"
+LOCAL_DEVELOPER_DATA_DIR = Path(__file__).resolve().parent / ".vocogni_dev"
+
+
+def local_developer_mode_enabled() -> bool:
+    """True only when the dedicated local entry point enabled the sandbox."""
+    return os.environ.get(LOCAL_DEVELOPER_MODE_ENV, "").strip().casefold() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _local_developer_data_path() -> Path:
+    return LOCAL_DEVELOPER_DATA_DIR / "learner_progress.json"
+
+
+def _load_local_progress_record() -> dict[str, Any]:
+    """Read the developer's isolated JSON file; never contact a remote service."""
+    path = _local_developer_data_path()
+    if not path.exists():
+        return {"progress": {}, "updated_at": None, "exists": False}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            "The local Vocogni data file could not be read. It was left unchanged."
+        ) from exc
+    if not isinstance(payload, dict) or not isinstance(payload.get("progress"), dict):
+        raise RuntimeError(
+            "The local Vocogni data file has an invalid format. It was left unchanged."
+        )
+    revision = payload.get("updated_at")
+    if revision is not None and not isinstance(revision, str):
+        raise RuntimeError("The local Vocogni data revision is invalid.")
+    return {"progress": payload["progress"], "updated_at": revision, "exists": True}
+
+
+def _save_local_progress(
+    progress: dict[str, Any],
+    *,
+    expected_updated_at: str | None,
+    record_exists: bool,
+) -> str:
+    """Atomically save to the ignored local workspace with revision checks."""
+    current = _load_local_progress_record()
+    if record_exists:
+        if not current["exists"] or current["updated_at"] != expected_updated_at:
+            raise ConcurrentProgressUpdateError(
+                "The local workspace changed in another session. Reload it before saving."
+            )
+    elif current["exists"]:
+        raise ConcurrentProgressUpdateError(
+            "A local workspace record was created in another session. Reload it before saving."
+        )
+
+    revision = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "user_id": LOCAL_DEVELOPER_USER_ID,
+        "progress": progress,
+        "updated_at": revision,
+    }
+    path = _local_developer_data_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix="learner_progress.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            json.dump(payload, temporary, ensure_ascii=False, indent=2, allow_nan=False)
+            temporary.write("\n")
+            temporary_path = Path(temporary.name)
+        os.replace(temporary_path, path)
+    except (OSError, TypeError, ValueError) as exc:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise RuntimeError("Vocogni could not save the local developer workspace.") from exc
+    return revision
+
+
 
 
 # ============================================================================
@@ -93,6 +182,9 @@ def _is_logged_in() -> bool:
     Return True when Streamlit has an authenticated user.
     """
 
+    if local_developer_mode_enabled():
+        return True
+
     try:
         return bool(st.user.is_logged_in)
     except AttributeError:
@@ -112,6 +204,9 @@ def get_user_id() -> str:
     The learner's email address is intentionally NOT used as the
     database identity.
     """
+
+    if local_developer_mode_enabled():
+        return LOCAL_DEVELOPER_USER_ID
 
     if not _is_logged_in():
         raise RuntimeError(
@@ -154,6 +249,11 @@ def get_supabase() -> Client:
     - displayed to users
     - printed in logs
     """
+
+    if local_developer_mode_enabled():
+        raise RuntimeError(
+            "Supabase is disabled in Local Developer Mode. The workspace uses a local JSON file."
+        )
 
     # ------------------------------------------------------------------------
     # Supabase URL
@@ -369,6 +469,9 @@ def _format_database_error(
 
 def load_progress_record() -> dict[str, Any]:
     """Load a learner row and its revision for optimistic concurrency checks."""
+    if local_developer_mode_enabled():
+        return _load_local_progress_record()
+
     user_id = get_user_id()
     client = get_supabase()
 
@@ -430,6 +533,13 @@ def save_progress(
     """
     if not isinstance(progress, dict):
         raise TypeError("Learner progress must be a dictionary.")
+
+    if local_developer_mode_enabled():
+        return _save_local_progress(
+            progress,
+            expected_updated_at=expected_updated_at,
+            record_exists=record_exists,
+        )
 
     user_id = get_user_id()
     client = get_supabase()
