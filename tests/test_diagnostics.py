@@ -330,5 +330,6 @@ class DiagnosticEngineTests(unittest.TestCase):
         self.assertTrue(diagnostic_ids.isdisjoint(lesson_ids))
         self.assertNotIn(interactive_id, diagnostic_ids)
 
+
 if __name__ == "__main__":
     unittest.main()
