@@ -73,25 +73,29 @@ COURSES = {
                 "title": "Understanding Fractions",
                 "kind": "standard",
                 "explanation": (
-                    "A fraction tells us how much of a whole (or group) we are considering. "
+                    "A fraction represents an amount relative to one whole (or a group treated as the whole). "
                     "It has two parts:\n\n"
-                    "**Numerator (top):** how many equal parts we are counting.\n"
+                    "**Numerator (top):** how many equal parts are being counted.\n"
                     "**Denominator (bottom):** how many equal parts make one whole.\n\n"
-                    "The parts must be equal-sized. If a pizza is split into 4 equal slices and "
-                    "you take 3, you have **3/4** of the pizza. The 4 does not mean you have "
-                    "four pizzas; it describes how the one whole was divided.\n\n"
-                    "Fractions can describe the same amount in different ways. For example, "
-                    "3/4 and 6/8 represent the same amount because each part of the second "
-                    "fraction is half the size, but there are twice as many parts."
+                    "The parts must be equal-sized. If one pizza is split into 4 equal slices and 3 are counted, "
+                    "the amount is **3/4**. The denominator 4 describes the partition of that one pizza; it does not mean "
+                    "there are four pizzas.\n\n"
+                    "A fraction can also be greater than 1. For example, **7/5** means seven fifths: "
+                    "five fifths make one whole, with two fifths left, so 7/5 = 1 2/5.\n\n"
+                    "Different fractions can represent the same amount. **3/4** and **6/8** are equivalent because "
+                    "the second uses twice as many parts, each half as large."
                 ),
                 "worked_example": (
-                    "**Example: reading 3/5**\n"
-                    "1. Imagine one rectangle divided into 5 equal-sized sections.\n"
-                    "2. Shade 3 sections.\n"
-                    "3. Count the shaded sections (3) for the numerator.\n"
-                    "4. Count all equal sections (5) for the denominator.\n"
-                    "So the shaded amount is **3/5**. Check: the sections are equal-sized, "
-                    "and the numerator cannot be larger than the total number of sections in this picture."
+                    "**Example 1: reading 3/5**\n"
+                    "1. Treat the rectangle as one whole.\n"
+                    "2. Divide it into 5 equal-sized sections; unequal sections would not represent fifths.\n"
+                    "3. Count 3 sections. The numerator is 3 because 3 sections are selected.\n"
+                    "4. The denominator is 5 because the whole is partitioned into 5 equal sections.\n"
+                    "So the selected amount is **3/5**.\n\n"
+                    "**Example 2: a fraction greater than one**\n"
+                    "For **7/5**, count seven fifth-sized parts. Five fifths equal one whole, leaving two fifths: "
+                    "7/5 = 5/5 + 2/5 = **1 2/5**. A numerator can be greater than the denominator when the amount "
+                    "includes more than one whole."
                 ),
                 "interactive_question": {
                     "id": "fractions_l1_screen3",

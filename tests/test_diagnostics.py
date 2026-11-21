@@ -269,5 +269,18 @@ class DiagnosticEngineTests(unittest.TestCase):
         self.assertIsNone(result["answer_review"][0]["confidence"])
 
 
+    def test_grade7_fraction_foundation_teaches_equal_parts_and_amounts_above_one(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l1")
+        explanation = lesson["explanation"]
+        worked_example = lesson["worked_example"]
+
+        for concept in ("Numerator", "Denominator", "equal-sized", "7/5", "1 2/5"):
+            with self.subTest(concept=concept):
+                self.assertIn(concept, explanation)
+
+        self.assertIn("5/5 + 2/5", worked_example)
+        self.assertIn("one whole", worked_example)
+        self.assertIn("greater than the denominator", worked_example)
+
 if __name__ == "__main__":
     unittest.main()
