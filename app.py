@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 import streamlit as st
 
+import persistence
 import state
 import styles
 from verified_account import is_current_account_verified, verified_badge_html
