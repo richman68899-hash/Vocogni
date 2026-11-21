@@ -247,8 +247,7 @@ COURSES = {
                                     "type": "mc",
                                     "stage": "practice",
                                     "skill_tag": "Subtracting unlike fractions",
-                                    "prompt": "A ribbon is 3/4 m long. You use 2/5 m. How much remains?",                                    "options": [
-                                        "7/20 m",
+                                    "prompt": "A ribbon is 3/4 m long. You use 2/5 m. How much remains?",                                    "options": [                                        "7/20 m",
                                         "1/20 m",
                                         "1/2 m",
                                         "1/3 m"
@@ -348,7 +347,7 @@ COURSES = {
                     {
                         "id": "fractions_l2_q1",
                         "type": "numeric",
-                        "prompt": "Calculate 1/4 + 1/4. Enter the result as a decimal (for example, 0.5)."
+                        "prompt": "Calculate 1/4 + 1/4. Enter the result as a decimal (for example, 0.5).",
                         "answer": 0.5,
                         "tolerance": 0.01,
                         "whole_number": False,
@@ -497,8 +496,7 @@ COURSES = {
                 "diagnostic": {
                     "version": 1,
                     "questions": [
-                        {
-                            "id": "algebra_l1_d1",
+                        {                            "id": "algebra_l1_d1",
                             "type": "mc",
                             "stage": "prerequisite",
                             "skill_tag": "Basic arithmetic",
@@ -747,8 +745,7 @@ COURSES = {
                         "prompt": "Solve for x: 3x = 21",
                         "answer": 7,
                         "tolerance": 0.01,
-                        "whole_number": True,
-                        "input_hint": "whole number",
+                        "whole_number": True,                        "input_hint": "whole number",
                         "explanation": "Divide both sides by 3: x = 21 / 3 = 7.",
                         "mistake_tag": "Incorrect inverse operation",
                     },
@@ -997,8 +994,7 @@ COURSES = {
                                 }
                             ]
                         },
-                        "level_3": {
-                            "questions": [
+                        "level_3": {                            "questions": [
                                 {
                                     "id": "wp_l1_l3_q1",
                                     "type": "mc",
@@ -1248,7 +1244,6 @@ COURSES = {
 
 
 COURSE_ORDER = ["fractions", "algebra", "word_problems"]
-
 # Shared catalogue taxonomy: every course uses the same category/subject fields.
 COURSE_CATEGORIES = [
     {"id": "academics", "label": "Academics"},
