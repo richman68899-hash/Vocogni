@@ -447,13 +447,20 @@ COURSES = {
                 "title": "Real-World Challenge: Scaling a Recipe",
                 "kind": "application",
                 "explanation": (
-                    "Recipe scaling keeps ingredient amounts proportional to serving counts. "
-                    "Find the scale factor by dividing the new number of servings by the original "
-                    "number of servings, then multiply every ingredient by that factor."
+                    "Scaling a recipe means changing the amount of food while keeping the same proportions. "
+                    "Use one scale factor for every ingredient: scale factor = new servings ÷ original servings. "
+                    "Multiply each original ingredient amount by this factor. If the servings are halved, the factor is 1/2; "
+                    "if they are tripled, the factor is 3. Do not add the difference in servings to the ingredient amounts—"
+                    "scaling is multiplication, not addition.\n\n"
+                    "Fraction reminder: multiply a fraction by a whole-number scale factor by multiplying its numerator "
+                    "by that factor (or multiply by the factor written as a fraction). Simplify the result if needed."
                 ),
                 "worked_example": (
-                    "A recipe uses 3/4 cup of sugar for 4 servings. For 8 servings, the scale factor is 8 ÷ 4 = 2, "
-                    "so use 3/4 × 2 = 6/4 = 1 1/2 cups."
+                    "A recipe uses 3/4 cup of sugar for 4 servings. How much is needed for 8 servings?\n"
+                    "1. Scale factor = new servings ÷ original servings = 8 ÷ 4 = 2.\n"
+                    "2. Multiply the ingredient amount by 2: 3/4 × 2 = 6/4.\n"
+                    "3. Simplify 6/4 = 3/2 = 1 1/2.\n"
+                    "So use 1 1/2 cups of sugar. Check: servings doubled, so every ingredient must double."
                 ),
                 "interactive_question": {
                     "id": "fractions_l4_screen3",
@@ -463,7 +470,10 @@ COURSES = {
                     "tolerance": 0.01,
                     "whole_number": False,
                     "input_hint": "e.g. 2",
-                    "explanation": "The number of servings triples (6 ÷ 2 = 3), so multiply 2/3 × 3 = 2 cups.",
+                    "explanation": (
+                        "Scale factor = 6 ÷ 2 = 3. Multiply the original amount by 3: "
+                        "2/3 × 3 = 6/3 = 2 cups. The amount triples because the servings triple."
+                    ),
                     "mistake_tag": APPLICATION_MISTAKE_TAG,
                 },
                 "questions": [
@@ -476,13 +486,13 @@ COURSES = {
                         "whole_number": False,
                         "input_hint": "e.g. 1.5",
                         "explanation": (
-                            "Doubling the servings (4 to 8) means doubling every "
-                            "ingredient: 3/4 cup x 2 = 1.5 cups of sugar."
+                            "The original recipe uses 3/4 cup for 4 servings. The scale factor is 8 ÷ 4 = 2, "
+                            "so multiply the sugar by 2: 3/4 × 2 = 6/4 = 1.5 cups. "
+                            "All other ingredients must also be doubled."
                         ),
                         "mistake_tag": APPLICATION_MISTAKE_TAG,
                     }
-                ],
-            },
+                ],            },
         ],
     },
     "algebra": {
