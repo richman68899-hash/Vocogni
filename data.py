@@ -382,7 +382,6 @@ COURSES = {
                         "mistake_tag": "Addition error",
                     },
                 ],
-            },
                 "diagnostic": {
                     "version": 1,
                     "questions": [
@@ -502,6 +501,7 @@ COURSES = {
                         }
                     }
                 },
+            },
             {
                 "id": "fractions_l3",
                 "title": "Simplifying Fractions",
