@@ -9,10 +9,15 @@ from unittest.mock import patch
 
 import adaptive_learning
 import persistence
+import app
 from developer_mode import build_synthetic_learner_state
 
 
 class LocalDeveloperPersistenceTests(unittest.TestCase):
+    def test_app_binds_the_persistence_module_used_by_main(self):
+        self.assertIs(app.persistence, persistence)
+        self.assertTrue(callable(app.persistence.local_developer_mode_enabled))
+
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
