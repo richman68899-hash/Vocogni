@@ -79,5 +79,5 @@ The repository describes Supabase persistence in learner_progress, but this sour
 ## 7. References
 
 - UU PDP No. 27/2022: https://peraturan.bpk.go.id/Home/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf
-- PP No. 17/2025, Article 9: https://peraturan.bpk.go.id/Download/377994/PP%20Nomor%2027%20Tahun%202025.pdf
+- PP No. 17/2025, Article 9: https://peraturan.bpk.go.id/Download/377994/PP%20Nomor%2017%20Tahun%202025.pdf
 - PP No. 33/2026, Articles 74–75; effective 16 January 2027: https://pemerintahdigital.id/assets/resources/PP33_2026-PeraturanPelaksanaanUU27_2022_PerlindunganDataPribadi.pdf
