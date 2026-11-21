@@ -73,17 +73,25 @@ COURSES = {
                 "title": "Understanding Fractions",
                 "kind": "standard",
                 "explanation": (
-                    "A fraction describes part of a whole. It is written as two "
-                    "numbers separated by a line: the <strong>numerator</strong> "
-                    "(top) tells you how many parts you have, and the "
-                    "<strong>denominator</strong> (bottom) tells you how many "
-                    "equal parts the whole is divided into.\n\n"
-                    "For example, in the fraction 3/4, the whole is split into 4 "
-                    "equal parts, and you have 3 of them."
+                    "A fraction tells us how much of a whole (or group) we are considering. "
+                    "It has two parts:\n\n"
+                    "**Numerator (top):** how many equal parts we are counting.\n"
+                    "**Denominator (bottom):** how many equal parts make one whole.\n\n"
+                    "The parts must be equal-sized. If a pizza is split into 4 equal slices and "
+                    "you take 3, you have **3/4** of the pizza. The 4 does not mean you have "
+                    "four pizzas; it describes how the one whole was divided.\n\n"
+                    "Fractions can describe the same amount in different ways. For example, "
+                    "3/4 and 6/8 represent the same amount because each part of the second "
+                    "fraction is half the size, but there are twice as many parts."
                 ),
                 "worked_example": (
-                    "A chocolate bar is divided into 4 equal pieces. If you eat 3 pieces, "
-                    "you have eaten 3/4: the numerator is 3 pieces and the denominator is 4 equal pieces."
+                    "**Example: reading 3/5**\n"
+                    "1. Imagine one rectangle divided into 5 equal-sized sections.\n"
+                    "2. Shade 3 sections.\n"
+                    "3. Count the shaded sections (3) for the numerator.\n"
+                    "4. Count all equal sections (5) for the denominator.\n"
+                    "So the shaded amount is **3/5**. Check: the sections are equal-sized, "
+                    "and the numerator cannot be larger than the total number of sections in this picture."
                 ),
                 "interactive_question": {
                     "id": "fractions_l1_screen3",
@@ -110,7 +118,7 @@ COURSES = {
                                 "There are 2 different wholes"
                             ],
                             "answer": "The whole is divided into 2 equal parts",
-                            "explanation": "The denominator tells how many equal parts make up one whole.",
+                            "explanation": "The denominator describes how many equal-sized parts make one whole. It is not the number of whole objects, and the parts must be equal.",
                             "mistake_tag": "Meaning of the denominator"
                         },
                         {
@@ -118,7 +126,7 @@ COURSES = {
                             "type": "mc",
                             "stage": "level_1",
                             "skill_tag": "Representing fractions",
-                            "prompt": "Which fraction represents 3 parts out of 5 equal parts?",
+                            "prompt": "A shape is divided into 5 equal parts. You are counting 3 of those parts. Which fraction describes the amount counted?",
                             "options": [
                                 "3/5",
                                 "5/3",
@@ -142,7 +150,7 @@ COURSES = {
                                 "4/5"
                             ],
                             "answer": "4/6",
-                            "explanation": "Multiplying numerator and denominator by 2 gives 4/6.",
+                            "explanation": "2/3 and 4/6 describe the same amount. Multiplying both the numerator and denominator by 2 makes twice as many parts, each half the original size, so the total amount stays unchanged.",
                             "mistake_tag": "Equivalent fractions"
                         },
                         {
@@ -158,7 +166,7 @@ COURSES = {
                                 "1/2"
                             ],
                             "answer": "2/3",
-                            "explanation": "2/3 is about 0.667, greater than 5/8 (0.625), 3/5 (0.6), and 1/2 (0.5).",
+                            "explanation": "Use denominator 120 to compare: 3/5 = 72/120, 5/8 = 75/120, 2/3 = 80/120, and 1/2 = 60/120. Therefore 2/3 is greatest. This checks the comparison using equal-sized parts rather than guessing from the numerators.",
                             "mistake_tag": "Comparing fractions"
                         },
                         {
@@ -178,7 +186,7 @@ COURSES = {
                             "mistake_tag": "Applying fractions in context"
                         }
                     ],
-                    "prerequisite_review": "A fraction names equal parts of one whole. The numerator is the top number and counts the parts being considered. The denominator is the bottom number and tells how many equal parts make up the whole. Make sure the parts are equal before naming a fraction.",
+                    "prerequisite_review": "A fraction describes a portion of one whole or group. The numerator counts the parts being considered; the denominator tells how many equal-sized parts make one whole. The parts must be equal-sized. For example, 3/5 means 3 of the 5 equal parts—not 3 objects out of 5 unrelated objects unless the group is being treated as the whole.",
                     "pathways": {
                         "level_2": {
                             "questions": [
