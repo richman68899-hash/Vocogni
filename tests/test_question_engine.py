@@ -27,7 +27,7 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
             record = question_engine.get_question_record(question_id)
             if record is None:
                 missing.append(question_id)
-            elif record["verification_status"] != "verified":
+            elif record["verification_status"] not in ("verified", "ai_reviewed"):
                 unverified.append((question_id, record["verification_status"], record["verification_issues"]))
         self.assertEqual(missing, [])
         self.assertEqual(unverified, [])
@@ -42,6 +42,63 @@ class VerifiedQuestionEngineTests(unittest.TestCase):
         status, issues = question_engine._verification_status(mutated)
         self.assertEqual(status, "needs_review")
         self.assertTrue(any("reviewed snapshot" in issue for issue in issues))
+
+    def test_ai_review_workflow_preserves_status_and_history_without_human_verification(self):
+        ids = ["fractions_l2_q1", "fractions_l2_q2", "fractions_l2_screen3"]
+        self.assertEqual(question_engine.validate_registry(), [])
+        for question_id in ids:
+            record = question_engine.get_question_record(question_id)
+            self.assertEqual(record["verification_status"], "ai_reviewed")
+            metadata = question_engine.get_review_record(question_id)
+            self.assertEqual(metadata["reviewer_kind"], "ai_assistant")
+            self.assertEqual(metadata["review_evidence_type"], "ai_assisted_content_review")
+            self.assertEqual(metadata["review_independence"], "not_independently_audited")
+            self.assertEqual(metadata["review_history"][0]["verification_status"], "invalidated_stale_snapshot")
+            self.assertTrue(all(metadata["ai_review_checks"].values()))
+        audit = question_engine.audit_question_bank(course_id="fractions", lesson_id="fractions_l2")
+        self.assertEqual(audit["counts"]["ai_reviewed"], 3)
+        self.assertEqual(audit["needs_review_count"], 0)
+        self.assertEqual(audit["review_provenance"]["reviewed_by_reviewer_kind"]["ai_assistant"], 3)
+        # Strict pilot retrieval requires human verification, not AI-reviewed status.
+        selected = question_engine.select_questions(
+            course_id="fractions", lesson_id="fractions_l2", verified_only=True
+        )
+        self.assertFalse(any(item["question_id"] in ids for item in selected))
+
+    def test_re_review_workflow_refreshes_stale_snapshot_and_preserves_prior_review(self):
+        course = copy.deepcopy(data.COURSES["fractions"])
+        lesson = next(item for item in course["lessons"] if item["id"] == "fractions_l2")
+        question = next(item for item in lesson["questions"] if item["id"] == "fractions_l2_q1")
+        question["explanation"] += " (changed for workflow test)"
+        checklist = {key: True for key in question_engine._AI_REVIEW_CHECKS}
+        summary = "Rechecked the changed explanation against 1/4 + 1/4 = 1/2 = 0.5, the answer, numeric tolerance, and question format."
+        original_metadata = copy.deepcopy(question_engine.VERIFICATION_REGISTRY["fractions_l2_q1"])
+        with patch.dict(data.COURSES, {"fractions": course}), patch.dict(
+            question_engine.VERIFICATION_REGISTRY, {"fractions_l2_q1": original_metadata}
+        ):
+            before = question_engine.get_question_record("fractions_l2_q1")
+            self.assertEqual(before["verification_status"], "needs_review")
+            refreshed = question_engine.record_ai_review(
+                "fractions_l2_q1",
+                reviewed_at="2026-11-21",
+                review_summary=summary,
+                ai_review_checks=checklist,
+            )
+            after = question_engine.get_question_record("fractions_l2_q1")
+            self.assertEqual(after["verification_status"], "ai_reviewed")
+            self.assertEqual(refreshed["review_history"][-1]["verification_status"], "ai_reviewed")
+            self.assertEqual(question_engine.validate_registry(), [])
+
+
+
+    def test_ai_review_workflow_rejects_incomplete_checklist(self):
+        with self.assertRaises(ValueError):
+            question_engine.record_ai_review(
+                "fractions_l2_q1",
+                reviewed_at="2026-11-21",
+                review_summary="A sufficiently long summary that does not replace the checklist.",
+                ai_review_checks={"arithmetic_recalculated": True},
+            )
 
     def test_reviewed_classification_metadata_change_invalidates_question(self):
         original = question_engine.get_review_record("fractions_l1_q1")
