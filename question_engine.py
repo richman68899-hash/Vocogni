@@ -118,6 +118,49 @@ def _review(
     return metadata
 
 
+
+def _ai_review(
+    skill_id: str,
+    topic: str,
+    purpose: str,
+    difficulty: int,
+    reviewed_content: dict[str, Any],
+    *,
+    review_summary: str,
+    prior_reviewed_content: dict[str, Any],
+    pathway: str | None = None,
+    grade_bands: tuple[int, ...] | None = None,
+) -> dict[str, Any]:
+    """Declare transparent AI-assisted review; this is not human verification."""
+    metadata = _review(
+        skill_id, topic, purpose, difficulty, reviewed_content,
+        pathway=pathway, grade_bands=grade_bands,
+    )
+    metadata.update({
+        "version": 2,
+        "verification_status": "ai_reviewed",
+        "reviewer": "AI-assisted content review (ChatGPT)",
+        "reviewer_kind": "ai_assistant",
+        "review_evidence_type": "ai_assisted_content_review",
+        "review_independence": "not_independently_audited",
+        "review_summary": review_summary,
+        "ai_review_checks": {check: True for check in sorted(_AI_REVIEW_CHECKS)},
+        "review_history": [{
+            "version": 1,
+            "verification_status": "invalidated_stale_snapshot",
+            "reviewed_at": "2026-10-25",
+            "reviewer_kind": "internal_team",
+            "review_evidence_type": "seed_content_review",
+            "review_summary": "Earlier seed review snapshot was invalidated when authored explanations changed.",
+            "reviewed_content": deepcopy(prior_reviewed_content),
+        }],
+    })
+    metadata["reviewed_metadata"] = _reviewed_metadata_payload(metadata)
+    return metadata
+
+
+
+
 # Initial seed items were individually reviewed against their authored prompt,
 # answer, explanation, and applicable option/input rules. This is intentionally
 # a small bank; all other content remains legacy until it is reviewed.
@@ -155,7 +198,7 @@ VERIFICATION_REGISTRY = {
             "mistake_tag": "Representing fractions",
         },
     ),
-    "fractions_l2_q1": _review(
+    "fractions_l2_q1": _ai_review(
         "math.number.fraction_operations", "Fraction addition", "practice", 1,
         {
             "type": "numeric",
@@ -164,11 +207,18 @@ VERIFICATION_REGISTRY = {
             "tolerance": 0.01,
             "whole_number": False,
             "input_hint": "e.g. 0.5",
-            "explanation": "1/4 + 1/4 = 2/4 = 0.5.",
+            "explanation": "Add the numerators because both fractions are quarters: 1 + 1 = 2, so the result is 2/4. Simplify 2/4 to 1/2, which is 0.5.",
+            "mistake_tag": "Addition error",
+        },
+        review_summary="Recalculated 1/4 + 1/4 as 2/4 = 1/2 = 0.5; the decimal prompt, tolerance, and step-by-step explanation are appropriate.",
+        prior_reviewed_content={
+            "type": "numeric", "prompt": "What is 1/4 + 1/4? Enter your answer as a decimal.",
+            "answer": 0.5, "tolerance": 0.01, "whole_number": False,
+            "input_hint": "e.g. 0.5", "explanation": "1/4 + 1/4 = 2/4 = 0.5.",
             "mistake_tag": "Addition error",
         },
     ),
-    "fractions_l2_q2": _review(
+    "fractions_l2_q2": _ai_review(
         "math.number.fraction_operations", "Fraction addition", "practice", 1,
         {
             "type": "numeric",
@@ -177,17 +227,31 @@ VERIFICATION_REGISTRY = {
             "tolerance": 0.01,
             "whole_number": False,
             "input_hint": "e.g. 0.6",
-            "explanation": "1/5 + 2/5 = 3/5 = 0.6.",
+            "explanation": "Add the numerators: 1 + 2 = 3. Keep the denominator 5 to get 3/5. Convert 3/5 to a decimal: 3 ÷ 5 = 0.6.",
+            "mistake_tag": "Addition error",
+        },
+        review_summary="Recalculated 1/5 + 2/5 as 3/5 = 0.6; the numeric answer and decimal conversion explanation are correct and suitable for the prompt.",
+        prior_reviewed_content={
+            "type": "numeric", "prompt": "What is 1/5 + 2/5? Enter your answer as a decimal.",
+            "answer": 0.6, "tolerance": 0.01, "whole_number": False,
+            "input_hint": "e.g. 0.6", "explanation": "1/5 + 2/5 = 3/5 = 0.6.",
             "mistake_tag": "Addition error",
         },
     ),
-    "fractions_l2_screen3": _review(
+    "fractions_l2_screen3": _ai_review(
         "math.number.fraction_operations", "Fraction addition", "practice", 1,
         {
             "type": "mc",
             "prompt": "What is 1/6 + 3/6?",
             "options": ["4/6", "4/12", "3/6", "1/3"],
             "answer": "4/6",
+            "explanation": "The denominators are both 6, so add only the numerators: 1 + 3 = 4. Keep 6 as the denominator to get 4/6. This can then simplify to 2/3.",
+            "mistake_tag": "Addition error",
+        },
+        review_summary="Recalculated 1/6 + 3/6 as 4/6 = 2/3; the keyed answer 4/6 is correct, options are unique, and the explanation correctly states addition and simplification.",
+        prior_reviewed_content={
+            "type": "mc", "prompt": "What is 1/6 + 3/6?",
+            "options": ["4/6", "4/12", "3/6", "1/3"], "answer": "4/6",
             "explanation": "The denominators match, so add the numerators: 1 + 3 = 4, giving 4/6 (which can simplify to 2/3).",
             "mistake_tag": "Addition error",
         },
