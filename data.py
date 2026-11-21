@@ -247,8 +247,7 @@ COURSES = {
                                     "type": "mc",
                                     "stage": "practice",
                                     "skill_tag": "Subtracting unlike fractions",
-                                    "prompt": "A ribbon is 3/4 m long. You use 2/5 m. How much remains?",
-                                    "options": [
+                                    "prompt": "A ribbon is 3/4 m long. You use 2/5 m. How much remains?",                                    "options": [
                                         "7/20 m",
                                         "1/20 m",
                                         "1/2 m",
@@ -314,45 +313,58 @@ COURSES = {
                 "title": "Adding Fractions",
                 "kind": "standard",
                 "explanation": (
-                    "When two fractions share the same denominator, you can add "
-                    "them by adding the numerators and keeping the denominator the "
-                    "same.\n\n"
-                    "For example: 1/5 + 2/5 = (1 + 2)/5 = 3/5."
+                    "Fractions with the same denominator name equal-sized parts of the same whole. "
+                    "When the denominators match, add the numerators because you are combining "
+                    "the counted parts. Keep the denominator unchanged: it still tells you "
+                    "how many equal parts make one whole.\n\n"
+                    "**Rule:** a/b + c/b = (a + c)/b. Do not add the denominators. "
+                    "The size of each part has not changed; only the number of parts "
+                    "you are counting has changed.\n\n"
+                    "This lesson focuses on equal denominators. If the denominators differ, "
+                    "the parts are different sizes and need to be made equivalent before "
+                    "they can be combined."
                 ),
                 "worked_example": (
-                    "For 2/7 + 3/7, the denominators are equal. Add the numerators and keep the denominator: "
-                    "2/7 + 3/7 = 5/7. Do not add the denominators."
+                    "**Example 1: 2/7 + 3/7**\n"
+                    "1. Check that both denominators are 7. The parts are the same size.\n"
+                    "2. Combine the numerators: 2 + 3 = 5.\n"
+                    "3. Keep the denominator 7.\n"
+                    "So, 2/7 + 3/7 = 5/7.\n\n"
+                    "**Example 2: 1/4 + 1/4**\n"
+                    "1/4 + 1/4 = 2/4. Two quarters make one half, so 2/4 = 1/2.\n\n"
+                    "You may simplify the answer when possible, but first add the fractions correctly. "
+                    "**Never add the denominators** when the denominators are already equal."
                 ),
                 "interactive_question": {
                     "id": "fractions_l2_screen3",
                     "type": "mc",
-                    "prompt": "What is 1/6 + 3/6?",
+                    "prompt": "Calculate 1/6 + 3/6. Which answer is correct?",
                     "options": ["4/6", "4/12", "3/6", "1/3"],
                     "answer": "4/6",
-                    "explanation": "The denominators match, so add the numerators: 1 + 3 = 4, giving 4/6 (which can simplify to 2/3).",
+                    "explanation": "The denominator 6 is the same in both fractions, so the parts are the same size. Combine the counted parts: 1 + 3 = 4, and keep the denominator 6. The result is 4/6. Divide top and bottom by 2 to simplify it to 2/3.",
                     "mistake_tag": "Addition error",
                 },
                 "questions": [
                     {
                         "id": "fractions_l2_q1",
                         "type": "numeric",
-                        "prompt": "What is 1/4 + 1/4? Enter your answer as a decimal.",
+                        "prompt": "Calculate 1/4 + 1/4. Enter the result as a decimal (for example, 0.5)."
                         "answer": 0.5,
                         "tolerance": 0.01,
                         "whole_number": False,
                         "input_hint": "e.g. 0.5",
-                        "explanation": "1/4 + 1/4 = 2/4 = 0.5.",
+                        "explanation": "The denominators are equal, so add 1 + 1 = 2 and keep 4: 2/4. Two quarters are one half, which is 0.5.",
                         "mistake_tag": "Addition error",
                     },
                     {
                         "id": "fractions_l2_q2",
                         "type": "numeric",
-                        "prompt": "What is 1/5 + 2/5? Enter your answer as a decimal.",
+                        "prompt": "A student has 1/5 of a ribbon and receives another 2/5 of the same ribbon. What fraction of the ribbon do they have altogether? Enter as a decimal.",
                         "answer": 0.6,
                         "tolerance": 0.01,
                         "whole_number": False,
                         "input_hint": "e.g. 0.6",
-                        "explanation": "1/5 + 2/5 = 3/5 = 0.6.",
+                        "explanation": "Both fractions describe fifths, so combine the counted parts: 1 + 2 = 3 and keep the denominator 5. This gives 3/5 = 0.6.",
                         "mistake_tag": "Addition error",
                     },
                 ],
@@ -497,8 +509,7 @@ COURSES = {
                                 "16",
                                 "13"
                             ],
-                            "answer": "15",
-                            "explanation": "Basic arithmetic supports later work with unknown values.",
+                            "answer": "15",                            "explanation": "Basic arithmetic supports later work with unknown values.",
                             "mistake_tag": "Basic arithmetic"
                         },
                         {
@@ -747,8 +758,7 @@ COURSES = {
                 "id": "algebra_l3",
                 "title": "Working with Negative Numbers",
                 "kind": "standard",
-                "explanation": (
-                    "Watch the sign carefully when an equation involves negative "
+                "explanation": (                    "Watch the sign carefully when an equation involves negative "
                     "numbers. Subtracting a negative is the same as adding, and "
                     "dividing by a negative flips the sign of the answer.\n\n"
                     "For example: x - 5 = -2, so x = -2 + 5 = 3."
@@ -997,8 +1007,7 @@ COURSES = {
                                     "prompt": "A ride costs Rp10,000 plus Rp2,000 per kilometre. Two people share the cost of an 8 km ride equally. How much does each pay?",
                                     "options": [
                                         "Rp13,000",
-                                        "Rp26,000",
-                                        "Rp16,000",
+                                        "Rp26,000",                                        "Rp16,000",
                                         "Rp12,000"
                                     ],
                                     "answer": "Rp13,000",
@@ -1247,8 +1256,7 @@ COURSE_CATEGORIES = [
 COURSE_SUBJECTS = [
     {"id": "mathematics", "label": "Mathematics"},
     {"id": "chemistry", "label": "Chemistry"},
-    {"id": "physics", "label": "Physics"},
-    {"id": "biology", "label": "Biology"},
+    {"id": "physics", "label": "Physics"},    {"id": "biology", "label": "Biology"},
     {"id": "english", "label": "English"},
     {"id": "computer_science", "label": "Computer Science"},
     {"id": "other", "label": "Other"},
