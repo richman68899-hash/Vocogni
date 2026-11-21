@@ -314,14 +314,27 @@ COURSES = {
                 "title": "Adding Fractions",
                 "kind": "standard",
                 "explanation": (
-                    "When two fractions share the same denominator, you can add "
-                    "them by adding the numerators and keeping the denominator the "
-                    "same.\n\n"
-                    "For example: 1/5 + 2/5 = (1 + 2)/5 = 3/5."
+                    "This lesson adds fractions that have the same denominator (the same-sized parts). "
+                    "The denominator tells us the size of each part, so it stays the same when we combine "
+                    "parts of that size. The numerator tells us how many parts we have, so we add the "
+                    "numerators.\\n\\n"
+                    "Rule: a/b + c/b = (a + c)/b, when the denominators are equal.\\n\\n"
+                    "Example: 2/7 + 3/7 means 2 sevenths plus 3 sevenths. That is 5 sevenths, or 5/7. "
+                    "Do not add the denominators: 7 still describes the size of each part.\\n\\n"
+                    "This rule applies when the denominators match. If they are different, first rewrite "
+                    "the fractions as equivalent fractions with a common denominator."
                 ),
                 "worked_example": (
-                    "For 2/7 + 3/7, the denominators are equal. Add the numerators and keep the denominator: "
-                    "2/7 + 3/7 = 5/7. Do not add the denominators."
+                    "**Example 1: 2/7 + 3/7**\\n"
+                    "1. Check the denominators: both are 7, so the parts are the same size.\\n"
+                    "2. Add the numerators: 2 + 3 = 5.\\n"
+                    "3. Keep the denominator 7.\\n"
+                    "Answer: 5/7.\\n\\n"
+                    "**Example 2: 1/4 + 1/4**\\n"
+                    "1. The denominators match, so add the numerators: 1 + 1 = 2.\\n"
+                    "2. Keep the denominator: 2/4.\\n"
+                    "3. Simplify by dividing both numbers by 2: 2/4 = 1/2.\\n"
+                    "Answer: 1/2."
                 ),
                 "interactive_question": {
                     "id": "fractions_l2_screen3",
@@ -329,7 +342,10 @@ COURSES = {
                     "prompt": "What is 1/6 + 3/6?",
                     "options": ["4/6", "4/12", "3/6", "1/3"],
                     "answer": "4/6",
-                    "explanation": "The denominators match, so add the numerators: 1 + 3 = 4, giving 4/6 (which can simplify to 2/3).",
+                    "explanation": (
+                        "The denominators are both 6, so add only the numerators: 1 + 3 = 4. "
+                        "Keep 6 as the denominator to get 4/6. This can then simplify to 2/3."
+                    ),
                     "mistake_tag": "Addition error",
                 },
                 "questions": [
@@ -341,7 +357,10 @@ COURSES = {
                         "tolerance": 0.01,
                         "whole_number": False,
                         "input_hint": "e.g. 0.5",
-                        "explanation": "1/4 + 1/4 = 2/4 = 0.5.",
+                        "explanation": (
+                            "Add the numerators because both fractions are quarters: 1 + 1 = 2, so the result is 2/4. "
+                            "Simplify 2/4 to 1/2, which is 0.5."
+                        ),
                         "mistake_tag": "Addition error",
                     },
                     {
@@ -352,7 +371,10 @@ COURSES = {
                         "tolerance": 0.01,
                         "whole_number": False,
                         "input_hint": "e.g. 0.6",
-                        "explanation": "1/5 + 2/5 = 3/5 = 0.6.",
+                        "explanation": (
+                            "Add the numerators: 1 + 2 = 3. Keep the denominator 5 to get 3/5. "
+                            "Convert 3/5 to a decimal: 3 ÷ 5 = 0.6."
+                        ),
                         "mistake_tag": "Addition error",
                     },
                 ],
