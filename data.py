@@ -384,14 +384,22 @@ COURSES = {
                 "title": "Simplifying Fractions",
                 "kind": "standard",
                 "explanation": (
-                    "Simplifying a fraction means dividing the numerator and "
-                    "denominator by the same number until they share no common "
-                    "factor other than 1.\n\n"
-                    "For example: 4/8 — both divide evenly by 4 — simplifies to 1/2."
+                    "Simplifying a fraction means writing an equivalent fraction with smaller numbers. "
+                    "You must divide the numerator AND denominator by the same non-zero number, because "
+                    "this keeps the fraction's value unchanged.\\n\\n"
+                    "A common factor is a number that divides both parts exactly. Keep simplifying while "
+                    "a common factor greater than 1 remains; the fraction is in simplest form when the "
+                    "numerator and denominator have no common factor other than 1.\\n\\n"
+                    "You can divide by the greatest common factor in one step, or by smaller common "
+                    "factors in several steps."
                 ),
                 "worked_example": (
-                    "To simplify 12/18, divide both numbers by their greatest common factor, 6: "
-                    "12 ÷ 6 = 2 and 18 ÷ 6 = 3, so 12/18 = 2/3."
+                    "**Simplify 12/18**\\n"
+                    "1. Find a common factor of 12 and 18. Their greatest common factor is 6.\\n"
+                    "2. Divide both by 6: 12 ÷ 6 = 2 and 18 ÷ 6 = 3.\\n"
+                    "3. Write the equivalent fraction: 12/18 = 2/3.\\n"
+                    "4. Check: 2 and 3 have no common factor greater than 1, so 2/3 is simplest.\\n\\n"
+                    "You could also divide both numbers by 2 first (12/18 = 6/9), then by 3 (6/9 = 2/3)."
                 ),
                 "interactive_question": {
                     "id": "fractions_l3_screen3",
@@ -399,7 +407,10 @@ COURSES = {
                     "prompt": "What is 8/12 in its simplest form?",
                     "options": ["2/3", "4/6", "1/3", "8/6"],
                     "answer": "2/3",
-                    "explanation": "Divide numerator and denominator by 4: 8/12 = 2/3. The fraction 4/6 can be simplified again.",
+                    "explanation": (
+                        "Divide both parts by the same common factor, 4: 8 ÷ 4 = 2 and 12 ÷ 4 = 3. "
+                        "So 8/12 = 2/3. 4/6 is equivalent, but it can still be simplified."
+                    ),
                     "mistake_tag": "Incorrect simplification",
                 },
                 "questions": [
@@ -410,8 +421,8 @@ COURSES = {
                         "options": ["1/2", "2/4", "1/4", "4/8"],
                         "answer": "1/2",
                         "explanation": (
-                            "4 and 8 share a common factor of 4. Dividing both by "
-                            "4 gives 1/2."
+                            "Divide both 4 and 8 by 4. This gives 1/2. "
+                            "2/4 is equivalent, but it is not yet in simplest form."
                         ),
                         "mistake_tag": "Incorrect simplification",
                     },
@@ -424,8 +435,8 @@ COURSES = {
                         "whole_number": True,
                         "input_hint": "whole number",
                         "explanation": (
-                            "6 and 9 share a common factor of 3. Dividing both by "
-                            "3 gives 2/3, so the new denominator is 3."
+                            "Divide numerator and denominator by their common factor, 3: "
+                            "6 ÷ 3 = 2 and 9 ÷ 3 = 3. The simplest fraction is 2/3, so its denominator is 3."
                         ),
                         "mistake_tag": "Incorrect simplification",
                     },
