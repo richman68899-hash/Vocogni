@@ -311,6 +311,15 @@ COURSES = {
                         ),
                         "mistake_tag": "Denominator confusion",
                     },
+                    {
+                        "id": "fractions_l1_q3",
+                        "type": "mc",
+                        "prompt": "What does 7/5 represent?",
+                        "options": ["7 wholes", "2/5 of a whole", "1 whole and 2/5 more", "1/7 of a whole"],
+                        "answer": "1 whole and 2/5 more",
+                        "explanation": "Five fifths make one whole. The remaining two fifths give 7/5 = 5/5 + 2/5 = 1 2/5.",
+                        "mistake_tag": "Fractions greater than one",
+                    },
                 ],
             },
             {
