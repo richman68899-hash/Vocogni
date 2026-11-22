@@ -118,7 +118,7 @@ The failing workflow is a valid product-quality gate, not a test-runner problem.
 ## Follow-on order
 
 1. Keep the two Phase 1 test repairs from #207; their Python and diagnostics CI checks pass after merge.
-2. Close the concurrent synthetic-backup no-clobber defect with its regression test in the follow-up PR; do not claim it is fixed until that PR's CI passes.
+2. Review [PR #208](https://github.com/richman68899-hash/Vocogni/pull/208), which implements the concurrent synthetic-backup no-clobber fix and adds a regression test. Do not treat it as validated until its CI checks pass.
 3. Phase 2 remains open: obtain qualified independent mathematics review for the intended pilot scope; create or revise application/reasoning items where transfer is claimed; rerun the strict audit without falsifying verification status.
 4. Phase 3 remains open: an accountable adult operator and qualified Indonesian counsel must decide legal eligibility, child profiling, age assurance, guardian authorisation, required assessments/notices/registrations, and feature scope. An independent technical reviewer must verify production identity, database isolation, secrets, providers, retention/deletion, backup restore, monitoring, incident response, and rollback.
 5. Do not unlock real learners or declare release-ready until the exact release configuration has evidence for all required gates. Phase 4 learner acceptance starts only after those adult-led legal, safeguarding, and infrastructure gates are satisfied.
