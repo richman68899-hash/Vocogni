@@ -121,15 +121,15 @@ COURSES = {
                             "type": "mc",
                             "stage": "prerequisite",
                             "skill_tag": "Meaning of the denominator",
-                            "prompt": "In 1/2, what does the bottom number 2 tell you?",
+                            "prompt": "If a whole is divided into 4 parts to represent fourths, what must be true about those parts?",
                             "options": [
-                                "The whole is divided into 2 equal parts",
-                                "You have 2 whole objects",
-                                "The top number is 2",
-                                "There are 2 different wholes"
+                                "All 4 parts must be equal-sized",
+                                "One part must be larger than the other 3",
+                                "The parts can be any sizes as long as there are 4",
+                                "Each part must be a separate whole"
                             ],
-                            "answer": "The whole is divided into 2 equal parts",
-                            "explanation": "The denominator describes how many equal-sized parts make one whole. It is not the number of whole objects, and the parts must be equal.",
+                            "answer": "All 4 parts must be equal-sized",
+                            "explanation": "A denominator of 4 means the whole is partitioned into 4 equal-sized parts. If the parts are unequal, they cannot all represent fourths, even if there are 4 pieces.",
                             "mistake_tag": "Meaning of the denominator"
                         },
                         {
