@@ -135,7 +135,6 @@ def save_synthetic_learner_backup(snapshot: dict[str, Any]) -> None:
             delete=False,
         ) as temporary:
             json.dump(payload, temporary, ensure_ascii=False, indent=2, allow_nan=False)
-            temporary.write("\\n")
             temporary_path = Path(temporary.name)
         # Recheck immediately before replacement so a concurrent session does
         # not silently replace a backup that another session just created.
