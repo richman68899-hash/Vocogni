@@ -77,9 +77,19 @@ class LocalDeveloperPersistenceTests(unittest.TestCase):
                 record_exists=True,
             )
 
-    def test_supabase_is_explicitly_unavailable_in_local_mode(self):
-        with self.assertRaisesRegex(RuntimeError, "Supabase is disabled"):
-            persistence.get_supabase()
+    def test_supabase_is_not_imported_in_local_mode(self):
+        import builtins
+
+        original_import = builtins.__import__
+
+        def reject_supabase_import(name, *args, **kwargs):
+            if name == "supabase" or name.startswith("supabase."):
+                raise AssertionError("Local Developer Mode must not import Supabase.")
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=reject_supabase_import):
+            with self.assertRaisesRegex(RuntimeError, "Supabase is disabled"):
+                persistence.get_supabase()
 
 
 class SyntheticLearnerTests(unittest.TestCase):
