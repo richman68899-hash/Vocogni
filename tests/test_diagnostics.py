@@ -282,5 +282,30 @@ class DiagnosticEngineTests(unittest.TestCase):
         self.assertIn("one whole", worked_example)
         self.assertIn("greater than the denominator", worked_example)
 
+
+    def test_simplifying_fractions_diagnostic_is_complete_and_valid(self):
+        lesson = next(
+            lesson
+            for course in data.all_courses_in_order()
+            for lesson in course["lessons"]
+            if lesson.get("id") == "fractions_l3"
+        )
+        config = lesson["diagnostic"]
+        self.assertEqual(diagnostics.validate_diagnostic_config(config), [])
+        questions = config["questions"]
+        self.assertEqual(len(questions), 5)
+        self.assertEqual(
+            [q["stage"] for q in questions],
+            ["prerequisite", "level_1", "level_2", "level_3", "project"],
+        )
+        ids = [q["id"] for q in questions]
+        self.assertEqual(len(ids), len(set(ids)))
+        for q in questions:
+            self.assertEqual(len(q["options"]), len(set(q["options"])))
+            self.assertIn(q["answer"], q["options"])
+            self.assertTrue(q["explanation"])
+        for pathway in ("level_2", "level_3", "project"):
+            self.assertTrue(config["pathways"][pathway]["questions"])
+
 if __name__ == "__main__":
     unittest.main()
