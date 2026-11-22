@@ -115,7 +115,6 @@ class LocalDeveloperPersistenceTests(unittest.TestCase):
 
         with self.assertRaises(FileExistsError):
             persistence.save_synthetic_learner_backup(snapshot)
-            )
 
         persistence.clear_synthetic_learner_backup()
         self.assertFalse(persistence.synthetic_learner_backup_exists())
