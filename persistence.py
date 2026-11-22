@@ -85,6 +85,108 @@ def _local_developer_data_path() -> Path:
     return LOCAL_DEVELOPER_DATA_DIR / "learner_progress.json"
 
 
+def _synthetic_learner_backup_path() -> Path:
+    return LOCAL_DEVELOPER_DATA_DIR / "pre_synthetic_learner.json"
+
+
+def synthetic_learner_backup_exists() -> bool:
+    """Return True when a pre-synthetic local learner snapshot is available."""
+    return _synthetic_learner_backup_path().is_file()
+
+
+def save_synthetic_learner_backup(snapshot: dict[str, Any]) -> None:
+    """Atomically preserve the current local workspace before loading sample data.
+
+    An existing backup is never overwritten. Its presence means a synthetic
+    learner session is already active and protects the original workspace.
+    """
+    if not local_developer_mode_enabled():
+        raise RuntimeError("Synthetic learner backups are available only in Local Developer Mode.")
+    if not isinstance(snapshot, dict):
+        raise TypeError("The learner backup must be a dictionary.")
+
+    required_keys = {
+        "profile", "progress", "notes", "whiteboards", "note_folders",
+        "next_note_folder_id", "milestones", "next_milestone_id",
+        "settings", "streak_garden", "next_note_id",
+    }
+    if not required_keys.issubset(snapshot):
+        missing = ", ".join(sorted(required_keys - set(snapshot)))
+        raise ValueError(f"The learner backup is incomplete. Missing: {missing}")
+
+    path = _synthetic_learner_backup_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        raise FileExistsError("A synthetic learner backup already exists. Restore it before loading another sample.")
+
+    payload = {
+        "schema_version": 1,
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+        "learner_state": snapshot,
+    }
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix="pre_synthetic_learner.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            json.dump(payload, temporary, ensure_ascii=False, indent=2, allow_nan=False)
+            temporary.write("\\n")
+            temporary_path = Path(temporary.name)
+        # Recheck immediately before replacement so a concurrent session does
+        # not silently replace a backup that another session just created.
+        if path.exists():
+            raise FileExistsError(
+                "A synthetic learner backup was created by another session."
+            )
+        os.replace(temporary_path, path)
+    except (OSError, TypeError, ValueError) as exc:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise RuntimeError("Vocogni could not preserve the pre-synthetic learner workspace.") from exc
+
+
+def load_synthetic_learner_backup() -> dict[str, Any]:
+    """Load and validate the original workspace snapshot for restoration."""
+    if not local_developer_mode_enabled():
+        raise RuntimeError("Synthetic learner backups are available only in Local Developer Mode.")
+
+    path = _synthetic_learner_backup_path()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("The pre-synthetic workspace backup could not be read. It was left unchanged.") from exc
+
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != 1
+        or not isinstance(payload.get("learner_state"), dict)
+    ):
+        raise RuntimeError("The pre-synthetic workspace backup has an invalid format. It was left unchanged.")
+
+    snapshot = payload["learner_state"]
+    required_keys = {
+        "profile", "progress", "notes", "whiteboards", "note_folders",
+        "next_note_folder_id", "milestones", "next_milestone_id",
+        "settings", "streak_garden", "next_note_id",
+    }
+    if not required_keys.issubset(snapshot):
+        raise RuntimeError("The pre-synthetic workspace backup is incomplete. It was left unchanged.")
+
+    return snapshot
+
+
+def clear_synthetic_learner_backup() -> None:
+    """Remove the pre-synthetic snapshot only after restoration has been saved."""
+    if not local_developer_mode_enabled():
+        raise RuntimeError("Synthetic learner backups are available only in Local Developer Mode.")
+    _synthetic_learner_backup_path().unlink(missing_ok=True)
+
+
 def _load_local_progress_record() -> dict[str, Any]:
     """Read the developer's isolated JSON file; never contact a remote service."""
     path = _local_developer_data_path()
