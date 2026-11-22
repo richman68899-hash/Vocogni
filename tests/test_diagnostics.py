@@ -307,6 +307,16 @@ class DiagnosticEngineTests(unittest.TestCase):
         for pathway in ("level_2", "level_3", "project"):
             self.assertTrue(config["pathways"][pathway]["questions"])
 
+    def test_grade7_fraction_foundation_explains_equivalent_fractions_and_common_error(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l1")
+        worked_example = lesson["worked_example"]
+
+        for concept in ("Example 3: equivalent fractions", "3/4 = 6/8", "multiplied by 2"):
+            with self.subTest(concept=concept):
+                self.assertIn(concept, worked_example)
+        self.assertIn("not equal to 3/8", worked_example)
+
+
     def test_grade7_fraction_practice_checks_amount_above_one(self):
         lesson, _ = data.get_lesson("fractions", "fractions_l1")
         question = next(
