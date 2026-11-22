@@ -56,6 +56,17 @@ class DiagnosticEngineTests(unittest.TestCase):
                     [],
                 )
 
+    def test_grade7_fractions_prerequisite_checks_equal_partitioning(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l1")
+        question = lesson["diagnostic"]["questions"][0]
+        self.assertEqual(question["stage"], "prerequisite")
+        self.assertIn("fourths", question["prompt"])\n        self.assertIn("equal-sized", question["answer"])
+        self.assertEqual(question["answer"], "All 4 parts must be equal-sized")
+        self.assertIn("unequal", question["explanation"])
+        self.assertEqual(len(question["options"]), 4)
+        self.assertEqual(len(set(question["options"])), 4)
+
+
     def test_all_configured_model_answers_route_to_project(self):
         for course, lesson in configured_lessons():
             config = lesson["diagnostic"]
