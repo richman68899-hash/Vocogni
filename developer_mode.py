@@ -216,3 +216,52 @@ def build_synthetic_learner_state() -> dict[str, Any]:
         "streak_garden": default_garden_state(),
         "next_note_id": 2,
     }
+
+def is_synthetic_learner_state(learner_state: Any) -> bool:
+    """Detect this module's sample profile, including partially edited samples.
+
+    The backup file is the authoritative active-mode marker for newly loaded
+    samples. These content markers support cleanly exiting samples created by
+    older versions that did not preserve the previous workspace.
+    """
+    if not isinstance(learner_state, dict):
+        return False
+
+    profile = learner_state.get("profile")
+    if isinstance(profile, dict):
+        if (
+            profile.get("name") == "Synthetic Developer Learner"
+            or profile.get("description") == "Synthetic developer data. Not a real learner record."
+        ):
+            return True
+
+    notes = learner_state.get("notes")
+    if isinstance(notes, list) and any(
+        isinstance(note, dict) and note.get("title") == "Developer test note"
+        for note in notes
+    ):
+        return True
+
+    progress = learner_state.get("progress")
+    if isinstance(progress, dict):
+        for course_progress in progress.values():
+            if not isinstance(course_progress, dict):
+                continue
+            diagnostics = course_progress.get("diagnostics")
+            if isinstance(diagnostics, dict) and any(
+                isinstance(item, dict)
+                and item.get("outcome_label") == "Synthetic developer baseline"
+                for item in diagnostics.values()
+            ):
+                return True
+            attempts_by_lesson = course_progress.get("practice_attempts")
+            if isinstance(attempts_by_lesson, dict):
+                for attempts in attempts_by_lesson.values():
+                    if isinstance(attempts, list) and any(
+                        isinstance(attempt, dict)
+                        and str(attempt.get("attempt_id", "")).startswith("local-sample-")
+                        for attempt in attempts
+                    ):
+                        return True
+
+    return False
