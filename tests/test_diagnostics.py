@@ -60,7 +60,7 @@ class DiagnosticEngineTests(unittest.TestCase):
         lesson, _ = data.get_lesson("fractions", "fractions_l1")
         question = lesson["diagnostic"]["questions"][0]
         self.assertEqual(question["stage"], "prerequisite")
-        self.assertIn("equal-sized", question["prompt"])
+        self.assertIn("fourths", question["prompt"])\n        self.assertIn("equal-sized", question["answer"])
         self.assertEqual(question["answer"], "All 4 parts must be equal-sized")
         self.assertIn("unequal", question["explanation"])
         self.assertEqual(len(question["options"]), 4)
