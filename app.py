@@ -231,42 +231,171 @@ def _request_uses_loopback_host() -> bool:
     return hostname in {"localhost", "127.0.0.1", "::1"}
 
 
+_LOCAL_PERSISTENT_STATE_KEYS = {
+    "profile",
+    "progress",
+    "notes",
+    "whiteboards",
+    "note_folders",
+    "next_note_folder_id",
+    "milestones",
+    "next_milestone_id",
+    "settings",
+    "streak_garden",
+    "next_note_id",
+}
+
+
+def _apply_local_learner_snapshot(snapshot: dict) -> None:
+    """Replace the durable local learner bundle and clear transient UI state."""
+    if not isinstance(snapshot, dict) or not _LOCAL_PERSISTENT_STATE_KEYS.issubset(snapshot):
+        raise ValueError("The learner snapshot is incomplete and cannot be restored safely.")
+
+    for key in _LOCAL_PERSISTENT_STATE_KEYS:
+        st.session_state[key] = snapshot[key]
+
+    state.reset_transient_learning_state()
+    st.session_state.nav = "Browse"
+
+
 def _render_local_developer_tools() -> None:
-    """Expose local-only tools while keeping every original application section."""
+    """Expose local-only tools, including reversible synthetic learner testing."""
     st.info(
         "Local developer workspace · data is stored on this computer in "
         ".vocogni_dev/learner_progress.json. This entry point does not use "
         "Auth0 or Supabase."
     )
     with st.expander("Developer tools", expanded=False):
-        st.caption(
-            "Load a synthetic learner profile with verified practice evidence "
-            "to inspect Learning Intelligence, skill trends, recommendations, "
-            "Mastery Receipt, and Coach. Loading it replaces this local workspace's "
-            "current learner data."
+        st.markdown(
+            "**Synthetic learner mode** uses a fictional Grade 8 profile and "
+            "generated practice/diagnostic evidence based on Vocogni's verified "
+            "question catalogue. It populates Progress, Learning Intelligence, "
+            "recommendations, Mastery Receipt, Coach, and Notes so you can test "
+            "those screens without entering real learner data. It is test data, "
+            "not a real learner or evidence of actual learning outcomes."
         )
-        if st.button(
-            "Load synthetic sample learner",
-            key="load_local_synthetic_learner",
-            type="primary",
-        ):
-            try:
-                from developer_mode import build_synthetic_learner_state
 
-                sample = build_synthetic_learner_state()
-                for key, value in sample.items():
-                    st.session_state[key] = value
-                state.mark_persistent_dirty()
-                if not state.flush_persistent_save():
-                    st.error(
-                        "The synthetic data was loaded into this session but could "
-                        "not be saved to the local workspace. Check the save status."
-                    )
-                    return
-                st.toast("Synthetic learner data saved locally.", icon="✅")
-                st.rerun()
-            except Exception as exc:
-                st.error(f"Could not build the synthetic learner dataset: {exc}")
+        current_snapshot = state._build_persistent_state()
+        has_backup = persistence.synthetic_learner_backup_exists()
+
+        from developer_mode import is_synthetic_learner_state
+
+        legacy_sample_detected = (
+            not has_backup and is_synthetic_learner_state(current_snapshot)
+        )
+
+        if has_backup:
+            st.success(
+                "Synthetic learner mode is active. Your previous local workspace "
+                "has been backed up and can be restored."
+            )
+            st.caption(
+                "Exiting restores the exact learner data that was present before "
+                "the sample was loaded. Any changes made while using the synthetic "
+                "learner will be discarded."
+            )
+            if st.button(
+                "Exit synthetic learner and restore previous workspace",
+                key="exit_synthetic_restore_previous",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    previous_snapshot = persistence.load_synthetic_learner_backup()
+                    _apply_local_learner_snapshot(previous_snapshot)
+                    state.mark_persistent_dirty()
+                    restored = state.flush_persistent_save()
+                    if not restored:
+                        st.error(
+                            "The previous workspace is loaded in this session, but "
+                            "saving it did not succeed. Your backup has been kept. "
+                            "Use Retry save, then press Exit again if needed."
+                        )
+                    else:
+                        persistence.clear_synthetic_learner_backup()
+                        st.toast("Previous local workspace restored.", icon="✅")
+                        st.rerun()
+                except Exception as exc:
+                    st.error(f"Could not restore the previous workspace: {exc}")
+
+        elif legacy_sample_detected:
+            st.warning(
+                "This synthetic learner was loaded by an older version of Vocogni. "
+                "That version did not create a backup, so the workspace that existed "
+                "before the sample was loaded cannot be restored automatically."
+            )
+            st.caption(
+                "You can still exit synthetic mode by resetting the local workspace "
+                "to a clean, blank learner. This removes the synthetic profile, "
+                "practice evidence, and test note."
+            )
+            if st.button(
+                "Exit synthetic learner and reset to blank workspace",
+                key="exit_synthetic_reset_blank",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    _apply_local_learner_snapshot(state._build_default_persistent_state())
+                    state.mark_persistent_dirty()
+                    if not state.flush_persistent_save():
+                        st.error(
+                            "The blank workspace is active in this session, but saving "
+                            "failed. Your changes remain pending; use Retry save."
+                        )
+                    else:
+                        st.toast("Synthetic learner removed. Blank workspace restored.", icon="✅")
+                        st.rerun()
+                except Exception as exc:
+                    st.error(f"Could not reset the local workspace: {exc}")
+
+        else:
+            st.caption(
+                "Loading the sample first saves a private backup of your current "
+                "local workspace. Use the Exit button to restore it later."
+            )
+            if st.button(
+                "Load synthetic sample learner",
+                key="activate_local_synthetic_learner",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    from developer_mode import build_synthetic_learner_state
+
+                    sample = build_synthetic_learner_state()
+                    persistence.save_synthetic_learner_backup(current_snapshot)
+                    _apply_local_learner_snapshot(sample)
+                    state.mark_persistent_dirty()
+
+                    if not state.flush_persistent_save():
+                        # Put the original data back into the current session.
+                        # Keep the backup until that original state is confirmed saved.
+                        _apply_local_learner_snapshot(current_snapshot)
+                        state.mark_persistent_dirty()
+                        if state.flush_persistent_save():
+                            persistence.clear_synthetic_learner_backup()
+                        st.error(
+                            "The synthetic sample could not be saved. Your previous "
+                            "workspace has been restored in this session; check the "
+                            "save status before trying again."
+                        )
+                    else:
+                        st.toast("Synthetic learner loaded. Your previous workspace is backed up.", icon="✅")
+                        st.rerun()
+                except Exception as exc:
+                    # If setup failed after creating the backup, restore it rather
+                    # than leaving a half-activated synthetic mode.
+                    if persistence.synthetic_learner_backup_exists():
+                        try:
+                            previous_snapshot = persistence.load_synthetic_learner_backup()
+                            _apply_local_learner_snapshot(previous_snapshot)
+                            state.mark_persistent_dirty()
+                            if state.flush_persistent_save():
+                                persistence.clear_synthetic_learner_backup()
+                        except Exception:
+                            pass
+                    st.error(f"Could not load the synthetic learner: {exc}")
 
 
 def main() -> None:
