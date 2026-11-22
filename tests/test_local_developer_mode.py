@@ -111,8 +111,7 @@ class LocalDeveloperPersistenceTests(unittest.TestCase):
         self.assertEqual(persistence.load_synthetic_learner_backup(), snapshot)
 
         with self.assertRaises(FileExistsError):
-            persistence.save_synthetic_learner_backup(
-                {"profile": {"name": "Would overwrite original"}}
+            persistence.save_synthetic_learner_backup(snapshot)
             )
 
         persistence.clear_synthetic_learner_backup()
