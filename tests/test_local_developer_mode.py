@@ -91,6 +91,33 @@ class LocalDeveloperPersistenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Supabase is disabled"):
                 persistence.get_supabase()
 
+    def test_synthetic_backup_round_trips_and_cannot_be_overwritten(self):
+        snapshot = {
+            "profile": {"name": "Original local workspace"},
+            "progress": {"fractions": {"questions_attempted": 4}},
+            "notes": [{"id": 4, "title": "Keep me"}],
+            "whiteboards": [],
+            "note_folders": [],
+            "next_note_folder_id": 1,
+            "milestones": [],
+            "next_milestone_id": 1,
+            "settings": {"theme": "dark"},
+            "streak_garden": {"trees": []},
+            "next_note_id": 5,
+        }
+
+        persistence.save_synthetic_learner_backup(snapshot)
+        self.assertTrue(persistence.synthetic_learner_backup_exists())
+        self.assertEqual(persistence.load_synthetic_learner_backup(), snapshot)
+
+        with self.assertRaises(FileExistsError):
+            persistence.save_synthetic_learner_backup(
+                {"profile": {"name": "Would overwrite original"}}
+            )
+
+        persistence.clear_synthetic_learner_backup()
+        self.assertFalse(persistence.synthetic_learner_backup_exists())
+
 
 class SyntheticLearnerTests(unittest.TestCase):
     def test_synthetic_records_feed_the_real_adaptive_engine(self):
@@ -109,6 +136,35 @@ class SyntheticLearnerTests(unittest.TestCase):
         self.assertGreaterEqual(trajectories["skills_with_comparable_windows"], 2)
         self.assertGreater(len(plan["actions"]), 0)
         self.assertGreater(len(timeline["events"]), 0)
+
+    def test_legacy_synthetic_sample_is_detected_after_profile_edits(self):
+        from developer_mode import is_synthetic_learner_state
+
+        sample_like = {
+            "profile": {"name": "Renamed sample learner"},
+            "progress": {
+                "fractions": {
+                    "practice_attempts": {
+                        "lesson-1": [
+                            {"attempt_id": "local-sample-0-0", "results": []}
+                        ]
+                    }
+                }
+            },
+            "notes": [],
+        }
+        self.assertTrue(is_synthetic_learner_state(sample_like))
+
+    def test_normal_learner_state_is_not_detected_as_synthetic(self):
+        from developer_mode import is_synthetic_learner_state
+
+        self.assertFalse(
+            is_synthetic_learner_state({
+                "profile": {"name": "Real local learner"},
+                "progress": {},
+                "notes": [],
+            })
+        )
 
 
 if __name__ == "__main__":
