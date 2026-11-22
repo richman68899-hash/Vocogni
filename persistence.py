@@ -56,8 +56,6 @@ import tempfile
 from typing import Any
 
 import streamlit as st
-from postgrest.exceptions import APIError
-from supabase import Client, create_client
 
 
 TABLE_NAME = "learner_progress"
@@ -72,6 +70,15 @@ def local_developer_mode_enabled() -> bool:
     return os.environ.get(LOCAL_DEVELOPER_MODE_ENV, "").strip().casefold() in {
         "1", "true", "yes", "on"
     }
+
+
+def _is_postgrest_api_error(error: Exception) -> bool:
+    """Identify PostgREST API errors without importing its SDK in local mode."""
+    try:
+        from postgrest.exceptions import APIError
+    except Exception:
+        return False
+    return isinstance(error, APIError)
 
 
 def _local_developer_data_path() -> Path:
@@ -229,7 +236,7 @@ def get_user_id() -> str:
 # SUPABASE CLIENT
 # ============================================================================
 
-def get_supabase() -> Client:
+def get_supabase() -> Any:
     """
     Create the server-side Supabase client.
 
@@ -321,6 +328,17 @@ def get_supabase() -> Client:
     # ------------------------------------------------------------------------
     # Create the client
     # ------------------------------------------------------------------------
+
+    # Import the hosted database SDK only when the hosted persistence path is used.
+    # Local Developer Mode uses JSON storage and must not load Supabase/cryptography.
+    try:
+        from supabase import create_client
+    except Exception as exc:
+        raise RuntimeError(
+            "The Supabase SDK could not be loaded. Hosted persistence requires its "
+            "native cryptography dependencies to be permitted by this Windows "
+            "device's application-control policy."
+        ) from exc
 
     return create_client(
         supabase_url.strip(),
@@ -484,9 +502,9 @@ def load_progress_record() -> dict[str, Any]:
             .limit(1)
             .execute()
         )
-    except APIError as exc:
-        raise RuntimeError(_format_database_error(exc)) from exc
     except Exception as exc:
+        if _is_postgrest_api_error(exc):
+            raise RuntimeError(_format_database_error(exc)) from exc
         raise RuntimeError(f"VOCogNI could not contact Supabase: {exc}") from exc
 
     rows = _response_rows(response)
@@ -562,7 +580,9 @@ def save_progress(
 
         response = query.select("user_id, updated_at").execute()
 
-    except APIError as exc:
+    except Exception as exc:
+        if not _is_postgrest_api_error(exc):
+            raise RuntimeError(f"VOCogNI could not save learner data: {exc}") from exc
         message = str(exc).casefold()
         code = str(getattr(exc, "code", "") or "")
         if not record_exists and (code == "23505" or "23505" in message
@@ -573,8 +593,6 @@ def save_progress(
                 "Reload the latest saved data before continuing."
             ) from exc
         raise RuntimeError(_format_database_error(exc)) from exc
-    except Exception as exc:
-        raise RuntimeError(f"VOCogNI could not save learner data: {exc}") from exc
 
     rows = _response_rows(response)
     if not rows:
