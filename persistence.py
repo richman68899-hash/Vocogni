@@ -140,11 +140,9 @@ def save_synthetic_learner_backup(snapshot: dict[str, Any]) -> None:
             temporary.flush()
             os.fsync(temporary.fileno())
 
-        # A separate exists() check followed by os.replace() is not safe:
-        # another session can create the destination between those operations,
-        # and replace() would overwrite that session's backup. Linking the
-        # completed same-directory temporary file creates the destination
-        # atomically only when it does not already exist.
+        # Create the destination without replacement. A hard link on the
+        # same filesystem is atomic and fails with FileExistsError if another
+        # session has already created the backup.
         try:
             os.link(temporary_path, path)
         except FileExistsError:
