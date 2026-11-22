@@ -95,7 +95,14 @@ COURSES = {
                     "**Example 2: a fraction greater than one**\n"
                     "For **7/5**, count seven fifth-sized parts. Five fifths equal one whole, leaving two fifths: "
                     "7/5 = 5/5 + 2/5 = **1 2/5**. A numerator can be greater than the denominator when the amount "
-                    "includes more than one whole."
+                    "includes more than one whole.\n\n"
+                    "**Example 3: equivalent fractions**\n"
+                    "For **3/4** and **6/8**, imagine the same whole:\n"
+                    "1. Divide it into 4 equal parts and count 3: 3/4.\n"
+                    "2. Divide each of those 4 parts in half, making 8 equal parts in total.\n"
+                    "3. The counted amount is now 6 of those 8 parts: 6/8.\n"
+                    "The whole amount did not change, so **3/4 = 6/8**. Both numerator and denominator were multiplied by 2.\n\n"
+                    "**Common mistake:** changing only one part of the fraction changes the amount. For example, 3/4 is not equal to 3/8 because the whole is divided into smaller parts while the counted number stays 3."
                 ),
                 "interactive_question": {
                     "id": "fractions_l1_screen3",
