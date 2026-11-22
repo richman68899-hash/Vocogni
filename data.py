@@ -445,6 +445,119 @@ COURSES = {
                         "mistake_tag": "Incorrect simplification",
                     },
                 ],
+                "diagnostic": {
+                    "version": 1,
+                    "questions": [
+                        {
+                            "id": "fractions_l3_d1",
+                            "type": "mc",
+                            "stage": "prerequisite",
+                            "skill_tag": "Equivalent fractions",
+                            "prompt": "Why does dividing both the numerator and denominator by the same non-zero factor keep a fraction's value unchanged?",
+                            "options": [
+                                "It changes the number of parts and their size proportionally",
+                                "It only changes the numerator",
+                                "It makes every fraction equal to 1",
+                                "It changes the whole being described"
+                            ],
+                            "answer": "It changes the number of parts and their size proportionally",
+                            "explanation": "Dividing both terms by the same factor describes the same amount using fewer, proportionally larger parts.",
+                            "mistake_tag": "Equivalent fractions"
+                        },
+                        {
+                            "id": "fractions_l3_d2",
+                            "type": "mc",
+                            "stage": "level_1",
+                            "skill_tag": "Simplifying by a common factor",
+                            "prompt": "Simplify 15/20 to its simplest form.",
+                            "options": ["3/4", "5/10", "3/5", "15/5"],
+                            "answer": "3/4",
+                            "explanation": "Divide both numerator and denominator by 5: 15/20 = 3/4. The simplified numerator and denominator have no common factor greater than 1.",
+                            "mistake_tag": "Incomplete simplification"
+                        },
+                        {
+                            "id": "fractions_l3_d3",
+                            "type": "mc",
+                            "stage": "level_2",
+                            "skill_tag": "Applying the same divisor",
+                            "prompt": "A student simplifies 18/24 to 9/12 by dividing the numerator by 2 and the denominator by 2. What is the next valid simplification?",
+                            "options": ["3/4, divide both by 3", "9/24, divide only the numerator", "9/6, divide numerator and denominator by different numbers", "18/12, divide only the denominator"],
+                            "answer": "3/4, divide both by 3",
+                            "explanation": "9 and 12 share the factor 3. Dividing both by 3 gives 3/4. Dividing only one term or using different divisors would change the fraction's value.",
+                            "mistake_tag": "Unequal division"
+                        },
+                        {
+                            "id": "fractions_l3_d4",
+                            "type": "mc",
+                            "stage": "level_3",
+                            "skill_tag": "Finding simplest form",
+                            "prompt": "What is the simplest form of 42/56?",
+                            "options": ["3/4", "6/8", "21/28", "7/8"],
+                            "answer": "3/4",
+                            "explanation": "The greatest common factor of 42 and 56 is 14. Divide both by 14 to obtain 3/4; no common factor greater than 1 remains.",
+                            "mistake_tag": "Not fully simplified"
+                        },
+                        {
+                            "id": "fractions_l3_d5",
+                            "type": "mc",
+                            "stage": "project",
+                            "skill_tag": "Simplifying a contextual fraction",
+                            "prompt": "A class has used 24 of 36 identical tickets. Which fraction represents the used tickets in simplest form?",
+                            "options": ["2/3", "3/4", "12/18", "24/12"],
+                            "answer": "2/3",
+                            "explanation": "The used portion is 24/36. Divide both terms by 12 to simplify it to 2/3.",
+                            "mistake_tag": "Applying simplification"
+                        }
+                    ],
+                    "prerequisite_review": "Equivalent fractions describe the same amount. To simplify, divide the numerator and denominator by the same common factor greater than 1. Continue until they have no common factor greater than 1; the greatest common factor can simplify the fraction in one step.",
+                    "pathways": {
+                        "level_2": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l3_l2_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Simplifying by a common factor",
+                                    "prompt": "Simplify 16/24.",
+                                    "options": ["2/3", "4/6", "1/3", "8/24"],
+                                    "answer": "2/3",
+                                    "explanation": "Divide both by 8 to get 2/3.",
+                                    "mistake_tag": "Incomplete simplification"
+                                }
+                            }
+                        },
+                        "level_3": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l3_l3_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Finding simplest form",
+                                    "prompt": "Simplify 63/81 fully.",
+                                    "options": ["7/9", "21/27", "9/12", "3/9"],
+                                    "answer": "7/9",
+                                    "explanation": "Divide both numerator and denominator by 9 to get 7/9.",
+                                    "mistake_tag": "Not fully simplified"
+                                }
+                            }
+                        },
+                        "project": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l3_project_q1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Simplifying a contextual fraction",
+                                    "prompt": "A garden has 30 of its 45 plants flowering. What fraction of the plants are flowering in simplest form?",
+                                    "options": ["2/3", "3/5", "5/6", "30/15"],
+                                    "answer": "2/3",
+                                    "explanation": "30/45 is simplified by dividing both terms by 15, giving 2/3.",
+                                    "mistake_tag": "Applying simplification"
+                                }
+                            }
+                        }
+                    }
+                },
             },
             {
                 "id": "fractions_l4",
