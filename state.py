@@ -508,6 +508,23 @@ def _derive_next_note_id(
 # PERSISTENT STATE SERIALIZATION
 # ===========================================================================
 
+def _build_default_persistent_state() -> dict[str, Any]:
+    """Build a clean learner bundle using the current application defaults."""
+    return {
+        "profile": _default_profile(),
+        "progress": _default_progress(),
+        "notes": [],
+        "whiteboards": [],
+        "note_folders": [],
+        "next_note_folder_id": 1,
+        "milestones": [],
+        "next_milestone_id": 1,
+        "settings": _default_settings(),
+        "streak_garden": default_garden_state(),
+        "next_note_id": 1,
+    }
+
+
 def _build_persistent_state() -> dict[str, Any]:
     """
     Build the durable learner-state bundle sent to persistence.py.
