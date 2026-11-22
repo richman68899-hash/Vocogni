@@ -307,5 +307,18 @@ class DiagnosticEngineTests(unittest.TestCase):
         for pathway in ("level_2", "level_3", "project"):
             self.assertTrue(config["pathways"][pathway]["questions"])
 
+    def test_grade7_fraction_practice_checks_amount_above_one(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l1")
+        question = next(
+            q for q in lesson["questions"] if q["id"] == "fractions_l1_q3"
+        )
+        self.assertEqual(question["type"], "mc")
+        self.assertEqual(question["answer"], "1 whole and 2/5 more")
+        self.assertIn("7/5", question["prompt"])
+        self.assertIn("5/5 + 2/5", question["explanation"])
+        self.assertEqual(len(question["options"]), 4)
+        self.assertEqual(len(question["options"]), len(set(question["options"])))
+        self.assertIn(question["answer"], question["options"])
+
 if __name__ == "__main__":
     unittest.main()
