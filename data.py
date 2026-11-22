@@ -533,7 +533,7 @@ COURSES = {
                                     "explanation": "Divide both by 8 to get 2/3.",
                                     "mistake_tag": "Incomplete simplification"
                                 }
-                            }
+                            ]
                         },
                         "level_3": {
                             "questions": [
@@ -548,7 +548,7 @@ COURSES = {
                                     "explanation": "Divide both numerator and denominator by 9 to get 7/9.",
                                     "mistake_tag": "Not fully simplified"
                                 }
-                            }
+                            ]
                         },
                         "project": {
                             "questions": [
