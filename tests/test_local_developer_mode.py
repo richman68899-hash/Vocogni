@@ -106,14 +106,15 @@ class LocalDeveloperPersistenceTests(unittest.TestCase):
             "next_note_id": 5,
         }
 
+        with self.assertRaisesRegex(ValueError, "learner backup is incomplete"):
+            persistence.save_synthetic_learner_backup({"profile": {"name": "Incomplete"}})
+
         persistence.save_synthetic_learner_backup(snapshot)
         self.assertTrue(persistence.synthetic_learner_backup_exists())
         self.assertEqual(persistence.load_synthetic_learner_backup(), snapshot)
 
         with self.assertRaises(FileExistsError):
-            persistence.save_synthetic_learner_backup(
-                {"profile": {"name": "Would overwrite original"}}
-            )
+            persistence.save_synthetic_learner_backup(snapshot)
 
         persistence.clear_synthetic_learner_backup()
         self.assertFalse(persistence.synthetic_learner_backup_exists())

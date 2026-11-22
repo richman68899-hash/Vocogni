@@ -28,23 +28,6 @@ def configured_lessons():
         if lesson.get("diagnostic")
     ]
 
-
-def deliberately_wrong_answer(question):
-    """Create a wrong response regardless of question input type."""
-    question_type = question.get("type")
-    if question_type == "mc":
-        return next(
-            option for option in question.get("options", [])
-            if option != question.get("answer")
-        )
-    if question_type == "numeric":
-        try:
-            return float(question["answer"]) + 987.0
-        except (TypeError, ValueError):
-            return "deliberately incorrect response"
-    return f"deliberately incorrect response for {question.get('id', 'question')}"
-
-
 class DiagnosticEngineTests(unittest.TestCase):
     def test_all_seed_diagnostics_validate(self):
         lessons = configured_lessons()
@@ -60,7 +43,8 @@ class DiagnosticEngineTests(unittest.TestCase):
         lesson, _ = data.get_lesson("fractions", "fractions_l1")
         question = lesson["diagnostic"]["questions"][0]
         self.assertEqual(question["stage"], "prerequisite")
-        self.assertIn("fourths", question["prompt"])\n        self.assertIn("equal-sized", question["answer"])
+        self.assertIn("fourths", question["prompt"])
+        self.assertIn("equal-sized", question["answer"])
         self.assertEqual(question["answer"], "All 4 parts must be equal-sized")
         self.assertIn("unequal", question["explanation"])
         self.assertEqual(len(question["options"]), 4)
