@@ -563,7 +563,7 @@ COURSES = {
                                     "explanation": "30/45 is simplified by dividing both terms by 15, giving 2/3.",
                                     "mistake_tag": "Applying simplification"
                                 }
-                            }
+                            ]
                         }
                     }
                 },
