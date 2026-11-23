@@ -325,7 +325,7 @@ class DiagnosticEngineTests(unittest.TestCase):
         self.assertEqual(len(question["options"]), len(set(question["options"])))
         self.assertIn(question["answer"], question["options"])
 
-def test_grade7_adding_fractions_diagnostic_is_valid_and_complete(self):
+    def test_grade7_adding_fractions_diagnostic_is_valid_and_complete(self):
         lesson, _ = data.get_lesson("fractions", "fractions_l2")
         config = lesson.get("diagnostic")
         self.assertIsNotNone(config)
