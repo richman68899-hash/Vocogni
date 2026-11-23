@@ -398,6 +398,125 @@ COURSES = {
                         "mistake_tag": "Addition error",
                     },
                 ],
+                "diagnostic": {
+                    "version": 1,
+                    "questions": [
+                        {
+                            "id": "fractions_l2_d1",
+                            "type": "mc",
+                            "stage": "prerequisite",
+                            "skill_tag": "Understanding equal-sized fractional parts",
+                            "prompt": "Why can 2/9 + 4/9 be added by combining the numerators?",
+                            "options": [
+                                "Both fractions count parts of the same size",
+                                "The denominator is always added after the numerator",
+                                "The numerators and denominators are interchangeable",
+                                "Adding fractions always makes the denominator smaller"
+                            ],
+                            "answer": "Both fractions count parts of the same size",
+                            "explanation": "Both fractions use ninths, so each counted part is the same size. The total can be found by combining the number of ninths.",
+                            "mistake_tag": "Understanding equal-sized fractional parts"
+                        },
+                        {
+                            "id": "fractions_l2_d2",
+                            "type": "mc",
+                            "stage": "level_1",
+                            "skill_tag": "Adding same-denominator fractions",
+                            "prompt": "What is 3/8 + 2/8?",
+                            "options": ["5/8", "5/16", "6/8", "1/8"],
+                            "answer": "5/8",
+                            "explanation": "There are 3 eighths and 2 more eighths: 3 + 2 = 5 eighths. Keep the denominator 8.",
+                            "mistake_tag": "Adding same-denominator fractions"
+                        },
+                        {
+                            "id": "fractions_l2_d3",
+                            "type": "mc",
+                            "stage": "level_2",
+                            "skill_tag": "Preserving the denominator",
+                            "prompt": "A learner calculates 2/7 + 3/7 = 5/14. Which correction explains the error?",
+                            "options": [
+                                "Add the numerators but keep 7 because the parts are still sevenths",
+                                "Add both numerators and both denominators to make 5/14",
+                                "Subtract the numerators and keep 7",
+                                "Multiply the numerators and keep 14"
+                            ],
+                            "answer": "Add the numerators but keep 7 because the parts are still sevenths",
+                            "explanation": "The denominator describes the size of each part. Combining sevenths gives five sevenths, not fourteen parts.",
+                            "mistake_tag": "Preserving the denominator"
+                        },
+                        {
+                            "id": "fractions_l2_d4",
+                            "type": "mc",
+                            "stage": "level_3",
+                            "skill_tag": "Simplifying a sum",
+                            "prompt": "Calculate 3/10 + 5/10, then choose the answer in simplest form.",
+                            "options": ["4/5", "8/20", "7/10", "3/5"],
+                            "answer": "4/5",
+                            "explanation": "Add the numerators to get 8/10. Divide numerator and denominator by 2 to simplify to 4/5.",
+                            "mistake_tag": "Simplifying a sum"
+                        },
+                        {
+                            "id": "fractions_l2_d5",
+                            "type": "mc",
+                            "stage": "project",
+                            "skill_tag": "Adding fractions in a measurement context",
+                            "prompt": "A student walks 2/8 km, then another 3/8 km. What total distance did they walk?",
+                            "options": ["5/8 km", "5/16 km", "1/8 km", "6/8 km"],
+                            "answer": "5/8 km",
+                            "explanation": "The distances are both measured in eighths of a kilometre. Add 2 eighths and 3 eighths to get 5/8 km.",
+                            "mistake_tag": "Adding fractions in a measurement context"
+                        }
+                    ],
+                    "prerequisite_review": "Fraction addition with equal denominators works because the parts are the same size. Combine the numerators, keep the denominator, then simplify the result if possible.",
+                    "pathways": {
+                        "level_2": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l2_dpath_m1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Adding same-denominator fractions",
+                                    "prompt": "What is 4/9 + 2/9?",
+                                    "options": ["6/9", "6/18", "2/9", "8/9"],
+                                    "answer": "6/9",
+                                    "explanation": "Add the numerators, 4 + 2 = 6, and keep the denominator 9.",
+                                    "mistake_tag": "Adding same-denominator fractions"
+                                }
+                            ]
+                        },
+                        "level_3": {
+                            "questions": [
+                                {
+                                    "id": "fractions_l2_dpath_h1",
+                                    "type": "mc",
+                                    "stage": "practice",
+                                    "skill_tag": "Simplifying fraction sums",
+                                    "prompt": "What is 5/12 + 7/12 in simplest form?",
+                                    "options": ["1", "12/24", "11/12", "5/6"],
+                                    "answer": "1",
+                                    "explanation": "5/12 + 7/12 = 12/12 = 1 whole.",
+                                    "mistake_tag": "Simplifying fraction sums"
+                                }
+                            ]
+                        },
+                        "project": {
+                            "intro": "Apply addition of like-denominator fractions to a simple measurement situation.",
+                            "questions": [
+                                {
+                                    "id": "fractions_l2_dpath_p1",
+                                    "type": "mc",
+                                    "stage": "project",
+                                    "skill_tag": "Adding fractional measurements",
+                                    "prompt": "A ribbon is 3/10 m long and another piece is 4/10 m. What is their combined length?",
+                                    "options": ["7/10 m", "7/20 m", "1/10 m", "3/10 m"],
+                                    "answer": "7/10 m",
+                                    "explanation": "Both lengths are tenths, so add 3 tenths and 4 tenths to get 7/10 m.",
+                                    "mistake_tag": "Adding fractional measurements"
+                                }
+                            ]
+                        }
+                    }
+                },
             },
             {
                 "id": "fractions_l3",

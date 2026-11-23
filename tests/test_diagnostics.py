@@ -325,5 +325,54 @@ class DiagnosticEngineTests(unittest.TestCase):
         self.assertEqual(len(question["options"]), len(set(question["options"])))
         self.assertIn(question["answer"], question["options"])
 
+def test_grade7_adding_fractions_diagnostic_is_valid_and_complete(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l2")
+        config = lesson.get("diagnostic")
+        self.assertIsNotNone(config)
+        self.assertEqual(diagnostics.validate_diagnostic_config(config), [])
+        self.assertEqual(
+            [q["stage"] for q in config["questions"]],
+            ["prerequisite", "level_1", "level_2", "level_3", "project"],
+        )
+        self.assertEqual(len({q["skill_tag"] for q in config["questions"]}), 5)
+        self.assertEqual(len({q["id"] for q in config["questions"]}), 5)
+        for question in config["questions"]:
+            with self.subTest(question=question["id"]):
+                self.assertEqual(len(question["options"]), len(set(question["options"])))
+                self.assertIn(question["answer"], question["options"])
+                self.assertTrue(question["explanation"].strip())
+
+    def test_grade7_adding_fractions_diagnostic_correct_answers_route_to_project(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l2")
+        config = lesson["diagnostic"]
+        answers = {q["id"]: q["answer"] for q in config["questions"]}
+        result = diagnostics.evaluate_diagnostic(config, answers)
+        self.assertEqual(result["score"], 5)
+        self.assertEqual(result["outcome_key"], "project")
+        self.assertEqual(result["weaknesses"], [])
+
+    def test_grade7_adding_fractions_diagnostic_missed_denominator_skill_is_tagged(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l2")
+        config = lesson["diagnostic"]
+        answers = {q["id"]: q["answer"] for q in config["questions"]}
+        target = next(q for q in config["questions"] if q["stage"] == "level_2")
+        answers[target["id"]] = deliberately_wrong_answer(target)
+        result = diagnostics.evaluate_diagnostic(config, answers)
+        self.assertEqual(result["score"], 4)
+        self.assertEqual(result["outcome_key"], "level_3")
+        self.assertIn(
+            target["skill_tag"],
+            [w["skill_tag"] for w in result["weaknesses"]],
+        )
+
+    def test_grade7_adding_fractions_diagnostic_does_not_reuse_lesson_practice_item_ids(self):
+        lesson, _ = data.get_lesson("fractions", "fractions_l2")
+        diagnostic_ids = {q["id"] for q in lesson["diagnostic"]["questions"]}
+        lesson_ids = {q["id"] for q in lesson.get("questions", [])}
+        interactive_id = lesson.get("interactive_question", {}).get("id")
+        self.assertTrue(diagnostic_ids.isdisjoint(lesson_ids))
+        self.assertNotIn(interactive_id, diagnostic_ids)
+
+
 if __name__ == "__main__":
     unittest.main()
