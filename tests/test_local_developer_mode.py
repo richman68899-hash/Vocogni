@@ -91,6 +91,39 @@ class LocalDeveloperPersistenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Supabase is disabled"):
                 persistence.get_supabase()
 
+
+    def test_synthetic_backup_does_not_overwrite_a_backup_created_during_save(self):
+        snapshot = {
+            "profile": {"name": "Original local workspace"},
+            "progress": {},
+            "notes": [],
+            "whiteboards": [],
+            "note_folders": [],
+            "next_note_folder_id": 1,
+            "milestones": [],
+            "next_milestone_id": 1,
+            "settings": {},
+            "streak_garden": {"trees": []},
+            "next_note_id": 1,
+        }
+        destination = Path(self.temp_dir.name) / "pre_synthetic_learner.json"
+        competing_payload = '{"created_by": "competing session"}'
+
+        def create_competing_backup(source, target):
+            Path(target).write_text(competing_payload, encoding="utf-8")
+            raise FileExistsError("Destination was created concurrently.")
+
+        with patch.object(persistence.os, "link", side_effect=create_competing_backup):
+            with self.assertRaisesRegex(FileExistsError, "created by another session"):
+                persistence.save_synthetic_learner_backup(snapshot)
+
+        self.assertEqual(destination.read_text(encoding="utf-8"), competing_payload)
+        self.assertEqual(
+            list(Path(self.temp_dir.name).glob("pre_synthetic_learner.*.tmp")),
+            [],
+            "The losing writer must clean up its temporary file.",
+        )
+
     def test_synthetic_backup_round_trips_and_cannot_be_overwritten(self):
         snapshot = {
             "profile": {"name": "Original local workspace"},

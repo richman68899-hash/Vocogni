@@ -23,7 +23,7 @@
 3. Make the backup-overwrite test reach the intended overwrite guard using a valid snapshot.
 4. Add an explicit regression test for incomplete-snapshot rejection.
 
-**Validation status:** These changes are committed to the PR branch. GitHub Actions must run on the PR commit; I have not executed the suite locally in this environment. Do not interpret the fixes as a verified green build until the PR workflows complete.
+**Validation status at the #207 merge:** The Python test suite, diagnostics workflow, and AI prototype checks passed on the PR head. After merge, the Python test suite and diagnostics workflow also passed on `main` at merge commit `8e9c9eb5c34ee53524ee2294b819b0e47f0154ac`. The course-quality workflow did **not** pass; its exact result is recorded below. I did not execute the suite locally in this environment.
 
 ## Phase 2 — Learning-content readiness
 
@@ -87,13 +87,79 @@ Store evidence references—not learner identifiers, identity documents, private
 6. incident tabletop and support-contact readiness;
 7. release SHA and rollback evidence.
 
-## PR acceptance and follow-on order
+## Verified CI outcome for PR #207 (2026-11-22)
 
-1. Review this PR and wait for its CI runs.
-2. If green, merge the test repair only after inspecting the workflow results.
-3. Separately create/track Phase 2 content-review work; keep question statuses honest until qualified review is complete.
-4. Separately track Phase 3 implementation/evidence. Do not unlock real learners based solely on this report or the repository's static audits.
-5. Phase 4 independent learner acceptance can start only after the appropriate adult-led legal, safeguarding, and infrastructure gates are satisfied.
+PR #207 was merged into `main` as `8e9c9eb5c34ee53524ee2294b819b0e47f0154ac`.
+
+| Workflow | PR-head result | Post-merge `main` result |
+|---|---|---|
+| Python tests | Pass | Pass |
+| Vocogni diagnostics checks | Pass | Pass |
+| AI prototype checks | Pass | Not triggered by the `main` push workflow configuration |
+| Course quality audits | **Fail** | **Fail** |
+
+Evidence:
+- [PR Python tests](https://github.com/richman68899-hash/Vocogni/actions/runs/45033322360)
+- [PR diagnostics checks](https://github.com/richman68899-hash/Vocogni/actions/runs/45033322341)
+- [PR AI prototype checks](https://github.com/richman68899-hash/Vocogni/actions/runs/45033322364)
+- [PR course-quality audit](https://github.com/richman68899-hash/Vocogni/actions/runs/45033322303)
+- [Post-merge Python tests](https://github.com/richman68899-hash/Vocogni/actions/runs/45033504616)
+- [Post-merge diagnostics checks](https://github.com/richman68899-hash/Vocogni/actions/runs/45033504538)
+- [Post-merge course-quality audit](https://github.com/richman68899-hash/Vocogni/actions/runs/45033504519)
+
+The course-quality job produced these results:
+- Learning-core audit: 7 courses, 49 lessons, 212 unique questions, 0 structural errors, 152 warnings. This audit exits successfully in strict mode because the warnings are not classified as errors.
+- Pilot readiness audit: 11/12 lessons structurally ready, 2 errors, 6 warnings.
+- Both pilot-readiness errors are in `fractions/fractions_l2` (Adding Fractions): 0 verified questions and 0 verified practice questions, against requirements of at least 2 of each.
+- The lesson has 3 `ai_reviewed` items. They are not counted as `verified`, correctly preserving the distinction between AI-assisted review and the VQE verified status.
+
+The failing workflow is a valid product-quality gate, not a test-runner problem. Do not make it green by weakening strict checks, relabelling AI-reviewed items as verified, or silently excluding a lesson from strict retrieval. The current `question_engine.PILOT_LESSONS` set contains 12 lessons across five courses. The Algebra Basics pathway is a possible narrow first pathway, but changing the actual pilot scope requires a deliberate product decision and regression tests proving out-of-scope lessons are not presented as pilot-ready.
+
+## PR #208 — latest Phase 1 follow-up validation (2026-11-22)
+
+Latest PR head: `5e74ba402190dd1ca3cbb748951c0524e2d01e48`.
+
+| Workflow | Result |
+|---|---|
+| Python tests, including full unittest discovery and compileall | Pass |
+| Vocogni diagnostics checks | Pass |
+| AI prototype checks | Pass |
+| Strict course-quality audit | **Fail — existing Adding Fractions gate** |
+
+Evidence:
+- [PR #208 Python tests](https://github.com/richman68899-hash/Vocogni/actions/runs/45033994482)
+- [PR #208 diagnostics checks](https://github.com/richman68899-hash/Vocogni/actions/runs/45033994494)
+- [PR #208 AI prototype checks](https://github.com/richman68899-hash/Vocogni/actions/runs/45033994438)
+- [PR #208 course-quality audit](https://github.com/richman68899-hash/Vocogni/actions/runs/45033994471)
+
+The new backup no-clobber implementation and regression test are included in the successful full Python suite. The strict content gate remains failed for the separate, unchanged Adding Fractions coverage issue. PR #208 is open and has not been merged. Do not bypass the course-quality gate to create the appearance of a fully green release.
+
+## Website and frontend assessment — source-level only
+
+**Live rendering was not verified.** The supplied Streamlit deployment URL was not accessible through the available page viewer. The following observations come from repository source, not a browser session, screenshots, device testing, or user testing.
+
+### Positive implementation choices
+- The primary learner journey is easy to identify: Browse → Course → Lesson, with one persistent Learn navigation entry.
+- Browse surfaces the next recommended action and the most recently active course before secondary filters.
+- Course cards expose difficulty, course status, and completion progress; search is visible while secondary filters are collapsed by default.
+- Course-entry diagnostics are described as placement guidance rather than graded school tests.
+- The Progress page provides a compact overview and puts detailed panels behind labelled expanders. It explicitly warns that score differences are descriptive and do not prove learning gain.
+- The visual system includes a narrow content width, mobile-width CSS adjustments, visible focus styles, and reduced-motion handling.
+
+### Issues to resolve or verify
+1. **Third-party font dependency:** `styles.py` imports Inter, Manrope, Source Serif 4, and Atkinson Hyperlegible from Google Fonts. This creates a browser-side third-party request and must be included in the privacy/vendor and transfer review for a child-facing product. Consider system-font fallbacks or a properly licensed self-hosted font strategy after checking the exact deployment constraints.
+2. **Study Guide scope:** `app.py` renders the Study Guide only while the selected navigation route is Browse. Confirm that this is intentional; if the assistant is meant to be globally available, move its launcher/rendering into the shared application shell and add navigation regression tests.
+3. **CSS maintainability:** `styles.py` contains multiple successive product-polish blocks that restate and override several selectors. This makes the final cascade harder to reason about. Consolidate duplicate rules into a single token-driven layer after visual regression coverage exists; do not perform a large untested CSS rewrite as part of the CI hotfix.
+4. **Responsive acceptance:** CSS contains a breakpoint at 800px, but actual Streamlit column stacking, forms, lesson controls, and the Study Guide panel have not been checked at phone, tablet, and desktop widths. Capture and review those states before any learner pilot.
+5. **Accessibility acceptance:** Source includes focus and reduced-motion rules, but there is no completed keyboard-only, screen-reader, zoom/reflow, contrast, or actual-device accessibility review. Treat those as unverified rather than claiming WCAG conformance.
+
+## Follow-on order
+
+1. Keep the two Phase 1 test repairs from #207; their Python and diagnostics CI checks pass after merge.
+2. Keep [PR #208](https://github.com/richman68899-hash/Vocogni/pull/208) open and unmerged while the strict course-quality check remains red. Its Python, diagnostics, and AI workflows pass; the new backup race regression test is covered by the successful full Python suite.
+3. Phase 2 remains open: obtain qualified independent mathematics review for the intended pilot scope; create or revise application/reasoning items where transfer is claimed; rerun the strict audit without falsifying verification status.
+4. Phase 3 remains open: an accountable adult operator and qualified Indonesian counsel must decide legal eligibility, child profiling, age assurance, guardian authorisation, required assessments/notices/registrations, and feature scope. An independent technical reviewer must verify production identity, database isolation, secrets, providers, retention/deletion, backup restore, monitoring, incident response, and rollback.
+5. Do not unlock real learners or declare release-ready until the exact release configuration has evidence for all required gates. Phase 4 learner acceptance starts only after those adult-led legal, safeguarding, and infrastructure gates are satisfied.
 
 ## Explicit limitations
 

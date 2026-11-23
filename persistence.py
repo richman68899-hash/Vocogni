@@ -136,13 +136,24 @@ def save_synthetic_learner_backup(snapshot: dict[str, Any]) -> None:
         ) as temporary:
             temporary_path = Path(temporary.name)
             json.dump(payload, temporary, ensure_ascii=False, indent=2, allow_nan=False)
-        # Recheck immediately before replacement so a concurrent session does
-        # not silently replace a backup that another session just created.
-        if path.exists():
+            temporary.write("\n")
+            temporary.flush()
+            os.fsync(temporary.fileno())
+
+        # Create the destination without replacement. A hard link on the
+        # same filesystem is atomic and fails with FileExistsError if another
+        # session has already created the backup.
+        try:
+            os.link(temporary_path, path)
+        except FileExistsError:
             raise FileExistsError(
                 "A synthetic learner backup was created by another session."
-            )
-        os.replace(temporary_path, path)
+            ) from None
+        temporary_path.unlink()
+    except FileExistsError:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise
     except (OSError, TypeError, ValueError) as exc:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
